@@ -1,108 +1,95 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { supabase } from '../lib/supabase'
 
-export default function Home() {
-  const [prompt, setPrompt] = useState('')
-  const [code, setCode] = useState('')
+export default function AuthPage() {
+  const [isLogin, setIsLogin] = useState(true)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
 
-  // Puter.js kütüphanesini sayfaya yükle
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://js.puter.com/v2/'
-    script.async = true
-    document.body.appendChild(script)
-  }, [])
-
-  const handleGenerate = async () => {
-    if (!prompt) {
-      alert('Lütfen bir site fikri yazın.')
-      return
-    }
-
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
     setLoading(true)
-    setError('')
-    setCode('')
+    setMessage('')
 
     try {
-      // Gerçek AI'ya istek at (Puter.js üzerinden)
-      const aiPrompt = `Sen kıdemli bir front-end geliştiricisin. Aşağıdaki fikir için TEK DOSYA halinde, eksiksiz, çalışan bir HTML/CSS/JS sitesi üret.
-      
-KURALLAR:
-- SADECE kod yaz, açıklama yazma.
-- Harici kütüphane kullanma (CDN yasak).
-- Modern, responsive, mobil uyumlu olsun.
-- Gerçek içerik koy (lorem ipsum değil).
-- Animasyonlar, hover efektleri olsun.
-
-FİKİR: ${prompt}
-
-Sadece \`\`\`html ile başlayan kodu ver.`;
-
-      // puter.ai.chat fonksiyonunu çağır
-      // @ts-ignore
-      const response = await puter.ai.chat(aiPrompt, { model: 'gpt-4o-mini' })
-      
-      // Gelen yanıtı temizle
-      let rawCode = response
-      if (rawCode.includes('```html')) {
-        rawCode = rawCode.split('```html')[1].split('```')[0]
-      } else if (rawCode.includes('```')) {
-        rawCode = rawCode.split('```')[1].split('```')[0]
+      if (isLogin) {
+        // Giriş Yap
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+        setMessage('Giriş başarılı! Yönlendiriliyorsunuz...')
+        // Gerçek uygulamada burada dashboard'a yönlendireceğiz
+      } else {
+        // Kayıt Ol
+        const { error } = await supabase.auth.signUp({ email, password })
+        if (error) throw error
+        setMessage('Kayıt başarılı! Lütfen e-postanızı kontrol edin veya giriş yapın.')
+        setIsLogin(true)
       }
-      
-      setCode(rawCode.trim())
-    } catch (err: any) {
-      console.error(err)
-      setError('Hata: ' + err.message)
+    } catch (error: any) {
+      setMessage('Hata: ' + error.message)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex h-screen bg-[#05070d] text-white font-sans">
-      {/* SOL PANEL */}
-      <div className="flex-1 p-6 border-r border-[#1e3550] flex flex-col gap-4">
-        <h2 className="text-xl font-bold text-[#25f4ee]">PromptForge</h2>
+    <div className="flex h-screen items-center justify-center bg-[#05070d] text-white font-sans">
+      <div className="w-full max-w-md p-8 bg-[#0b111c] border border-[#1e3550] rounded-xl shadow-[0_0_40px_rgba(37,244,238,0.15)]">
         
-        <label className="text-sm text-gray-400">SİTE FİKRİNİZ</label>
-        <textarea 
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Örn: Karanlık temalı bir kartvizit sitesi..."
-          className="w-full h-32 bg-[#0b111c] text-white border border-[#1e3550] rounded-lg p-3 resize-none outline-none focus:border-[#25f4ee]"
-        />
-        
-        <button 
-          onClick={handleGenerate}
-          disabled={loading}
-          className="w-full py-3 bg-[#25f4ee] text-black font-bold rounded-lg hover:bg-cyan-300 transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Üretiliyor...' : '🚀 ÜRET'}
-        </button>
+        <h1 className="text-2xl font-bold text-center text-[#25f4ee] mb-2">PromptForge</h1>
+        <p className="text-center text-gray-400 text-sm mb-6">
+          {isLogin ? 'Hesabınıza giriş yapın' : 'Yeni bir hesap oluşturun'}
+        </p>
 
-        {error && (
-          <div className="p-3 bg-red-900/30 border border-red-500 text-red-400 rounded-lg text-sm">
-            {error}
+        {message && (
+          <div className="p-3 mb-4 text-sm text-center bg-[#1e3550] rounded border border-[#25f4ee] text-[#25f4ee]">
+            {message}
           </div>
         )}
-      </div>
 
-      {/* SAĞ PANEL (ÖNİZLEME) */}
-      <div className="flex-1 bg-white">
-        {code ? (
-          <iframe 
-            srcDoc={code} 
-            className="w-full h-full border-none" 
-            title="Önizleme"
-          />
-        ) : (
-          <div className="flex h-full justify-center items-center text-gray-500">
-            {loading ? 'AI Kod Üretiyor, Lütfen Bekleyin...' : 'Canlı Önizleme Bekleniyor...'}
+        <form onSubmit={handleAuth} className="flex flex-col gap-4">
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">E-POSTA</label>
+            <input 
+              type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 bg-[#05070d] border border-[#1e3550] rounded-lg text-white outline-none focus:border-[#25f4ee]"
+              required 
+            />
           </div>
-        )}
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">ŞİFRE</label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 bg-[#05070d] border border-[#1e3550] rounded-lg text-white outline-none focus:border-[#25f4ee]"
+              required 
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-3 mt-2 bg-[#25f4ee] text-black font-bold rounded-lg hover:bg-cyan-300 transition disabled:opacity-50"
+          >
+            {loading ? 'İşleniyor...' : (isLogin ? 'GİRİŞ YAP' : 'KAYIT OL')}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <button 
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-sm text-gray-400 hover:text-[#25f4ee] transition"
+          >
+            {isLogin ? 'Hesabınız yok mu? Kayıt Olun' : 'Zaten hesabınız var mı? Giriş Yapın'}
+          </button>
+        </div>
+
       </div>
     </div>
   )
