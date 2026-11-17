@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 
+// Kodu HTML, CSS ve JS olarak ayıran fonksiyon
 function parseCode(rawText: string) {
   let html = ''
   let css = ''
@@ -33,9 +34,12 @@ export default function Home() {
   const [codeJs, setCodeJs] = useState('')
   const [activeTab, setActiveTab] = useState('html')
 
-  // Kodu yapıştırma modalı için state'ler
+  // Kodu yapıştırma modalı
   const [showPasteModal, setShowPasteModal] = useState(false)
   const [pasteText, setPasteText] = useState('')
+
+  // Kopyalama bildirimi
+  const [copied, setCopied] = useState(false)
 
   const handleGenerate = async () => {
     if (!prompt) { alert('Lütfen bir site fikri yazın.'); return; }
@@ -69,8 +73,8 @@ KURALLAR:
     }
   }
 
-  // Yapıştırılan kodu ayıklama fonksiyonu
-  const handlePasteCode = () => {
+  // Sadece yapıştırılan kodu ayıklama (AI'ya göndermeden)
+  const handleJustSplit = () => {
     if(!pasteText) return;
     const parsed = parseCode(pasteText);
     setCodeHtml(parsed.html);
@@ -79,6 +83,17 @@ KURALLAR:
     setActiveTab('html');
     setShowPasteModal(false);
     setPasteText('');
+  }
+
+  // Aktif sekmedeki kodu kopyalama
+  const handleCopy = () => {
+    const textToCopy = activeTab === 'html' ? codeHtml : activeTab === 'css' ? codeCss : codeJs;
+    if(!textToCopy) return;
+    
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }
 
   const combinedCode = `
@@ -99,8 +114,8 @@ KURALLAR:
       {showPasteModal && (
         <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-[#12141a] border border-[#2a2e3b] rounded-xl w-full max-w-2xl p-6 flex flex-col gap-4">
-            <h3 className="text-lg font-bold text-[#25f4ee]">Kodu Yapıştır (HTML/CSS/JS)</h3>
-            <p className="text-xs text-gray-400">İçinde &lt;style&gt; ve &lt;script&gt; etiketleri olan dağınık bir kod yapıştırın. Sistem otomatik olarak dosyalara ayıracaktır.</p>
+            <h3 className="text-lg font-bold text-[#25f4ee]">Kodu Yapıştır ve Ayır</h3>
+            <p className="text-xs text-gray-400">İçinde &lt;style&gt; ve &lt;script&gt; etiketleri olan dağınık bir kod yapıştırın. Sistem AI'ya göndermeden direkt dosyalara ayıracaktır.</p>
             <textarea 
               value={pasteText} onChange={(e) => setPasteText(e.target.value)}
               className="w-full h-64 bg-[#0b0c10] text-white border border-[#2a2e3b] rounded-lg p-3 text-xs font-mono resize-none outline-none focus:border-[#25f4ee]"
@@ -108,7 +123,7 @@ KURALLAR:
             />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setShowPasteModal(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white">İPTAL</button>
-              <button onClick={handlePasteCode} className="px-4 py-2 text-sm bg-[#25f4ee] text-black font-bold rounded-lg hover:bg-cyan-300">AYIR VE YÜKLE</button>
+              <button onClick={handleJustSplit} className="px-4 py-2 text-sm bg-[#25f4ee] text-black font-bold rounded-lg hover:bg-cyan-300">SADECE DOSYALARA AYIR</button>
             </div>
           </div>
         </div>
@@ -137,10 +152,18 @@ KURALLAR:
 
       {/* SAĞ PANEL */}
       <div className="w-full md:w-2/3 h-2/3 md:h-full flex flex-col">
-        <div className="flex bg-[#12141a] border-b border-[#2a2e3b] overflow-x-auto">
-          <button onClick={() => setActiveTab('html')} className={`px-4 py-3 text-xs whitespace-nowrap ${activeTab === 'html' ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]' : 'text-[#8b92a5] border-r border-[#2a2e3b]'}`}>🌐 index.html</button>
-          <button onClick={() => setActiveTab('css')} className={`px-4 py-3 text-xs whitespace-nowrap ${activeTab === 'css' ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]' : 'text-[#8b92a5] border-r border-[#2a2e3b]'}`}>🎨 styles.css</button>
-          <button onClick={() => setActiveTab('js')} className={`px-4 py-3 text-xs whitespace-nowrap ${activeTab === 'js' ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]' : 'text-[#8b92a5] border-r border-[#2a2e3b]'}`}>⚡ script.js</button>
+        
+        {/* SEKMELLER VE KOPYALA BUTONU */}
+        <div className="flex bg-[#12141a] border-b border-[#2a2e3b] justify-between items-center pr-4">
+          <div className="flex overflow-x-auto">
+            <button onClick={() => setActiveTab('html')} className={`px-4 py-3 text-xs whitespace-nowrap ${activeTab === 'html' ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]' : 'text-[#8b92a5] border-r border-[#2a2e3b]'}`}>🌐 index.html</button>
+            <button onClick={() => setActiveTab('css')} className={`px-4 py-3 text-xs whitespace-nowrap ${activeTab === 'css' ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]' : 'text-[#8b92a5] border-r border-[#2a2e3b]'}`}>🎨 styles.css</button>
+            <button onClick={() => setActiveTab('js')} className={`px-4 py-3 text-xs whitespace-nowrap ${activeTab === 'js' ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]' : 'text-[#8b92a5] border-r border-[#2a2e3b]'}`}>⚡ script.js</button>
+          </div>
+          
+          <button onClick={handleCopy} className="text-xs px-3 py-1 bg-[#2a2e3b] text-white rounded hover:bg-[#3a3f52] transition flex items-center gap-1">
+            {copied ? '✅ Kopyalandı' : '📋 Kopyala'}
+          </button>
         </div>
 
         <div className="flex-1 bg-[#0b0c10] overflow-hidden relative">
@@ -165,4 +188,4 @@ KURALLAR:
       </div>
     </div>
   )
-          }
+}
