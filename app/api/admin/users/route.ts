@@ -90,7 +90,6 @@ export async function GET(request: NextRequest) {
 
   const [
     pendingResult,
-    usersResult,
     projectsResult,
     recentResult,
     allUsersResult,
@@ -100,10 +99,6 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('approval_status', 'pending')
       .order('created_at', { ascending: false }),
-
-    adminClient
-      .from('users')
-      .select('id', { count: 'exact', head: true }),
 
     adminClient
       .from('projects')
@@ -121,20 +116,43 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false }),
   ])
 
-  if (pendingResult.error || usersResult.error || projectsResult.error) {
+  console.log('ADMIN DATA DEBUG:', {
+    pendingError: pendingResult.error,
+    projectsError: projectsResult.error,
+    recentError: recentResult.error,
+    allUsersError: allUsersResult.error,
+    usersCount: allUsersResult.data?.length,
+  })
+
+  if (
+    pendingResult.error ||
+    projectsResult.error ||
+    recentResult.error ||
+    allUsersResult.error
+  ) {
     return NextResponse.json(
-      { error: 'Veriler alınırken hata oluştu.' },
+      {
+        error: 'Veriler alınırken hata oluştu.',
+        details: {
+          pending: pendingResult.error?.message,
+          projects: projectsResult.error?.message,
+          recent: recentResult.error?.message,
+          users: allUsersResult.error?.message,
+        },
+      },
       { status: 500 }
     )
   }
 
+  const users = allUsersResult.data || []
+
   return NextResponse.json({
     pendingUsers: pendingResult.data || [],
-    totalUsers: usersResult.count || 0,
+    totalUsers: users.length,
     pendingCount: pendingResult.data?.length || 0,
     totalProjects: projectsResult.count || 0,
     recentUsers: recentResult.data || [],
-    users: allUsersResult.data || [],
+    users,
   })
 }
 
