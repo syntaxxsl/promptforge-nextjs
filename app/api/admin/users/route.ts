@@ -13,27 +13,19 @@ async function checkAdmin(request: Request) {
     : null
 
   if (!token) {
-    console.log('ADMIN DEBUG: Token bulunamadı')
     return { error: 'Oturum bulunamadı.', status: 401 }
   }
 
   if (!url || !publicKey || !secretKey) {
-    console.error('ADMIN DEBUG: Environment variable eksik', {
-      hasUrl: !!url,
-      hasPublicKey: !!publicKey,
-      hasSecretKey: !!secretKey,
-    })
     return { error: 'Sunucu yapılandırması eksik.', status: 500 }
   }
 
   const authClient = createClient(url, publicKey)
+
   const { data: authData, error: authError } =
     await authClient.auth.getUser(token)
 
   if (authError || !authData.user) {
-    console.error('ADMIN DEBUG: Auth başarısız', {
-      message: authError?.message,
-    })
     return { error: 'Geçersiz oturum.', status: 401 }
   }
 
@@ -49,13 +41,6 @@ async function checkAdmin(request: Request) {
     .select('role, approval_status')
     .eq('id', authData.user.id)
     .single()
-
-  console.log('ADMIN DEBUG:', {
-    userId: authData.user.id,
-    email: authData.user.email,
-    profile,
-    profileError: error?.message,
-  })
 
   if (
     error ||
@@ -78,21 +63,69 @@ export async function GET(request: Request) {
     )
   }
 
-  const { data, error } = await result.adminClient
-    .from('users')
-    .select('id, email, approval_status, created_at')
-    .eq('approval_status', 'pending')
-    .order('created_at', { ascending: true })
+  const [
+    pendingResult,
+    totalUsersResult,
+    pendingCountResult,
+    totalProjectsResult,
+    recentUsersResult,
+  ] = await Promise.all([
+    result.adminClient
+      .from('users')
+      .select('id, email, approval_status, created_at')
+      .eq('approval_status', 'pending')
+      .order('created_at', { ascending: true }),
 
-  if (error) {
-    console.error('ADMIN DEBUG: Liste hatası', error.message)
+    result.adminClient
+      .from('users')
+      .select('id', { count: 'exact', head: true }),
+
+    result.adminClient
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('approval_status', 'pending'),
+
+    result.adminClient
+      .from('projects')
+      .select('id', { count: 'exact', head: true }),
+
+    result.adminClient
+      .from('users')
+      .select('id, email, approval_status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ])
+
+  if (
+    pendingResult.error ||
+    totalUsersResult.error ||
+    pendingCountResult.error ||
+    totalProjectsResult.error ||
+    recentUsersResult.error
+  ) {
+    console.error('ADMIN DASHBOARD ERROR:', {
+      pending: pendingResult.error?.message,
+      users: totalUsersResult.error?.message,
+      pendingCount: pendingCountResult.error?.message,
+      projects: totalProjectsResult.error?.message,
+      recent: recentUsersResult.error?.message,
+    })
+
     return NextResponse.json(
-      { error: 'Kullanıcılar alınamadı.' },
+      { error: 'Dashboard verileri alınamadı.' },
       { status: 500 }
     )
   }
 
-  return NextResponse.json({ users: data })
+  return NextResponse.json({
+    users: pendingResult.data || [],
+    stats: {
+      totalUsers: totalUsersResult.count || 0,
+      pendingUsers: pendingCountResult.count || 0,
+      totalProjects: totalProjectsResult.count || 0,
+    },
+    recentUsers: recentUsersResult.data || [],
+  })
 }
 
 export async function PATCH(request: Request) {
@@ -136,7 +169,8 @@ export async function PATCH(request: Request) {
     .eq('approval_status', 'pending')
 
   if (error) {
-    console.error('ADMIN DEBUG: Onay hatası', error.message)
+    console.error('ADMIN ONAY HATASI:', error.message)
+
     return NextResponse.json(
       { error: 'İşlem gerçekleştirilemedi.' },
       { status: 500 }
