@@ -68,6 +68,12 @@ export default function Home() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
 
+  // AI Editor 2.0
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [fixLoading, setFixLoading] = useState(false)
+  const [reviewResult, setReviewResult] = useState('')
+  const [previewSize, setPreviewSize] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
+
   // Dashboard özellikleri
   const [activeView, setActiveView] = useState<'dashboard' | 'editor'>('dashboard')
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
@@ -254,6 +260,7 @@ export default function Home() {
     setCodeJs('')
     setError('')
     setChatInput('')
+    setReviewResult('')
     setActiveTab('html')
     setActiveView('editor')
   }
@@ -367,6 +374,10 @@ KULLANICI İSTEĞİ: ${changeRequest}`
 
       const parsed = parseCode(rawText)
 
+      if (!parsed.html.trim()) {
+        throw new Error('AI geçerli HTML kodu döndürmedi.')
+      }
+
       setCodeHtml(parsed.html)
       setCodeCss(parsed.css)
       setCodeJs(parsed.js)
@@ -377,6 +388,154 @@ KULLANICI İSTEĞİ: ${changeRequest}`
       setError('Revizyon Hatası: ' + (err.message || 'Bilinmeyen hata'))
     } finally {
       setChatLoading(false)
+    }
+  }
+
+  // AI KOD ANALİZİ
+  const handleCodeReview = async () => {
+    if (!codeHtml.trim()) {
+      alert('Önce bir proje oluşturmalısın.')
+      return
+    }
+
+    setReviewLoading(true)
+    setReviewResult('')
+    setError('')
+
+    try {
+      const currentCode = `HTML:
+${codeHtml}
+
+CSS:
+${codeCss}
+
+JavaScript:
+${codeJs}`
+
+      const aiPrompt = `Sen deneyimli bir front-end kod inceleme uzmanısın.
+
+Aşağıdaki HTML, CSS ve JavaScript kodlarını incele.
+
+Şunları kontrol et:
+1. HTML yapısındaki sorunlar
+2. CSS hataları ve responsive problemleri
+3. JavaScript hataları
+4. Eksik veya yanlış bağlantılar
+5. Performans sorunları
+6. Erişilebilirlik eksikleri
+
+Her sorun için:
+- Sorunun ne olduğunu yaz.
+- Hangi dosyada olduğunu belirt.
+- Nasıl düzeltileceğini açıkla.
+
+Sorun yoksa bunu açıkça belirt.
+Kodları değiştirme. Sadece analiz raporu oluştur.
+
+KODLAR:
+${currentCode}`
+
+      // @ts-ignore
+      const response = await puter.ai.chat(aiPrompt, {
+        model: 'gpt-4o-mini',
+      })
+
+      const result = typeof response === 'string'
+        ? response
+        : (response.message?.content || response.text || String(response))
+
+      setReviewResult(result)
+      addNotification('Kod analizi tamamlandı', 'AI projenin kodlarını inceledi.')
+    } catch (err: any) {
+      setError('Analiz hatası: ' + (err.message || 'Bilinmeyen hata'))
+    } finally {
+      setReviewLoading(false)
+    }
+  }
+
+  // OTOMATİK HATA DÜZELTME
+  const handleAutoFix = async () => {
+    if (!codeHtml.trim()) {
+      alert('Önce bir proje oluşturmalısın.')
+      return
+    }
+
+    const confirmed = confirm(
+      'AI mevcut kodlarını inceleyip düzeltilmiş sürümü oluşturacak. Devam edilsin mi?'
+    )
+
+    if (!confirmed) return
+
+    setFixLoading(true)
+    setError('')
+
+    try {
+      const currentCode = `---HTML---
+${codeHtml}
+---CSS---
+${codeCss}
+---JS---
+${codeJs}`
+
+      const aiPrompt = `Sen kıdemli bir front-end geliştiricisin.
+
+Aşağıdaki web sitesi kodlarını incele ve hataları düzelt.
+
+KURALLAR:
+- HTML, CSS ve JavaScript hatalarını düzelt.
+- Çalışan özellikleri koru.
+- Tasarımın genel görünümünü gereksiz yere değiştirme.
+- Responsive sorunlarını düzelt.
+- Eksik bağlantıları ve gerekli kodları tamamla.
+- Kodları kısaltma veya gereksiz yere silme.
+- Üç dosyayı da eksiksiz döndür.
+- Açıklama yazma, sadece kodları ver.
+
+ÇIKTI FORMATI:
+---HTML---
+HTML kodu
+---CSS---
+CSS kodu
+---JS---
+JavaScript kodu
+
+MEVCUT KODLAR:
+${currentCode}`
+
+      // @ts-ignore
+      const response = await puter.ai.chat(aiPrompt, {
+        model: 'gpt-4o-mini',
+      })
+
+      let rawText = typeof response === 'string'
+        ? response
+        : (response.message?.content || response.text || String(response))
+
+      rawText = rawText
+        .replace(/```(?:html|css|javascript|js)?/gi, '')
+        .replace(/```/g, '')
+        .trim()
+
+      const parsed = parseCode(rawText)
+
+      if (!parsed.html.trim()) {
+        throw new Error('AI geçerli HTML kodu döndürmedi. Mevcut kodların korunuyor.')
+      }
+
+      setCodeHtml(parsed.html)
+      setCodeCss(parsed.css)
+      setCodeJs(parsed.js)
+      setActiveTab('html')
+      setReviewResult('Kodlar AI tarafından düzeltildi. Değişiklikleri canlı önizlemede kontrol edebilirsin.')
+
+      addNotification(
+        'Kodlar düzeltildi',
+        'AI düzeltilmiş kodları editöre aktardı.'
+      )
+    } catch (err: any) {
+      setError('Düzeltme hatası: ' + (err.message || 'Bilinmeyen hata'))
+    } finally {
+      setFixLoading(false)
     }
   }
 
@@ -441,6 +600,7 @@ KULLANICI İSTEĞİ: ${changeRequest}`
     setCodeHtml(project.html_code || '')
     setCodeCss(project.css_code || '')
     setCodeJs(project.js_code || '')
+    setReviewResult('')
     setShowProjects(false)
     setActiveView('editor')
   }
@@ -1006,6 +1166,54 @@ KULLANICI İSTEĞİ: ${changeRequest}`
                 </div>
               )}
 
+              {/* AI GELİŞTİRİCİ ARAÇLARI */}
+              {codeHtml && (
+                <div className="border-t border-[#2a2e3b] pt-4 mt-2">
+                  <h3 className="text-sm font-bold text-white mb-3">
+                    ✨ AI Geliştirici Araçları
+                  </h3>
+
+                  <div className="grid grid-cols-1 gap-2">
+                    <button
+                      onClick={handleCodeReview}
+                      disabled={reviewLoading || fixLoading}
+                      className="w-full py-3 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 text-sm font-bold disabled:opacity-50"
+                    >
+                      {reviewLoading ? '🔍 Kodlar inceleniyor...' : '🔍 AI Kod Analizi'}
+                    </button>
+
+                    <button
+                      onClick={handleAutoFix}
+                      disabled={fixLoading || reviewLoading}
+                      className="w-full py-3 rounded-lg bg-green-500/15 border border-green-500/30 text-green-300 text-sm font-bold disabled:opacity-50"
+                    >
+                      {fixLoading ? '⚙️ Kodlar düzeltiliyor...' : '🛠️ Otomatik Hata Düzelt'}
+                    </button>
+                  </div>
+
+                  {reviewResult && (
+                    <div className="mt-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <strong className="text-xs text-blue-300">
+                          AI Analiz Raporu
+                        </strong>
+
+                        <button
+                          onClick={() => setReviewResult('')}
+                          className="text-xs text-gray-400"
+                        >
+                          Kapat
+                        </button>
+                      </div>
+
+                      <div className="text-xs text-gray-200 whitespace-pre-wrap leading-6 max-h-64 overflow-y-auto">
+                        {reviewResult}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {error && (
                 <div className="p-3 bg-red-900/30 border border-red-500 text-red-400 rounded-lg text-xs">
                   {error}
@@ -1074,17 +1282,66 @@ KULLANICI İSTEĞİ: ${changeRequest}`
               />
             </div>
 
-            <div className="flex-1 bg-white border-t border-[#2a2e3b] flex flex-col relative">
-              <div className="bg-[#12141a] px-4 py-2 border-b border-[#2a2e3b] text-xs text-[#8b92a5]">
-                ▶ Canlı Önizleme
+            {/* CANLI ÖNİZLEME */}
+            <div className="flex-1 bg-white border-t border-[#2a2e3b] flex flex-col relative min-h-0">
+              <div className="bg-[#12141a] px-3 py-2 border-b border-[#2a2e3b] flex flex-wrap justify-between items-center gap-2">
+                <span className="text-xs text-[#8b92a5]">
+                  ▶ Canlı Önizleme
+                </span>
+
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setPreviewSize('desktop')}
+                    className={`px-2 py-1 rounded text-xs ${
+                      previewSize === 'desktop'
+                        ? 'bg-cyan-400 text-black'
+                        : 'bg-[#252936] text-gray-300'
+                    }`}
+                  >
+                    🖥️ PC
+                  </button>
+
+                  <button
+                    onClick={() => setPreviewSize('tablet')}
+                    className={`px-2 py-1 rounded text-xs ${
+                      previewSize === 'tablet'
+                        ? 'bg-cyan-400 text-black'
+                        : 'bg-[#252936] text-gray-300'
+                    }`}
+                  >
+                    📱 Tablet
+                  </button>
+
+                  <button
+                    onClick={() => setPreviewSize('mobile')}
+                    className={`px-2 py-1 rounded text-xs ${
+                      previewSize === 'mobile'
+                        ? 'bg-cyan-400 text-black'
+                        : 'bg-[#252936] text-gray-300'
+                    }`}
+                  >
+                    📲 Telefon
+                  </button>
+                </div>
               </div>
 
               {codeHtml ? (
-                <iframe
-                  srcDoc={combinedCode}
-                  className="flex-1 w-full border-none"
-                  title="Önizleme"
-                />
+                <div className="flex-1 min-h-0 w-full overflow-auto bg-[#20232b] flex justify-center">
+                  <iframe
+                    srcDoc={combinedCode}
+                    className="h-full min-h-[300px] border-none bg-white transition-all duration-300"
+                    style={{
+                      width:
+                        previewSize === 'mobile'
+                          ? '375px'
+                          : previewSize === 'tablet'
+                            ? '768px'
+                            : '100%',
+                      maxWidth: '100%',
+                    }}
+                    title="Responsive Önizleme"
+                  />
+                </div>
               ) : (
                 <div className="flex-1 flex justify-center items-center text-gray-500 text-sm">
                   Önizleme Bekleniyor...
