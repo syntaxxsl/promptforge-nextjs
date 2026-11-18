@@ -8,12 +8,31 @@ const secretKey = process.env.SUPABASE_SECRET_KEY!
 
 async function checkAdmin(request: Request) {
   const authHeader = request.headers.get('authorization')
+
   const token = authHeader?.startsWith('Bearer ')
     ? authHeader.slice(7)
     : null
 
   if (!token) {
-    return { error: 'Oturum bulunamadı.', status: 401 }
+    console.log('ADMIN DEBUG: Token bulunamadı')
+
+    return {
+      error: 'Oturum bulunamadı.',
+      status: 401,
+    }
+  }
+
+  if (!url || !publicKey || !secretKey) {
+    console.error('ADMIN DEBUG: Environment variable eksik', {
+      hasUrl: !!url,
+      hasPublicKey: !!publicKey,
+      hasSecretKey: !!secretKey,
+    })
+
+    return {
+      error: 'Sunucu yapılandırması eksik.',
+      status: 500,
+    }
   }
 
   const authClient = createClient(url, publicKey)
@@ -22,7 +41,14 @@ async function checkAdmin(request: Request) {
     await authClient.auth.getUser(token)
 
   if (authError || !authData.user) {
-    return { error: 'Geçersiz oturum.', status: 401 }
+    console.error('ADMIN DEBUG: Auth kontrolü başarısız', {
+      message: authError?.message,
+    })
+
+    return {
+      error: 'Geçersiz oturum.',
+      status: 401,
+    }
   }
 
   const adminClient = createClient(url, secretKey, {
@@ -38,12 +64,22 @@ async function checkAdmin(request: Request) {
     .eq('id', authData.user.id)
     .single()
 
+  console.log('ADMIN DEBUG:', {
+    userId: authData.user.id,
+    email: authData.user.email,
+    profile,
+    profileError: error?.message,
+  })
+
   if (
     error ||
     profile?.role !== 'admin' ||
     profile?.approval_status !== 'approved'
   ) {
-    return { error: 'Admin yetkisi gerekli.', status: 403 }
+    return {
+      error: 'Admin yetkisi gerekli.',
+      status: 403,
+    }
   }
 
   return { adminClient }
@@ -66,6 +102,10 @@ export async function GET(request: Request) {
     .order('created_at', { ascending: true })
 
   if (error) {
+    console.error('ADMIN DEBUG: Kullanıcı listesi alınamadı', {
+      message: error.message,
+    })
+
     return NextResponse.json(
       { error: 'Kullanıcılar alınamadı.' },
       { status: 500 }
@@ -116,6 +156,10 @@ export async function PATCH(request: Request) {
     .eq('approval_status', 'pending')
 
   if (error) {
+    console.error('ADMIN DEBUG: Onay işlemi başarısız', {
+      message: error.message,
+    })
+
     return NextResponse.json(
       { error: 'İşlem gerçekleştirilemedi.' },
       { status: 500 }
