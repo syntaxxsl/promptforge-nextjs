@@ -54,12 +54,35 @@ export default function Home() {
   const [showProjects, setShowProjects] = useState(false)
   const [saveStatus, setSaveStatus] = useState('')
 
+  const [projectSearch, setProjectSearch] = useState('')
+  const [projectSort, setProjectSort] = useState<'updated' | 'name'>('updated')
+
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
 
   const router = useRouter()
 
-  // Oturum ve normal admin rolü kontrolü
+  // Projeleri yalnızca oturum açmış kullanıcı için getir
+  const fetchProjects = async (userId?: string) => {
+    const activeUserId = userId || session?.user?.id
+
+    if (!activeUserId) return
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('user_id', activeUserId)
+      .order('updated_at', { ascending: false })
+
+    if (error) {
+      console.error('PROJECT FETCH ERROR:', error.message)
+      return
+    }
+
+    if (data) setProjects(data)
+  }
+
+  // Oturum ve admin kontrolü
   useEffect(() => {
     let active = true
 
@@ -67,6 +90,7 @@ export default function Home() {
       if (!currentSession) {
         setSession(null)
         setIsAdmin(false)
+        setProjects([])
         setAuthLoading(false)
         router.push('/auth')
         return
@@ -95,8 +119,9 @@ export default function Home() {
         )
       }
 
-      fetchProjects()
-      setAuthLoading(false)
+      await fetchProjects(currentSession.user.id)
+
+      if (active) setAuthLoading(false)
     }
 
     const initialize = async () => {
@@ -121,6 +146,7 @@ export default function Home() {
       if (!newSession) {
         setSession(null)
         setIsAdmin(false)
+        setProjects([])
         router.push('/auth')
         return
       }
@@ -138,27 +164,13 @@ export default function Home() {
     }
   }, [router])
 
-  const fetchProjects = async () => {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .order('updated_at', { ascending: false })
-
-    if (error) {
-      console.error('PROJECT FETCH ERROR:', error.message)
-      return
-    }
-
-    if (data) setProjects(data)
-  }
-
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/auth')
   }
 
   const handleGenerate = async () => {
-    if (!prompt) {
+    if (!prompt.trim()) {
       alert('Lütfen bir site fikri yazın.')
       return
     }
@@ -211,7 +223,7 @@ KURALLAR:
   }
 
   const handleRevise = async () => {
-    if (!chatInput) return
+    if (!chatInput.trim()) return
 
     if (!codeHtml) {
       alert('Önce bir kod üretmelisin.')
@@ -295,8 +307,14 @@ KULLANICI İSTEĞİ: ${changeRequest}`
         .from('projects')
         .update(projectData)
         .eq('id', currentProjectId)
+        .eq('user_id', session.user.id)
 
-      setSaveStatus(error ? 'Kayıt hatası!' : 'Güncellendi!')
+      if (error) {
+        console.error('PROJECT UPDATE ERROR:', error.message)
+        setSaveStatus('Kayıt hatası!')
+      } else {
+        setSaveStatus('Güncellendi!')
+      }
     } else {
       const { data, error } = await supabase
         .from('projects')
@@ -304,6 +322,7 @@ KULLANICI İSTEĞİ: ${changeRequest}`
         .select()
 
       if (error) {
+        console.error('PROJECT INSERT ERROR:', error.message)
         setSaveStatus('Kayıt hatası!')
       } else {
         if (data?.[0]) setCurrentProjectId(data[0].id)
@@ -311,11 +330,16 @@ KULLANICI İSTEĞİ: ${changeRequest}`
       }
     }
 
-    fetchProjects()
+    await fetchProjects(session.user.id)
     setTimeout(() => setSaveStatus(''), 2000)
   }
 
   const handleLoadProject = (project: any) => {
+    if (project.user_id !== session?.user?.id) {
+      alert('Bu projeye erişim iznin yok.')
+      return
+    }
+
     setCurrentProjectId(project.id)
     setProjectTitle(project.title)
     setPrompt(project.prompt || '')
@@ -330,8 +354,19 @@ KULLANICI İSTEĞİ: ${changeRequest}`
 
     if (!confirm('Bu proje silinsin mi?')) return
 
-    await supabase.from('projects').delete().eq('id', id)
-    fetchProjects()
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', session.user.id)
+
+    if (error) {
+      console.error('PROJECT DELETE ERROR:', error.message)
+      alert('Proje silinemedi.')
+      return
+    }
+
+    await fetchProjects(session.user.id)
 
     if (currentProjectId === id) {
       setCodeHtml('')
@@ -354,8 +389,28 @@ KULLANICI İSTEĞİ: ${changeRequest}`
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      setError('Kod kopyalanamadı.')
     })
   }
+
+  // Proje arama ve sıralama
+  const filteredProjects = [...projects]
+    .filter((project) =>
+      (project.title || '')
+        .toLowerCase()
+        .includes(projectSearch.toLowerCase().trim())
+    )
+    .sort((a, b) => {
+      if (projectSort === 'name') {
+        return (a.title || '').localeCompare(b.title || '', 'tr')
+      }
+
+      return (
+        new Date(b.updated_at || 0).getTime() -
+        new Date(a.updated_at || 0).getTime()
+      )
+    })
 
   const combinedCode = `<!DOCTYPE html><html><head><style>${codeCss}</style></head><body>${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/gi, '')}<script>${codeJs}<\/script></body></html>`
 
@@ -373,42 +428,91 @@ KULLANICI İSTEĞİ: ${changeRequest}`
       {showProjects && (
         <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-[#12141a] border border-[#2a2e3b] rounded-xl w-full max-w-2xl p-6 flex flex-col gap-4 max-h-[80vh]">
+
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-bold text-[#25f4ee]">Projelerim</h3>
-              <button onClick={() => setShowProjects(false)} className="text-gray-400 hover:text-white">Kapat</button>
+              <div>
+                <h3 className="text-lg font-bold text-[#25f4ee]">Projelerim</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {projects.length} kayıtlı proje
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowProjects(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                Kapat
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                value={projectSearch}
+                onChange={(e) => setProjectSearch(e.target.value)}
+                placeholder="🔍 Projelerde ara..."
+                className="flex-1 bg-[#0b0c10] border border-[#2a2e3b] rounded-lg p-3 text-sm outline-none focus:border-[#25f4ee]"
+              />
+
+              <select
+                value={projectSort}
+                onChange={(e) =>
+                  setProjectSort(e.target.value as 'updated' | 'name')
+                }
+                className="bg-[#0b0c10] border border-[#2a2e3b] rounded-lg p-3 text-sm outline-none"
+              >
+                <option value="updated">Son güncellenen</option>
+                <option value="name">İsme göre</option>
+              </select>
+            </div>
+
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>Toplam: {projects.length}</span>
+              <span>Bulunan: {filteredProjects.length}</span>
             </div>
 
             <div className="overflow-y-auto flex flex-col gap-2">
-              {projects.length === 0 ? (
-                <p className="text-gray-500 text-sm">Henüz proje kaydetmedin.</p>
-              ) : projects.map(p => (
-                <div
-                  key={p.id}
-                  onClick={() => handleLoadProject(p)}
-                  className="p-3 bg-[#0b0c10] border border-[#2a2e3b] rounded-lg cursor-pointer hover:border-[#25f4ee] flex justify-between items-center"
-                >
-                  <div>
-                    <h4 className="font-bold text-sm">{p.title}</h4>
-                    <p className="text-xs text-gray-500">{new Date(p.updated_at).toLocaleDateString('tr')}</p>
-                  </div>
-                  <button
-                    onClick={(e) => handleDeleteProject(p.id, e)}
-                    className="text-red-500 text-xs px-2 py-1 bg-red-900/20 rounded hover:bg-red-900/50"
+              {filteredProjects.length === 0 ? (
+                <p className="text-gray-500 text-sm">
+                  {projects.length === 0
+                    ? 'Henüz proje kaydetmedin.'
+                    : 'Aramana uygun proje bulunamadı.'}
+                </p>
+              ) : (
+                filteredProjects.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => handleLoadProject(p)}
+                    className="p-3 bg-[#0b0c10] border border-[#2a2e3b] rounded-lg cursor-pointer hover:border-[#25f4ee] flex justify-between items-center gap-3"
                   >
-                    Sil
-                  </button>
-                </div>
-              ))}
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-sm truncate">{p.title}</h4>
+                      <p className="text-xs text-gray-500">
+                        {p.updated_at
+                          ? new Date(p.updated_at).toLocaleDateString('tr')
+                          : 'Tarih yok'}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={(e) => handleDeleteProject(p.id, e)}
+                      className="text-red-500 text-xs px-3 py-2 bg-red-900/20 rounded hover:bg-red-900/50"
+                    >
+                      Sil
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
       )}
 
       <div className="w-full md:w-1/3 md:h-full h-1/3 bg-[#0b0c10] border-b md:border-b-0 md:border-r border-[#2a2e3b] flex flex-col">
-        <div className="p-4 border-b border-[#2a2e3b] flex justify-between items-center">
+
+        <div className="p-4 border-b border-[#2a2e3b] flex justify-between items-center gap-2">
           <h2 className="text-xl font-bold text-[#25f4ee]">PromptForge</h2>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             {isAdmin && (
               <button
                 onClick={() => router.push('/admin')}
@@ -419,10 +523,13 @@ KULLANICI İSTEĞİ: ${changeRequest}`
             )}
 
             <button
-              onClick={() => setShowProjects(true)}
+              onClick={() => {
+                setProjectSearch('')
+                setShowProjects(true)
+              }}
               className="text-xs bg-[#2a2e3b] px-3 py-1 rounded hover:bg-[#3a3f52] transition"
             >
-              📁 Projelerim
+              📁 Projelerim ({projects.length})
             </button>
 
             <button
@@ -435,7 +542,9 @@ KULLANICI İSTEĞİ: ${changeRequest}`
         </div>
 
         <div className="p-4 flex flex-col gap-3 flex-1 overflow-y-auto">
-          <label className="text-xs text-[#8b92a5] font-bold">SİTE FİKRİNİZ</label>
+          <label className="text-xs text-[#8b92a5] font-bold">
+            SİTE FİKRİNİZ
+          </label>
 
           <textarea
             value={prompt}
@@ -479,17 +588,39 @@ KULLANICI İSTEĞİ: ${changeRequest}`
       </div>
 
       <div className="w-full md:w-2/3 h-2/3 md:h-full flex flex-col">
+
         <div className="flex bg-[#12141a] border-b border-[#2a2e3b] justify-between items-center pr-4">
           <div className="flex overflow-x-auto">
-            <button onClick={() => setActiveTab('html')} className={`px-4 py-3 text-xs whitespace-nowrap ${activeTab === 'html' ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]' : 'text-[#8b92a5] border-r border-[#2a2e3b]'}`}>
+            <button
+              onClick={() => setActiveTab('html')}
+              className={`px-4 py-3 text-xs whitespace-nowrap ${
+                activeTab === 'html'
+                  ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]'
+                  : 'text-[#8b92a5] border-r border-[#2a2e3b]'
+              }`}
+            >
               🌐 index.html
             </button>
 
-            <button onClick={() => setActiveTab('css')} className={`px-4 py-3 text-xs whitespace-nowrap ${activeTab === 'css' ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]' : 'text-[#8b92a5] border-r border-[#2a2e3b]'}`}>
+            <button
+              onClick={() => setActiveTab('css')}
+              className={`px-4 py-3 text-xs whitespace-nowrap ${
+                activeTab === 'css'
+                  ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]'
+                  : 'text-[#8b92a5] border-r border-[#2a2e3b]'
+              }`}
+            >
               🎨 styles.css
             </button>
 
-            <button onClick={() => setActiveTab('js')} className={`px-4 py-3 text-xs whitespace-nowrap ${activeTab === 'js' ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]' : 'text-[#8b92a5] border-r border-[#2a2e3b]'}`}>
+            <button
+              onClick={() => setActiveTab('js')}
+              className={`px-4 py-3 text-xs whitespace-nowrap ${
+                activeTab === 'js'
+                  ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]'
+                  : 'text-[#8b92a5] border-r border-[#2a2e3b]'
+              }`}
+            >
               ⚡ script.js
             </button>
           </div>
@@ -505,7 +636,13 @@ KULLANICI İSTEĞİ: ${changeRequest}`
         <div className="flex-1 bg-[#0b0c10] overflow-hidden relative">
           <textarea
             readOnly
-            value={activeTab === 'html' ? codeHtml : activeTab === 'css' ? codeCss : codeJs}
+            value={
+              activeTab === 'html'
+                ? codeHtml
+                : activeTab === 'css'
+                  ? codeCss
+                  : codeJs
+            }
             className="absolute inset-0 w-full h-full bg-[#0b0c10] text-[#a8b9d4] p-4 font-mono text-xs resize-none outline-none"
             placeholder={`${activeTab.toUpperCase()} kodu...`}
           />
@@ -535,7 +672,7 @@ KULLANICI İSTEĞİ: ${changeRequest}`
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleRevise()}
-                placeholder="Bir sonraki adım için değişiklik yaz (Örn: Rengi maviye çevir)..."
+                placeholder="Bir sonraki adım için değişiklik yaz..."
                 className="flex-1 bg-transparent text-white outline-none text-sm px-2"
               />
 
