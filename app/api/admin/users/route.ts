@@ -16,6 +16,8 @@ async function checkAdmin(request: Request) {
     : ''
 
   if (!token) {
+    console.error('ADMIN ERROR: Token bulunamadı.')
+
     return {
       ok: false as const,
       response: NextResponse.json(
@@ -26,6 +28,8 @@ async function checkAdmin(request: Request) {
   }
 
   if (!url || !publicKey || !secretKey) {
+    console.error('ADMIN ERROR: Sunucu yapılandırması eksik.')
+
     return {
       ok: false as const,
       response: NextResponse.json(
@@ -64,11 +68,19 @@ async function checkAdmin(request: Request) {
     },
   })
 
-  const { data: profile, error: profileError } = await adminClient
-    .from('users')
-    .select('id, email, role, approval_status')
-    .eq('id', authData.user.id)
-    .maybeSingle()
+  const { data: profile, error: profileError } =
+    await adminClient
+      .from('users')
+      .select('id, email, role, approval_status')
+      .eq('id', authData.user.id)
+      .maybeSingle()
+
+  console.log('ADMIN DEBUG:', {
+    userId: authData.user.id,
+    email: authData.user.email,
+    profile,
+    profileError: profileError?.message,
+  })
 
   if (profileError || !profile) {
     console.error('ADMIN PROFILE ERROR:', profileError?.message)
@@ -82,7 +94,10 @@ async function checkAdmin(request: Request) {
     }
   }
 
-  const role = String(profile.role || '').trim().toLowerCase()
+  const role = String(profile.role || '')
+    .trim()
+    .toLowerCase()
+
   const approval = String(profile.approval_status || '')
     .trim()
     .toLowerCase()
@@ -102,6 +117,12 @@ async function checkAdmin(request: Request) {
       ),
     }
   }
+
+  console.log('ADMIN ACCESS GRANTED:', {
+    userId: authData.user.id,
+    role,
+    approval,
+  })
 
   return {
     ok: true as const,
@@ -236,7 +257,9 @@ export async function PATCH(request: Request) {
   }
 
   // Kurucu hesabı hiçbir onay işlemiyle değiştirilemez.
-  if (String(targetUser.role || '').trim().toLowerCase() === 'kurucu') {
+  if (
+    String(targetUser.role || '').trim().toLowerCase() === 'kurucu'
+  ) {
     return NextResponse.json(
       { error: 'Kurucu hesabına müdahale edilemez.' },
       { status: 403 }
