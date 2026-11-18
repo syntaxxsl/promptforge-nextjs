@@ -59,7 +59,7 @@ export default function Home() {
 
   const router = useRouter()
 
-  // Oturum ve kullanıcı rolü kontrolü
+  // Oturum ve normal admin rolü kontrolü
   useEffect(() => {
     let active = true
 
@@ -90,7 +90,7 @@ export default function Home() {
         const approval = String(profile?.approval_status || '').trim().toLowerCase()
 
         setIsAdmin(
-          ['admin', 'kurucu'].includes(role) &&
+          role === 'admin' &&
           approval === 'approved'
         )
       }
@@ -127,7 +127,6 @@ export default function Home() {
 
       setSession(newSession)
 
-      // Oturum değişince rolü yeniden kontrol et.
       setTimeout(() => {
         if (active) checkUser(newSession)
       }, 0)
