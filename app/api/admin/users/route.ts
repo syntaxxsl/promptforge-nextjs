@@ -8,6 +8,7 @@ const secretKey = process.env.SUPABASE_SECRET_KEY!
 
 async function checkAdmin(request: Request) {
   const authHeader = request.headers.get('authorization')
+
   const token = authHeader?.startsWith('Bearer ')
     ? authHeader.slice(7)
     : null
@@ -17,7 +18,10 @@ async function checkAdmin(request: Request) {
   }
 
   if (!url || !publicKey || !secretKey) {
-    return { error: 'Sunucu yapılandırması eksik.', status: 500 }
+    return {
+      error: 'Sunucu yapılandırması eksik.',
+      status: 500,
+    }
   }
 
   const authClient = createClient(url, publicKey)
@@ -38,21 +42,28 @@ async function checkAdmin(request: Request) {
 
   const { data: profile, error } = await adminClient
     .from('users')
-    .select('role, approval_status')
+    .select('id, email, role, approval_status')
     .eq('id', authData.user.id)
     .single()
 
   if (
     error ||
-    profile?.role !== 'admin' ||
+    !['admin', 'kurucu'].includes(profile?.role) ||
     profile?.approval_status !== 'approved'
   ) {
-    return { error: 'Admin yetkisi gerekli.', status: 403 }
+    return {
+      error: 'Yönetici yetkisi gerekli.',
+      status: 403,
+    }
   }
 
-  return { adminClient }
+  return {
+    adminClient,
+    profile,
+  }
 }
 
+// GET: Dashboard ve kullanıcı listesi
 export async function GET(request: Request) {
   const result = await checkAdmin(request)
 
@@ -69,10 +80,11 @@ export async function GET(request: Request) {
     pendingCountResult,
     totalProjectsResult,
     recentUsersResult,
+    allUsersResult,
   ] = await Promise.all([
     result.adminClient
       .from('users')
-      .select('id, email, approval_status, created_at')
+      .select('id, email, approval_status, created_at, role')
       .eq('approval_status', 'pending')
       .order('created_at', { ascending: true }),
 
@@ -91,9 +103,15 @@ export async function GET(request: Request) {
 
     result.adminClient
       .from('users')
-      .select('id, email, approval_status, created_at')
+      .select('id, email, approval_status, created_at, role')
       .order('created_at', { ascending: false })
       .limit(5),
+
+    result.adminClient
+      .from('users')
+      .select('id, email, approval_status, created_at, role')
+      .order('created_at', { ascending: false })
+      .limit(200),
   ])
 
   if (
@@ -101,15 +119,10 @@ export async function GET(request: Request) {
     totalUsersResult.error ||
     pendingCountResult.error ||
     totalProjectsResult.error ||
-    recentUsersResult.error
+    recentUsersResult.error ||
+    allUsersResult.error
   ) {
-    console.error('ADMIN DASHBOARD ERROR:', {
-      pending: pendingResult.error?.message,
-      users: totalUsersResult.error?.message,
-      pendingCount: pendingCountResult.error?.message,
-      projects: totalProjectsResult.error?.message,
-      recent: recentUsersResult.error?.message,
-    })
+    console.error('ADMIN DASHBOARD ERROR')
 
     return NextResponse.json(
       { error: 'Dashboard verileri alınamadı.' },
@@ -119,15 +132,18 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     users: pendingResult.data || [],
+    allUsers: allUsersResult.data || [],
     stats: {
       totalUsers: totalUsersResult.count || 0,
       pendingUsers: pendingCountResult.count || 0,
       totalProjects: totalProjectsResult.count || 0,
     },
     recentUsers: recentUsersResult.data || [],
+    myRole: result.profile.role,
   })
 }
 
+// PATCH: Kullanıcı onaylama ve reddetme
 export async function PATCH(request: Request) {
   const result = await checkAdmin(request)
 
@@ -160,6 +176,23 @@ export async function PATCH(request: Request) {
       { error: 'Geçersiz kullanıcı veya durum.' },
       { status: 400 }
     )
+  }
+
+  // Admin, kurucu hesabına müdahale edemez.
+  if (result.profile.role !== 'kurucu') {
+    const { data: targetUser, error: targetError } =
+      await result.adminClient
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single()
+
+    if (targetError || targetUser?.role === 'kurucu') {
+      return NextResponse.json(
+        { error: 'Kurucu hesabına müdahale edilemez.' },
+        { status: 403 }
+      )
+    }
   }
 
   const { error } = await result.adminClient
