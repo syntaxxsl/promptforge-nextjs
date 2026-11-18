@@ -15,12 +15,14 @@ function parseCode(rawText: string) {
     js = parts[3] ? parts[3].trim() : ''
   } else {
     const styleMatch = rawText.match(/<style[^>]*>([\s\S]*?)<\/style>/i)
+
     if (styleMatch) {
       css = styleMatch[1]
       rawText = rawText.replace(styleMatch[0], '')
     }
 
     const scriptMatch = rawText.match(/<script[^>]*>([\s\S]*?)<\/script>/i)
+
     if (scriptMatch) {
       js = scriptMatch[1]
       rawText = rawText.replace(scriptMatch[0], '')
@@ -57,50 +59,79 @@ export default function Home() {
 
   const router = useRouter()
 
+  // Oturum ve kullanıcı rolü kontrolü
   useEffect(() => {
     let active = true
 
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!active) return
-
-      setSession(session)
-
-      if (!session) {
-        router.push('/auth')
+    const checkUser = async (currentSession: any) => {
+      if (!currentSession) {
+        setSession(null)
+        setIsAdmin(false)
         setAuthLoading(false)
+        router.push('/auth')
         return
       }
 
-      fetchProjects()
+      setSession(currentSession)
 
-      try {
-        const response = await fetch('/api/admin/users', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        })
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('role, approval_status')
+        .eq('id', currentSession.user.id)
+        .maybeSingle()
 
-        if (active) setIsAdmin(response.ok)
-      } catch {
-        if (active) setIsAdmin(false)
+      if (!active) return
+
+      if (profileError) {
+        console.error('PROFILE CHECK ERROR:', profileError.message)
+        setIsAdmin(false)
+      } else {
+        const role = String(profile?.role || '').trim().toLowerCase()
+        const approval = String(profile?.approval_status || '').trim().toLowerCase()
+
+        setIsAdmin(
+          ['admin', 'kurucu'].includes(role) &&
+          approval === 'approved'
+        )
       }
 
-      if (active) setAuthLoading(false)
+      fetchProjects()
+      setAuthLoading(false)
     }
 
-    checkSession()
+    const initialize = async () => {
+      const { data, error } = await supabase.auth.getSession()
 
-    const { data: { subscription } } =
-      supabase.auth.onAuthStateChange((_event, newSession) => {
-        setSession(newSession)
+      if (!active) return
 
-        if (!newSession) {
-          setIsAdmin(false)
-          router.push('/auth')
-        }
-      })
+      if (error) {
+        console.error('SESSION ERROR:', error.message)
+      }
+
+      await checkUser(data.session)
+    }
+
+    initialize()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!active) return
+
+      if (!newSession) {
+        setSession(null)
+        setIsAdmin(false)
+        router.push('/auth')
+        return
+      }
+
+      setSession(newSession)
+
+      // Oturum değişince rolü yeniden kontrol et.
+      setTimeout(() => {
+        if (active) checkUser(newSession)
+      }, 0)
+    })
 
     return () => {
       active = false
@@ -109,10 +140,15 @@ export default function Home() {
   }, [router])
 
   const fetchProjects = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('projects')
       .select('*')
       .order('updated_at', { ascending: false })
+
+    if (error) {
+      console.error('PROJECT FETCH ERROR:', error.message)
+      return
+    }
 
     if (data) setProjects(data)
   }
@@ -149,7 +185,9 @@ KURALLAR:
 - Modern ve responsive olsun. FİKİR: ${prompt}`
 
       // @ts-ignore
-      const response = await puter.ai.chat(aiPrompt, { model: 'gpt-4o-mini' })
+      const response = await puter.ai.chat(aiPrompt, {
+        model: 'gpt-4o-mini',
+      })
 
       let rawText = typeof response === 'string'
         ? response
@@ -212,7 +250,9 @@ ${currentCode}
 KULLANICI İSTEĞİ: ${changeRequest}`
 
       // @ts-ignore
-      const response = await puter.ai.chat(aiPrompt, { model: 'gpt-4o-mini' })
+      const response = await puter.ai.chat(aiPrompt, {
+        model: 'gpt-4o-mini',
+      })
 
       let rawText = typeof response === 'string'
         ? response
