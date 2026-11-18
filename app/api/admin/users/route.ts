@@ -1,23 +1,24 @@
 
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const publicKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const secretKey = process.env.SUPABASE_SECRET_KEY!
+const authClient = createClient(supabaseUrl, supabaseAnonKey)
 
-async function checkAdmin(request: Request) {
-  const authHeader = request.headers.get('authorization')
+const adminClient = createClient(supabaseUrl, supabaseSecretKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
 
-  const token = authHeader?.startsWith('Bearer ')
-    ? authHeader.slice(7).trim()
-    : ''
+async function checkAdmin(request: NextRequest) {
+  const authorization = request.headers.get('authorization')
 
-  if (!token) {
-    console.error('ADMIN ERROR: Token bulunamadı.')
-
+  if (!authorization?.startsWith('Bearer ')) {
     return {
       ok: false as const,
       response: NextResponse.json(
@@ -27,87 +28,41 @@ async function checkAdmin(request: Request) {
     }
   }
 
-  if (!url || !publicKey || !secretKey) {
-    console.error('ADMIN ERROR: Sunucu yapılandırması eksik.')
+  const token = authorization.slice(7)
 
+  const {
+    data: { user },
+    error: authError,
+  } = await authClient.auth.getUser(token)
+
+  if (authError || !user) {
     return {
       ok: false as const,
       response: NextResponse.json(
-        { error: 'Sunucu yapılandırması eksik.' },
-        { status: 500 }
-      ),
-    }
-  }
-
-  const authClient = createClient(url, publicKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
-
-  const { data: authData, error: authError } =
-    await authClient.auth.getUser(token)
-
-  if (authError || !authData.user) {
-    console.error('ADMIN AUTH ERROR:', authError?.message)
-
-    return {
-      ok: false as const,
-      response: NextResponse.json(
-        { error: 'Oturum doğrulanamadı. Tekrar giriş yap.' },
+        { error: 'Geçersiz oturum.' },
         { status: 401 }
       ),
     }
   }
 
-  const adminClient = createClient(url, secretKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
-
-  const { data: profile, error: profileError } =
-    await adminClient
-      .from('users')
-      .select('id, email, role, approval_status')
-      .eq('id', authData.user.id)
-      .maybeSingle()
+  const { data: profile, error: profileError } = await adminClient
+    .from('users')
+    .select('role, approval_status')
+    .eq('id', user.id)
+    .single()
 
   console.log('ADMIN DEBUG:', {
-    userId: authData.user.id,
-    email: authData.user.email,
+    userId: user.id,
+    email: user.email,
     profile,
-    profileError: profileError?.message,
+    profileError,
   })
 
-  if (profileError || !profile) {
-    console.error('ADMIN PROFILE ERROR:', profileError?.message)
-
-    return {
-      ok: false as const,
-      response: NextResponse.json(
-        { error: 'Kullanıcı profili bulunamadı.' },
-        { status: 403 }
-      ),
-    }
-  }
-
-  const role = String(profile.role || '')
-    .trim()
-    .toLowerCase()
-
-  const approval = String(profile.approval_status || '')
-    .trim()
-    .toLowerCase()
+  const role = String(profile?.role || '').toLowerCase().trim()
+  const approval = String(profile?.approval_status || '').toLowerCase().trim()
 
   if (!['admin', 'kurucu'].includes(role) || approval !== 'approved') {
-    console.error('ADMIN ACCESS DENIED:', {
-      userId: authData.user.id,
-      role,
-      approval,
-    })
+    console.log('ADMIN ACCESS DENIED:', { role, approval })
 
     return {
       ok: false as const,
@@ -118,178 +73,131 @@ async function checkAdmin(request: Request) {
     }
   }
 
-  console.log('ADMIN ACCESS GRANTED:', {
-    userId: authData.user.id,
-    role,
-    approval,
-  })
+  console.log('ADMIN ACCESS GRANTED:', { role, approval })
 
   return {
     ok: true as const,
-    adminClient,
-    profile,
-    role,
+    user,
   }
 }
 
-// GET: Dashboard ve kullanıcı listesi
-export async function GET(request: Request) {
-  const result = await checkAdmin(request)
+export async function GET(request: NextRequest) {
+  const auth = await checkAdmin(request)
 
-  if (!result.ok) {
-    return result.response
+  if (!auth.ok) {
+    return auth.response
   }
 
   const [
     pendingResult,
-    totalUsersResult,
-    pendingCountResult,
-    totalProjectsResult,
-    recentUsersResult,
+    usersResult,
+    projectsResult,
+    recentResult,
     allUsersResult,
   ] = await Promise.all([
-    result.adminClient
+    adminClient
       .from('users')
-      .select('id, email, approval_status, created_at, role')
+      .select('*')
       .eq('approval_status', 'pending')
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: false }),
 
-    result.adminClient
+    adminClient
       .from('users')
       .select('id', { count: 'exact', head: true }),
 
-    result.adminClient
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .eq('approval_status', 'pending'),
-
-    result.adminClient
+    adminClient
       .from('projects')
       .select('id', { count: 'exact', head: true }),
 
-    result.adminClient
+    adminClient
       .from('users')
-      .select('id, email, approval_status, created_at, role')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(5),
 
-    result.adminClient
+    adminClient
       .from('users')
-      .select('id, email, approval_status, created_at, role')
-      .order('created_at', { ascending: false })
-      .limit(200),
+      .select('*')
+      .order('created_at', { ascending: false }),
   ])
 
-  const queryError =
-    pendingResult.error ||
-    totalUsersResult.error ||
-    pendingCountResult.error ||
-    totalProjectsResult.error ||
-    recentUsersResult.error ||
-    allUsersResult.error
-
-  if (queryError) {
-    console.error('ADMIN DASHBOARD ERROR:', queryError.message)
-
+  if (pendingResult.error || usersResult.error || projectsResult.error) {
     return NextResponse.json(
-      { error: 'Dashboard verileri alınamadı.' },
+      { error: 'Veriler alınırken hata oluştu.' },
       { status: 500 }
     )
   }
 
   return NextResponse.json({
-    users: pendingResult.data || [],
-    allUsers: allUsersResult.data || [],
-    stats: {
-      totalUsers: totalUsersResult.count || 0,
-      pendingUsers: pendingCountResult.count || 0,
-      totalProjects: totalProjectsResult.count || 0,
-    },
-    recentUsers: recentUsersResult.data || [],
-    myRole: result.role,
+    pendingUsers: pendingResult.data || [],
+    totalUsers: usersResult.count || 0,
+    pendingCount: pendingResult.data?.length || 0,
+    totalProjects: projectsResult.count || 0,
+    recentUsers: recentResult.data || [],
+    users: allUsersResult.data || [],
   })
 }
 
-// PATCH: Kullanıcı onaylama ve reddetme
-export async function PATCH(request: Request) {
-  const result = await checkAdmin(request)
+export async function PATCH(request: NextRequest) {
+  const auth = await checkAdmin(request)
 
-  if (!result.ok) {
-    return result.response
+  if (!auth.ok) {
+    return auth.response
   }
-
-  let body: any
 
   try {
-    body = await request.json()
+    const body = await request.json()
+    const { userId, action } = body
+
+    if (!userId || !['approve', 'reject'].includes(action)) {
+      return NextResponse.json(
+        { error: 'Geçersiz işlem.' },
+        { status: 400 }
+      )
+    }
+
+    const { data: targetUser, error: targetError } = await adminClient
+      .from('users')
+      .select('id, role')
+      .eq('id', userId)
+      .single()
+
+    if (targetError || !targetUser) {
+      return NextResponse.json(
+        { error: 'Kullanıcı bulunamadı.' },
+        { status: 404 }
+      )
+    }
+
+    if (targetUser.role === 'kurucu') {
+      return NextResponse.json(
+        { error: 'Bu kullanıcı üzerinde işlem yapılamaz.' },
+        { status: 403 }
+      )
+    }
+
+    const newStatus = action === 'approve' ? 'approved' : 'rejected'
+
+    const { error: updateError } = await adminClient
+      .from('users')
+      .update({ approval_status: newStatus })
+      .eq('id', userId)
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: 'Kullanıcı güncellenemedi.' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Kullanıcı durumu güncellendi.',
+    })
   } catch {
     return NextResponse.json(
-      { error: 'Geçersiz istek.' },
-      { status: 400 }
-    )
-  }
-
-  const { userId, status } = body
-
-  if (
-    typeof userId !== 'string' ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId) ||
-    !['approved', 'rejected'].includes(status)
-  ) {
-    return NextResponse.json(
-      { error: 'Geçersiz kullanıcı veya durum.' },
-      { status: 400 }
-    )
-  }
-
-  const { data: targetUser, error: targetError } =
-    await result.adminClient
-      .from('users')
-      .select('id, role, approval_status')
-      .eq('id', userId)
-      .maybeSingle()
-
-  if (targetError || !targetUser) {
-    return NextResponse.json(
-      { error: 'Kullanıcı bulunamadı.' },
-      { status: 404 }
-    )
-  }
-
-  // Kurucu hesabı hiçbir onay işlemiyle değiştirilemez.
-  if (
-    String(targetUser.role || '').trim().toLowerCase() === 'kurucu'
-  ) {
-    return NextResponse.json(
-      { error: 'Kurucu hesabına müdahale edilemez.' },
-      { status: 403 }
-    )
-  }
-
-  if (targetUser.approval_status !== 'pending') {
-    return NextResponse.json(
-      { error: 'Bu kullanıcı zaten işlem görmüş.' },
-      { status: 409 }
-    )
-  }
-
-  const { data: updatedUser, error: updateError } =
-    await result.adminClient
-      .from('users')
-      .update({ approval_status: status })
-      .eq('id', userId)
-      .eq('approval_status', 'pending')
-      .select('id')
-      .maybeSingle()
-
-  if (updateError || !updatedUser) {
-    console.error('ADMIN UPDATE ERROR:', updateError?.message)
-
-    return NextResponse.json(
-      { error: 'İşlem gerçekleştirilemedi.' },
+      { error: 'Sunucu hatası.' },
       { status: 500 }
     )
   }
-
-  return NextResponse.json({ success: true })
 }
