@@ -29,7 +29,6 @@ export default function AdminPanel() {
     totalProjects: 0,
   })
 
-  const [myRole, setMyRole] = useState('')
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
@@ -42,16 +41,14 @@ export default function AdminPanel() {
       const { data: sessionData, error: sessionError } =
         await supabase.auth.getSession()
 
-      console.log('SESSION ERROR:', sessionError?.message)
-      console.log('SESSION VAR MI:', !!sessionData.session)
+      if (sessionError) {
+        throw new Error(sessionError.message)
+      }
 
       const token = sessionData.session?.access_token
 
-      console.log('TOKEN VAR MI:', !!token)
-
       if (!token) {
-        setMessage('Oturum bulunamadı. Tekrar giriş yapmalısın.')
-        return
+        throw new Error('Oturum bulunamadı. Tekrar giriş yapmalısın.')
       }
 
       const response = await fetch('/api/admin/users', {
@@ -62,34 +59,27 @@ export default function AdminPanel() {
         cache: 'no-store',
       })
 
-      const responseText = await response.text()
-
-      console.log('ADMIN API STATUS:', response.status)
-      console.log('ADMIN API RESULT:', responseText)
-
-      let result: any
-
-      try {
-        result = JSON.parse(responseText)
-      } catch {
-        throw new Error('API geçerli JSON yanıtı döndürmedi.')
-      }
+      const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(
-          result.error || 'Dashboard verileri alınamadı.'
-        )
+        throw new Error(result.error || 'Dashboard verileri alınamadı.')
       }
 
-      setUsers(result.users || [])
-      setAllUsers(result.allUsers || [])
+      // API'den gelen bekleyen kullanıcılar
+      setUsers(result.pendingUsers || [])
+
+      // API'den gelen bütün kullanıcılar
+      setAllUsers(result.users || [])
+
+      // Son kayıt olan kullanıcılar
       setRecentUsers(result.recentUsers || [])
-      setStats(result.stats || {
-        totalUsers: 0,
-        pendingUsers: 0,
-        totalProjects: 0,
+
+      // İstatistikler
+      setStats({
+        totalUsers: result.totalUsers || 0,
+        pendingUsers: result.pendingCount || 0,
+        totalProjects: result.totalProjects || 0,
       })
-      setMyRole(result.myRole || '')
 
     } catch (error) {
       setMessage(
@@ -114,8 +104,12 @@ export default function AdminPanel() {
     setMessage('')
 
     try {
-      const { data: sessionData } =
+      const { data: sessionData, error: sessionError } =
         await supabase.auth.getSession()
+
+      if (sessionError) {
+        throw new Error(sessionError.message)
+      }
 
       const token = sessionData.session?.access_token
 
@@ -123,13 +117,19 @@ export default function AdminPanel() {
         throw new Error('Oturum bulunamadı.')
       }
 
+      // API'nin beklediği işlem isimleri
+      const action = status === 'approved' ? 'approve' : 'reject'
+
       const response = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ userId, status }),
+        body: JSON.stringify({
+          userId,
+          action,
+        }),
       })
 
       const result = await response.json()
@@ -138,7 +138,8 @@ export default function AdminPanel() {
         throw new Error(result.error || 'İşlem başarısız.')
       }
 
-      setMessage('İşlem başarılı.')
+      setMessage(result.message || 'İşlem başarılı.')
+
       await fetchUsers()
 
     } catch (error) {
@@ -172,11 +173,6 @@ export default function AdminPanel() {
             <p className="text-gray-400 mt-2">
               Yönetim ve sistem kontrol paneli
             </p>
-            {myRole && (
-              <p className="text-sm text-gray-500 mt-1">
-                Yetkin: {myRole}
-              </p>
-            )}
           </div>
 
           <button
@@ -278,7 +274,7 @@ export default function AdminPanel() {
                       onClick={() => handleAction(user.id, 'approved')}
                       className="bg-green-600 hover:bg-green-500 disabled:opacity-50 px-4 py-2 rounded-lg text-sm"
                     >
-                      Onayla
+                      {busy === user.id ? 'İşleniyor...' : 'Onayla'}
                     </button>
 
                     <button
