@@ -61,19 +61,15 @@ async function checkAdmin(request: NextRequest) {
   const role = String(profile?.role || '').toLowerCase().trim()
   const approval = String(profile?.approval_status || '').toLowerCase().trim()
 
-  if (!['admin', 'kurucu'].includes(role) || approval !== 'approved') {
-    console.log('ADMIN ACCESS DENIED:', { role, approval })
-
+  if (role !== 'admin' || approval !== 'approved') {
     return {
       ok: false as const,
       response: NextResponse.json(
-        { error: 'Yönetici yetkisi gerekli.' },
+        { error: 'Admin yetkisi gerekli.' },
         { status: 403 }
       ),
     }
   }
-
-  console.log('ADMIN ACCESS GRANTED:', { role, approval })
 
   return {
     ok: true as const,
@@ -84,9 +80,7 @@ async function checkAdmin(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const auth = await checkAdmin(request)
 
-  if (!auth.ok) {
-    return auth.response
-  }
+  if (!auth.ok) return auth.response
 
   const [
     pendingResult,
@@ -116,30 +110,16 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false }),
   ])
 
-  console.log('ADMIN DATA DEBUG:', {
-    pendingError: pendingResult.error,
-    projectsError: projectsResult.error,
-    recentError: recentResult.error,
-    allUsersError: allUsersResult.error,
-    usersCount: allUsersResult.data?.length,
-  })
+  const errors = {
+    pending: pendingResult.error?.message,
+    projects: projectsResult.error?.message,
+    recent: recentResult.error?.message,
+    users: allUsersResult.error?.message,
+  }
 
-  if (
-    pendingResult.error ||
-    projectsResult.error ||
-    recentResult.error ||
-    allUsersResult.error
-  ) {
+  if (Object.values(errors).some(Boolean)) {
     return NextResponse.json(
-      {
-        error: 'Veriler alınırken hata oluştu.',
-        details: {
-          pending: pendingResult.error?.message,
-          projects: projectsResult.error?.message,
-          recent: recentResult.error?.message,
-          users: allUsersResult.error?.message,
-        },
-      },
+      { error: 'Veriler alınırken hata oluştu.', details: errors },
       { status: 500 }
     )
   }
@@ -159,9 +139,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const auth = await checkAdmin(request)
 
-  if (!auth.ok) {
-    return auth.response
-  }
+  if (!auth.ok) return auth.response
 
   try {
     const body = await request.json()
@@ -174,34 +152,16 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const { data: targetUser, error: targetError } = await adminClient
-      .from('users')
-      .select('id, role')
-      .eq('id', userId)
-      .single()
-
-    if (targetError || !targetUser) {
-      return NextResponse.json(
-        { error: 'Kullanıcı bulunamadı.' },
-        { status: 404 }
-      )
-    }
-
-    if (targetUser.role === 'kurucu') {
-      return NextResponse.json(
-        { error: 'Bu kullanıcı üzerinde işlem yapılamaz.' },
-        { status: 403 }
-      )
-    }
-
     const newStatus = action === 'approve' ? 'approved' : 'rejected'
 
-    const { error: updateError } = await adminClient
+    const { data, error } = await adminClient
       .from('users')
       .update({ approval_status: newStatus })
       .eq('id', userId)
+      .select()
+      .single()
 
-    if (updateError) {
+    if (error || !data) {
       return NextResponse.json(
         { error: 'Kullanıcı güncellenemedi.' },
         { status: 500 }
@@ -211,6 +171,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Kullanıcı durumu güncellendi.',
+      user: data,
     })
   } catch {
     return NextResponse.json(
