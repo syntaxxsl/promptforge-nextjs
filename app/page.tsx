@@ -7,7 +7,9 @@ function parseCode(rawText: string) {
   let html = '', css = '', js = ''
   if (rawText.includes('---HTML---')) {
     const parts = rawText.split(/---(?:HTML|CSS|JS)---/);
-    html = parts[1] ? parts[1].trim() : ''; css = parts[2] ? parts[2].trim() : ''; js = parts[3] ? parts[3].trim() : '';
+    html = parts[1] ? parts[1].trim() : ''; 
+    css = parts[2] ? parts[2].trim() : ''; 
+    js = parts[3] ? parts[3].trim() : '';
   } else {
     const styleMatch = rawText.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
     if (styleMatch) { css = styleMatch[1]; rawText = rawText.replace(styleMatch[0], ''); }
@@ -22,7 +24,6 @@ export default function Home() {
   const [session, setSession] = useState<any>(null)
   const [authLoading, setAuthLoading] = useState(true)
   
-  // Editör State'leri
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -32,12 +33,15 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('html')
   const [copied, setCopied] = useState(false)
   
-  // Proje Kaydetme State'leri
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [projectTitle, setProjectTitle] = useState('Yeni Proje')
   const [projects, setProjects] = useState<any[]>([])
   const [showProjects, setShowProjects] = useState(false)
   const [saveStatus, setSaveStatus] = useState('')
+
+  // SOHBET (REVİZYON) STATE'İ
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
 
   const router = useRouter()
 
@@ -96,26 +100,60 @@ KURALLAR:
     }
   }
 
+  // YENİ ÖZELLİK: SOHBET İLE REVİZYON
+  const handleRevise = async () => {
+    if (!chatInput) return;
+    if (!codeHtml) { alert('Önce bir kod üretmelisin.'); return; }
+    
+    setChatLoading(true); setError('');
+    const currentCode = `---HTML---\n${codeHtml}\n---CSS---\n${codeCss}\n---JS---\n${codeJs}`;
+    const changeRequest = chatInput;
+    setChatInput(''); // Inputu temizle
+
+    try {
+      const aiPrompt = `Sen kıdemli bir front-end geliştiricisin. Aşağıda mevcut bir web sitesinin kodu var. Kullanıcı bu kodda bir değişiklik yapmak istiyor. 
+KURALLAR:
+- Sadece istenen değişikliği yap. Diğer kısımları aynen koru.
+- Çıktıyı tam olarak şu formatta ver:
+---HTML---
+(html kodu)
+---CSS---
+(css kodu)
+---JS---
+(js kodu)
+
+MEVCUT KOD:
+${currentCode}
+
+KULLANICI İSTEĞİ: ${changeRequest}`;
+
+      // @ts-ignore
+      const response = await puter.ai.chat(aiPrompt, { model: 'gpt-4o-mini' })
+      let rawText = typeof response === 'string' ? response : (response.message?.content || response.text || String(response));
+      rawText = rawText.replace(/```(?:html|css|javascript|js)?/g, '').replace(/```/g, '').trim();
+      const parsed = parseCode(rawText);
+      
+      setCodeHtml(parsed.html); setCodeCss(parsed.css); setCodeJs(parsed.js); setActiveTab('html');
+    } catch (err: any) {
+      setError('Revizyon Hatası: ' + (err.message || 'Bilinmeyen hata'))
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
   const handleSaveProject = async () => {
     if(!codeHtml) return;
     setSaveStatus('Kaydediliyor...');
     
     const projectData = {
-      title: projectTitle,
-      prompt: prompt,
-      html_code: codeHtml,
-      css_code: codeCss,
-      js_code: codeJs,
-      user_id: session.user.id,
-      updated_at: new Date().toISOString()
+      title: projectTitle, prompt: prompt, html_code: codeHtml, css_code: codeCss, js_code: codeJs,
+      user_id: session.user.id, updated_at: new Date().toISOString()
     };
 
     if (currentProjectId) {
-      // Güncelle
       await supabase.from('projects').update(projectData).eq('id', currentProjectId)
       setSaveStatus('Güncellendi!')
     } else {
-      // Yeni Kaydet
       const { data } = await supabase.from('projects').insert(projectData).select()
       if(data && data[0]) setCurrentProjectId(data[0].id)
       setSaveStatus('Kaydedildi!')
@@ -125,12 +163,8 @@ KURALLAR:
   }
 
   const handleLoadProject = (project: any) => {
-    setCurrentProjectId(project.id);
-    setProjectTitle(project.title);
-    setPrompt(project.prompt || '');
-    setCodeHtml(project.html_code || '');
-    setCodeCss(project.css_code || '');
-    setCodeJs(project.js_code || '');
+    setCurrentProjectId(project.id); setProjectTitle(project.title); setPrompt(project.prompt || '');
+    setCodeHtml(project.html_code || ''); setCodeCss(project.css_code || ''); setCodeJs(project.js_code || '');
     setShowProjects(false);
   }
 
@@ -139,9 +173,7 @@ KURALLAR:
     if(!confirm('Bu proje silinsin mi?')) return;
     await supabase.from('projects').delete().eq('id', id);
     fetchProjects();
-    if(currentProjectId === id) {
-      setCodeHtml(''); setCodeCss(''); setCodeJs(''); setCurrentProjectId(null);
-    }
+    if(currentProjectId === id) { setCodeHtml(''); setCodeCss(''); setCodeJs(''); setCurrentProjectId(null); }
   }
 
   const handleCopy = () => {
@@ -161,18 +193,12 @@ KURALLAR:
       {showProjects && (
         <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-[#12141a] border border-[#2a2e3b] rounded-xl w-full max-w-2xl p-6 flex flex-col gap-4 max-h-[80vh]">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-bold text-[#25f4ee]">Projelerim</h3>
-              <button onClick={() => setShowProjects(false)} className="text-gray-400 hover:text-white">Kapat</button>
-            </div>
+            <div className="flex justify-between items-center"><h3 className="text-lg font-bold text-[#25f4ee]">Projelerim</h3><button onClick={() => setShowProjects(false)} className="text-gray-400 hover:text-white">Kapat</button></div>
             <div className="overflow-y-auto flex flex-col gap-2">
               {projects.length === 0 ? <p className="text-gray-500 text-sm">Henüz proje kaydetmedin.</p> : 
                 projects.map(p => (
                   <div key={p.id} onClick={() => handleLoadProject(p)} className="p-3 bg-[#0b0c10] border border-[#2a2e3b] rounded-lg cursor-pointer hover:border-[#25f4ee] flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-sm">{p.title}</h4>
-                      <p className="text-xs text-gray-500">{new Date(p.updated_at).toLocaleDateString('tr')}</p>
-                    </div>
+                    <div><h4 className="font-bold text-sm">{p.title}</h4><p className="text-xs text-gray-500">{new Date(p.updated_at).toLocaleDateString('tr')}</p></div>
                     <button onClick={(e) => handleDeleteProject(p.id, e)} className="text-red-500 text-xs px-2 py-1 bg-red-900/20 rounded hover:bg-red-900/50">Sil</button>
                   </div>
                 ))
@@ -236,13 +262,34 @@ KURALLAR:
           <textarea readOnly value={activeTab === 'html' ? codeHtml : activeTab === 'css' ? codeCss : codeJs} className="absolute inset-0 w-full h-full bg-[#0b0c10] text-[#a8b9d4] p-4 font-mono text-xs resize-none outline-none" placeholder={`${activeTab.toUpperCase()} kodu...`} />
         </div>
 
-        <div className="flex-1 bg-white border-t border-[#2a2e3b] flex flex-col">
-          <div className="bg-[#12141a] px-4 py-2 border-b border-[#2a2e3b] text-xs text-[#8b92a5] flex justify-between items-center">
+        <div className="flex-1 bg-white border-t border-[#2a2e3b] flex flex-col relative">
+          <div className="bg-[#12141a] px-4 py-2 border-b border-[#2a2e3b] text-xs text-[#8b92a5] flex justify-between items-center z-10">
             <span>▶ Canlı Önizleme</span>
           </div>
           {codeHtml ? <iframe srcDoc={combinedCode} className="flex-1 w-full border-none" title="Önizleme" /> : <div className="flex-1 flex justify-center items-center text-gray-500 text-sm">Önizleme Bekleniyor...</div>}
+          
+          {/* SOHBET KUTUSU */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0b0c10] to-transparent">
+            <div className="flex gap-2 bg-[#12141a] border border-[#2a2e3b] rounded-lg p-2">
+              <input 
+                type="text" 
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleRevise()}
+                placeholder="Bir sonraki adım için değişiklik yaz (Örn: Rengi maviye çevir)..." 
+                className="flex-1 bg-transparent text-white outline-none text-sm px-2"
+              />
+              <button 
+                onClick={handleRevise} 
+                disabled={chatLoading}
+                className="bg-[#25f4ee] text-black px-4 py-2 rounded-md font-bold text-sm hover:bg-cyan-300 disabled:opacity-50 transition"
+              >
+                {chatLoading ? '...' : '➤'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
-}
+  }
