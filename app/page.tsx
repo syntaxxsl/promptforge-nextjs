@@ -4,22 +4,15 @@ import { supabase } from '../lib/supabase'
 import { useRouter } from 'next/navigation'
 
 function parseCode(rawText: string) {
-  let html = ''
-  let css = ''
-  let js = ''
-
+  let html = '', css = '', js = ''
   if (rawText.includes('---HTML---')) {
     const parts = rawText.split(/---(?:HTML|CSS|JS)---/);
-    html = parts[1] ? parts[1].trim() : '';
-    css = parts[2] ? parts[2].trim() : '';
-    js = parts[3] ? parts[3].trim() : '';
+    html = parts[1] ? parts[1].trim() : ''; css = parts[2] ? parts[2].trim() : ''; js = parts[3] ? parts[3].trim() : '';
   } else {
     const styleMatch = rawText.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
     if (styleMatch) { css = styleMatch[1]; rawText = rawText.replace(styleMatch[0], ''); }
-    
     const scriptMatch = rawText.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
     if (scriptMatch) { js = scriptMatch[1]; rawText = rawText.replace(scriptMatch[0], ''); }
-    
     html = rawText;
   }
   return { html, css, js };
@@ -29,6 +22,7 @@ export default function Home() {
   const [session, setSession] = useState<any>(null)
   const [authLoading, setAuthLoading] = useState(true)
   
+  // Editör State'leri
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -36,27 +30,35 @@ export default function Home() {
   const [codeCss, setCodeCss] = useState('')
   const [codeJs, setCodeJs] = useState('')
   const [activeTab, setActiveTab] = useState('html')
-  
-  const [showPasteModal, setShowPasteModal] = useState(false)
-  const [pasteText, setPasteText] = useState('')
   const [copied, setCopied] = useState(false)
   
+  // Proje Kaydetme State'leri
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+  const [projectTitle, setProjectTitle] = useState('Yeni Proje')
+  const [projects, setProjects] = useState<any[]>([])
+  const [showProjects, setShowProjects] = useState(false)
+  const [saveStatus, setSaveStatus] = useState('')
+
   const router = useRouter()
 
-  // Giriş kontrolü
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setAuthLoading(false)
       if (!session) router.push('/auth')
+      else fetchProjects()
     })
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       if (!session) router.push('/auth')
     })
     return () => subscription.unsubscribe()
   }, [router])
+
+  const fetchProjects = async () => {
+    const { data } = await supabase.from('projects').select('*').order('updated_at', { ascending: false })
+    if (data) setProjects(data)
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -65,8 +67,8 @@ export default function Home() {
 
   const handleGenerate = async () => {
     if (!prompt) { alert('Lütfen bir site fikri yazın.'); return; }
-    setLoading(true); setError(''); 
-    setCodeHtml(''); setCodeCss(''); setCodeJs('');
+    setLoading(true); setError(''); setCodeHtml(''); setCodeCss(''); setCodeJs(''); setCurrentProjectId(null);
+    setProjectTitle(prompt.slice(0, 30) + '...');
 
     try {
       const aiPrompt = `Sen kıdemli bir front-end geliştiricisin. Aşağıdaki fikir için 3 AYRI DOSYA (HTML, CSS, JS) üret.
@@ -83,7 +85,6 @@ KURALLAR:
       // @ts-ignore
       const response = await puter.ai.chat(aiPrompt, { model: 'gpt-4o-mini' })
       let rawText = typeof response === 'string' ? response : (response.message?.content || response.text || String(response));
-      
       rawText = rawText.replace(/```(?:html|css|javascript|js)?/g, '').replace(/```/g, '').trim();
       const parsed = parseCode(rawText);
       
@@ -95,53 +96,87 @@ KURALLAR:
     }
   }
 
-  const handleJustSplit = () => {
-    if(!pasteText) return;
-    const parsed = parseCode(pasteText);
-    setCodeHtml(parsed.html); setCodeCss(parsed.css); setCodeJs(parsed.js);
-    setActiveTab('html'); setShowPasteModal(false); setPasteText('');
+  const handleSaveProject = async () => {
+    if(!codeHtml) return;
+    setSaveStatus('Kaydediliyor...');
+    
+    const projectData = {
+      title: projectTitle,
+      prompt: prompt,
+      html_code: codeHtml,
+      css_code: codeCss,
+      js_code: codeJs,
+      user_id: session.user.id,
+      updated_at: new Date().toISOString()
+    };
+
+    if (currentProjectId) {
+      // Güncelle
+      await supabase.from('projects').update(projectData).eq('id', currentProjectId)
+      setSaveStatus('Güncellendi!')
+    } else {
+      // Yeni Kaydet
+      const { data } = await supabase.from('projects').insert(projectData).select()
+      if(data && data[0]) setCurrentProjectId(data[0].id)
+      setSaveStatus('Kaydedildi!')
+    }
+    fetchProjects();
+    setTimeout(() => setSaveStatus(''), 2000);
+  }
+
+  const handleLoadProject = (project: any) => {
+    setCurrentProjectId(project.id);
+    setProjectTitle(project.title);
+    setPrompt(project.prompt || '');
+    setCodeHtml(project.html_code || '');
+    setCodeCss(project.css_code || '');
+    setCodeJs(project.js_code || '');
+    setShowProjects(false);
+  }
+
+  const handleDeleteProject = async (id: string, e: any) => {
+    e.stopPropagation();
+    if(!confirm('Bu proje silinsin mi?')) return;
+    await supabase.from('projects').delete().eq('id', id);
+    fetchProjects();
+    if(currentProjectId === id) {
+      setCodeHtml(''); setCodeCss(''); setCodeJs(''); setCurrentProjectId(null);
+    }
   }
 
   const handleCopy = () => {
     const textToCopy = activeTab === 'html' ? codeHtml : activeTab === 'css' ? codeCss : codeJs;
     if(!textToCopy) return;
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      setCopied(true); setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard.writeText(textToCopy).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }
 
-  const combinedCode = `
-    <!DOCTYPE html>
-    <html>
-    <head><style>${codeCss}</style></head>
-    <body>
-      ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/gi, '')}
-      <script>${codeJs}<\/script>
-    </body>
-    </html>
-  `;
+  const combinedCode = `<!DOCTYPE html><html><head><style>${codeCss}</style></head><body>${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/gi, '')}<script>${codeJs}<\/script></body></html>`;
 
-  if (authLoading) {
-    return <div className="flex h-screen items-center justify-center bg-[#05070d] text-[#25f4ee]">Yükleniyor...</div>
-  }
+  if (authLoading) return <div className="flex h-screen items-center justify-center bg-[#05070d] text-[#25f4ee]">Yükleniyor...</div>
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#0b0c10] text-white font-sans overflow-hidden relative">
       
-      {/* YAPIŞTIRMA MODALI */}
-      {showPasteModal && (
+      {/* PROJELER MODALI */}
+      {showProjects && (
         <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#12141a] border border-[#2a2e3b] rounded-xl w-full max-w-2xl p-6 flex flex-col gap-4">
-            <h3 className="text-lg font-bold text-[#25f4ee]">Kodu Yapıştır ve Ayır</h3>
-            <p className="text-xs text-gray-400">İçinde &lt;style&gt; ve &lt;script&gt; etiketleri olan dağınık bir kod yapıştırın. Sistem AI'ya göndermeden direkt dosyalara ayıracaktır.</p>
-            <textarea 
-              value={pasteText} onChange={(e) => setPasteText(e.target.value)}
-              className="w-full h-64 bg-[#0b0c10] text-white border border-[#2a2e3b] rounded-lg p-3 text-xs font-mono resize-none outline-none focus:border-[#25f4ee]"
-              placeholder="<html>...kodunuzu buraya yapıştırın...</html>"
-            />
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowPasteModal(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white">İPTAL</button>
-              <button onClick={handleJustSplit} className="px-4 py-2 text-sm bg-[#25f4ee] text-black font-bold rounded-lg hover:bg-cyan-300">SADECE DOSYALARA AYIR</button>
+          <div className="bg-[#12141a] border border-[#2a2e3b] rounded-xl w-full max-w-2xl p-6 flex flex-col gap-4 max-h-[80vh]">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-[#25f4ee]">Projelerim</h3>
+              <button onClick={() => setShowProjects(false)} className="text-gray-400 hover:text-white">Kapat</button>
+            </div>
+            <div className="overflow-y-auto flex flex-col gap-2">
+              {projects.length === 0 ? <p className="text-gray-500 text-sm">Henüz proje kaydetmedin.</p> : 
+                projects.map(p => (
+                  <div key={p.id} onClick={() => handleLoadProject(p)} className="p-3 bg-[#0b0c10] border border-[#2a2e3b] rounded-lg cursor-pointer hover:border-[#25f4ee] flex justify-between items-center">
+                    <div>
+                      <h4 className="font-bold text-sm">{p.title}</h4>
+                      <p className="text-xs text-gray-500">{new Date(p.updated_at).toLocaleDateString('tr')}</p>
+                    </div>
+                    <button onClick={(e) => handleDeleteProject(p.id, e)} className="text-red-500 text-xs px-2 py-1 bg-red-900/20 rounded hover:bg-red-900/50">Sil</button>
+                  </div>
+                ))
+              }
             </div>
           </div>
         </div>
@@ -152,7 +187,7 @@ KURALLAR:
         <div className="p-4 border-b border-[#2a2e3b] flex justify-between items-center">
           <h2 className="text-xl font-bold text-[#25f4ee]">PromptForge</h2>
           <div className="flex gap-2">
-            <button onClick={() => setShowPasteModal(true)} className="text-xs bg-[#2a2e3b] px-3 py-1 rounded hover:bg-[#3a3f52] transition">📥 Yapıştır</button>
+            <button onClick={() => setShowProjects(true)} className="text-xs bg-[#2a2e3b] px-3 py-1 rounded hover:bg-[#3a3f52] transition">📁 Projelerim</button>
             <button onClick={handleLogout} className="text-xs bg-red-900/30 text-red-400 border border-red-500 px-3 py-1 rounded hover:bg-red-900/50 transition">Çıkış</button>
           </div>
         </div>
@@ -167,6 +202,19 @@ KURALLAR:
           <button onClick={handleGenerate} disabled={loading} className="w-full py-3 bg-[#25f4ee] text-black font-bold rounded-lg hover:bg-cyan-300 disabled:opacity-50 transition">
             {loading ? 'Üretiliyor...' : '🚀 ÜRET'}
           </button>
+          
+          {codeHtml && (
+            <div className="mt-4 flex flex-col gap-2 border-t border-[#2a2e3b] pt-4">
+              <input 
+                value={projectTitle} onChange={(e) => setProjectTitle(e.target.value)}
+                className="w-full bg-[#12141a] text-white border border-[#2a2e3b] rounded p-2 text-sm"
+                placeholder="Proje Adı"
+              />
+              <button onClick={handleSaveProject} className="w-full py-2 bg-green-600 text-white font-bold rounded hover:bg-green-500 transition">
+                {saveStatus || '💾 Projeyi Kaydet'}
+              </button>
+            </div>
+          )}
           {error && <div className="p-3 bg-red-900/30 border border-red-500 text-red-400 rounded-lg text-xs">{error}</div>}
         </div>
       </div>
@@ -185,25 +233,16 @@ KURALLAR:
         </div>
 
         <div className="flex-1 bg-[#0b0c10] overflow-hidden relative">
-          <textarea
-            readOnly
-            value={activeTab === 'html' ? codeHtml : activeTab === 'css' ? codeCss : codeJs}
-            className="absolute inset-0 w-full h-full bg-[#0b0c10] text-[#a8b9d4] p-4 font-mono text-xs resize-none outline-none"
-            placeholder={`${activeTab.toUpperCase()} kodu...`}
-          />
+          <textarea readOnly value={activeTab === 'html' ? codeHtml : activeTab === 'css' ? codeCss : codeJs} className="absolute inset-0 w-full h-full bg-[#0b0c10] text-[#a8b9d4] p-4 font-mono text-xs resize-none outline-none" placeholder={`${activeTab.toUpperCase()} kodu...`} />
         </div>
 
         <div className="flex-1 bg-white border-t border-[#2a2e3b] flex flex-col">
           <div className="bg-[#12141a] px-4 py-2 border-b border-[#2a2e3b] text-xs text-[#8b92a5] flex justify-between items-center">
             <span>▶ Canlı Önizleme</span>
           </div>
-          {codeHtml ? (
-            <iframe srcDoc={combinedCode} className="flex-1 w-full border-none" title="Önizleme" />
-          ) : (
-            <div className="flex-1 flex justify-center items-center text-gray-500 text-sm">Önizleme Bekleniyor...</div>
-          )}
+          {codeHtml ? <iframe srcDoc={combinedCode} className="flex-1 w-full border-none" title="Önizleme" /> : <div className="flex-1 flex justify-center items-center text-gray-500 text-sm">Önizleme Bekleniyor...</div>}
         </div>
       </div>
     </div>
   )
-      }
+}
