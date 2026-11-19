@@ -1,4 +1,4 @@
-
+ 
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -41,9 +41,9 @@ export default function SharedProjectPage() {
       if (!active) return
 
       if (error) {
-        setErrorMessage('Proje yüklenirken bir hata oluştu.')
+        setErrorMessage('Proje yüklenemedi.')
       } else if (!data) {
-        setErrorMessage('Proje bulunamadı veya paylaşım bağlantısı kapatıldı.')
+        setErrorMessage('Proje bulunamadı veya paylaşım kapatıldı.')
       } else {
         setProject(data as SharedProject)
       }
@@ -64,11 +64,11 @@ export default function SharedProjectPage() {
   }, [token])
 
   const previewDocument = project
-    ? `<!DOCTYPE html>
+    ? `<!doctype html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>${project.css_code ?? ''}</style>
 </head>
 <body>
@@ -85,7 +85,6 @@ ${project.html_code ?? ''}
           <a href="/" className="text-xl font-bold">
             Prompt<span className="text-purple-400">Forge</span>
           </a>
-
           <span className="text-sm text-gray-400">
             Paylaşılan proje
           </span>
@@ -94,35 +93,21 @@ ${project.html_code ?? ''}
 
       <section className="mx-auto max-w-7xl px-4 py-8">
         {loading ? (
-          <div className="rounded-xl border border-white/10 bg-[#10131b] p-6">
-            Proje yükleniyor...
-          </div>
+          <p className="text-gray-300">Proje yükleniyor...</p>
         ) : errorMessage ? (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-5 text-red-300">
             {errorMessage}
           </div>
         ) : project ? (
-          <div className="space-y-5">
-            <div>
-              <h1 className="text-3xl font-bold">
-                {project.title}
-              </h1>
+          <div className="space-y-4">
+            <h1 className="text-2xl font-bold">{project.title}</h1>
 
-              {project.prompt && (
-                <p className="mt-2 text-sm text-gray-400">
-                  {project.prompt}
-                </p>
-              )}
-            </div>
-
-            <div className="overflow-hidden rounded-xl border border-white/10 bg-white">
-              <iframe
-                title={project.title}
-                srcDoc={previewDocument}
-                sandbox="allow-scripts allow-forms"
-                className="h-[75vh] w-full"
-              />
-            </div>
+            <iframe
+              title={project.title}
+              srcDoc={previewDocument}
+              sandbox="allow-scripts allow-forms"
+              className="h-[75vh] w-full rounded-xl border border-white/10 bg-white"
+            />
 
             <p className="text-sm text-gray-400">
               Son güncelleme:{' '}
