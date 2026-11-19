@@ -44,7 +44,7 @@ async function countRows(
   table: string,
   build?: (query: any) => any
 ) {
-  let query = client.from(table).select('id', { count: 'exact', head: true })
+  let query = client.from(table).select('*', { count: 'exact', head: true })
   if (build) query = build(query)
   const { count, error } = await query
   return { count: count ?? 0, error }
