@@ -2012,7 +2012,7 @@ ${codeJs}`)
 
         <button
           onClick={startNewProject}
-          className="px-3 h-10 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold"
+          className="px-3 h-10 rounded-xl bg-[#7c5cff] hover:bg-[#8b6fff] text-white text-sm font-bold"
         >
           + Yeni
         </button>
@@ -2123,7 +2123,7 @@ ${codeJs}`)
                 <button
                   onClick={handleSaveProfile}
                   disabled={profileLoading}
-                  className="w-full py-3 rounded-lg bg-purple-600 text-white font-bold disabled:opacity-50"
+                  className="w-full py-3 rounded-lg bg-[#7c5cff] text-white font-bold disabled:opacity-50"
                 >
                   {profileLoading ? 'Kaydediliyor...' : 'Profili Kaydet'}
                 </button>
@@ -2402,7 +2402,7 @@ ${codeJs}`)
 
               {/* YENİ PROJE */}
               <div className={`rounded-2xl border p-5 md:p-7 mb-8 ${panelClass}`}>
-                <h2 className="text-xl font-bold mb-2">
+                <h2 className="text-[15px] font-semibold mb-1.5">
                   Ne oluşturmak istiyorsun?
                 </h2>
                 <p className="text-sm text-gray-400 mb-4">
@@ -2421,7 +2421,7 @@ ${codeJs}`)
                   <button
                     onClick={handleGenerate}
                     disabled={loading || variationLoading}
-                    className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold disabled:opacity-50"
+                    className="flex-1 py-3 rounded-xl bg-[#7c5cff] text-white font-bold disabled:opacity-50"
                   >
                     {loading ? 'Site oluşturuluyor...' : 'Site Oluştur'}
                   </button>
@@ -2457,7 +2457,7 @@ ${codeJs}`)
                           className={`rounded-xl overflow-hidden border ${panelClass}`}
                         >
                           <div className="relative">
-                            <span className="absolute top-2 left-2 z-10 px-2 py-1 rounded-md bg-purple-600 text-white text-xs font-bold">
+                            <span className="absolute top-2 left-2 z-10 px-2 py-1 rounded-md bg-[#7c5cff] text-white text-xs font-bold">
                               TASARIM {index + 1}
                             </span>
                             <iframe
@@ -2480,7 +2480,7 @@ ${codeJs}`)
                             </p>
                             <button
                               onClick={() => handleSelectVariation(variant)}
-                              className="w-full mt-4 py-2.5 rounded-lg bg-purple-600 text-white text-sm font-bold"
+                              className="w-full mt-4 py-2.5 rounded-lg bg-[#7c5cff] text-white text-sm font-bold"
                             >
                               Bu Tasarımı Kullan
                             </button>
@@ -2496,7 +2496,7 @@ ${codeJs}`)
               <div id="projects-section" className="flex flex-col gap-4 mb-5 scroll-mt-24">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-2xl font-black">Projelerim</h2>
+                    <h2 className="text-[17px] font-semibold">Projelerim</h2>
                     <p className="text-sm text-gray-400 mt-1">
                       Kaydettiğin çalışmalar.
                     </p>
@@ -2703,7 +2703,7 @@ ${codeJs}`)
                   <button
                     onClick={handleFetchVersions}
                     disabled={!currentProjectId || versionLoading}
-                    className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-bold disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg bg-[#7c5cff] text-white text-sm font-bold disabled:opacity-50"
                   >
                     🕘 Sürüm Geçmişi
                   </button>
@@ -2757,7 +2757,7 @@ ${codeJs}`)
                           alert(shareLink)
                         }
                       }}
-                      className="px-4 py-2 rounded-lg bg-purple-600 text-white font-bold"
+                      className="px-4 py-2 rounded-lg bg-[#7c5cff] text-white font-bold"
                     >
                       Kopyala
                     </button>
@@ -2817,7 +2817,7 @@ ${codeJs}`)
                   <button
                     onClick={handleAddTag}
                     disabled={!currentProjectId}
-                    className="px-4 py-2 rounded-lg bg-purple-600 text-white font-bold disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg bg-[#7c5cff] text-white font-bold disabled:opacity-50"
                   >
                     Ekle
                   </button>
@@ -2905,7 +2905,7 @@ ${codeJs}`)
                   </p>
                   <button
                     onClick={() => setActiveView('dashboard')}
-                    className="mt-5 px-5 py-2 rounded-lg bg-purple-600 text-white font-bold"
+                    className="mt-5 px-5 py-2 rounded-lg bg-[#7c5cff] text-white font-bold"
                   >
                     Proje Oluştur
                   </button>
@@ -2926,7 +2926,7 @@ ${codeJs}`)
                               onClick={() => setActiveTab(tab)}
                               className={`px-4 py-2 rounded-lg text-sm font-bold ${
                                 activeTab === tab
-                                  ? 'bg-purple-600 text-white'
+                                  ? 'bg-[#7c5cff] text-white'
                                   : 'text-gray-400 hover:bg-gray-500/10'
                               }`}
                             >
@@ -2991,7 +2991,7 @@ ${codeJs}`)
                               key={`${index}-${message.role}`}
                               className={`p-3 rounded-xl text-sm whitespace-pre-wrap ${
                                 message.role === 'user'
-                                  ? 'bg-purple-600/15 border border-purple-500/20 ml-5'
+                                  ? 'bg-[#7c5cff]/15 border border-purple-500/20 ml-5'
                                   : 'bg-gray-500/10 mr-5'
                               }`}
                             >
@@ -3027,7 +3027,7 @@ ${codeJs}`)
                       <button
                         onClick={handleRevise}
                         disabled={chatLoading || !chatInput.trim()}
-                        className="w-full mt-3 py-3 rounded-lg bg-purple-600 text-white font-bold disabled:opacity-50"
+                        className="w-full mt-3 py-3 rounded-lg bg-[#7c5cff] text-white font-bold disabled:opacity-50"
                       >
                         {chatLoading
                           ? 'AI yanıt hazırlıyor...'
@@ -3059,7 +3059,7 @@ ${codeJs}`)
                         <button
                           onClick={handleDesignSuggestions}
                           disabled={designLoading}
-                          className="p-3 rounded-lg bg-purple-600/15 border border-purple-500/30 text-purple-400 font-bold text-sm disabled:opacity-50 sm:col-span-2"
+                          className="p-3 rounded-lg bg-[#7c5cff]/15 border border-purple-500/30 text-purple-400 font-bold text-sm disabled:opacity-50 sm:col-span-2"
                         >
                           {designLoading
                             ? 'Öneriler hazırlanıyor...'
@@ -3107,7 +3107,7 @@ ${codeJs}`)
                             onClick={() => setPreviewSize(size)}
                             className={`px-2 py-1.5 rounded-lg text-xs ${
                               previewSize === size
-                                ? 'bg-purple-600 text-white'
+                                ? 'bg-[#7c5cff] text-white'
                                 : 'bg-gray-500/10 text-gray-400'
                             }`}
                           >
