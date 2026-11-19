@@ -9,6 +9,8 @@ type Ticket = {
   subject: string
   message: string
   status: string
+  admin_reply?: string | null
+  replied_at?: string | null
   created_at: string
 }
 
@@ -22,7 +24,11 @@ export default function SupportPage() {
   const [success, setSuccess] = useState('')
 
   const loadTickets = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
+    setError('')
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
       setError('Destek taleplerini kullanmak için giriş yapmalısın.')
@@ -33,6 +39,7 @@ export default function SupportPage() {
     const { data, error } = await supabase
       .from('support_tickets')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -60,7 +67,9 @@ export default function SupportPage() {
 
     setSending(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
       setError('Önce hesabına giriş yapmalısın.')
@@ -73,7 +82,7 @@ export default function SupportPage() {
       .insert({
         user_id: user.id,
         subject: subject.trim(),
-        message: message.trim()
+        message: message.trim(),
       })
 
     if (error) {
@@ -93,6 +102,10 @@ export default function SupportPage() {
     if (status === 'in_progress') return 'İşlemde'
     if (status === 'closed') return 'Kapalı'
     return status
+  }
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleString('tr-TR')
   }
 
   return (
@@ -187,7 +200,7 @@ export default function SupportPage() {
                 Henüz destek talebin yok.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {tickets.map(ticket => (
                   <article
                     key={ticket.id}
@@ -203,12 +216,40 @@ export default function SupportPage() {
                       </span>
                     </div>
 
-                    <p className="text-sm text-gray-400 mt-3 whitespace-pre-wrap break-words">
-                      {ticket.message}
-                    </p>
+                    <div className="mt-4">
+                      <p className="text-xs text-gray-500 mb-2">
+                        Gönderdiğin mesaj
+                      </p>
+
+                      <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">
+                        {ticket.message}
+                      </p>
+                    </div>
+
+                    {ticket.admin_reply ? (
+                      <div className="mt-4 bg-violet-500/10 border border-violet-500/20 rounded-xl p-4">
+                        <p className="text-sm font-semibold text-violet-300 mb-2">
+                          PromptForge Destek Ekibi
+                        </p>
+
+                        <p className="text-sm text-gray-200 whitespace-pre-wrap break-words">
+                          {ticket.admin_reply}
+                        </p>
+
+                        {ticket.replied_at && (
+                          <p className="text-xs text-gray-500 mt-3">
+                            Cevap tarihi: {formatDate(ticket.replied_at)}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-yellow-500 mt-4">
+                        Henüz cevap verilmedi.
+                      </p>
+                    )}
 
                     <p className="text-xs text-gray-600 mt-4">
-                      {new Date(ticket.created_at).toLocaleString('tr-TR')}
+                      Talep tarihi: {formatDate(ticket.created_at)}
                     </p>
                   </article>
                 ))}
