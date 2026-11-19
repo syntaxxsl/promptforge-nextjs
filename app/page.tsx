@@ -2235,8 +2235,8 @@ ${variant.html}
                   </button>
 
                   <button
-                    onClick={handleShareProject}
-                    disabled={!currentProjectId || shareLoading}
+  onClick={() => handleShareProject()}
+  disabled={!currentProjectId || shareLoading}
                     className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold disabled:opacity-50"
                   >
                     {shareLoading ? 'Hazırlanıyor...' : '🔗 Paylaş'}
