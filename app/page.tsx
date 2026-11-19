@@ -1,9 +1,8 @@
-
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '../lib/supabase'
 
 type Notification = {
   id: string
@@ -26,36 +25,27 @@ type ChatMessage = {
   content: string
 }
 
-function parseCode(rawText: string) {
-  let html = ''
-  let css = ''
-  let js = ''
+type Project = {
+  id: string
+  user_id: string
+  title: string
+  prompt: string
+  html_code: string
+  css_code: string
+  js_code: string
+  thumbnail_url?: string | null
+  is_favorite?: boolean
+  is_public?: boolean
+  share_token?: string | null
+  tags?: string[]
+  deleted_at?: string | null
+  updated_at?: string
+  [key: string]: any
+}
 
-  if (rawText.includes('---HTML---')) {
-    const parts = rawText.split(/---(?:HTML|CSS|JS)---/i)
-    html = parts[1] || ''
-    css = parts[2] || ''
-    js = parts[3] || ''
-  } else {
-    const style = rawText.match(/<style[^>]*>([\s\S]*?)<\/style>/i)
-    if (style) {
-      css = style[1]
-      rawText = rawText.replace(style[0], '')
-    }
-
-    const script = rawText.match(/<script[^>]*>([\s\S]*?)<\/script>/i)
-    if (script) {
-      js = script[1]
-      rawText = rawText.replace(script[0], '')
-    }
-
-    html = rawText
-  }
-
-  return {
-    html: html.trim(),
-    css: css.trim(),
-    js: js.trim(),
+declare global {
+  interface Window {
+    puter?: any
   }
 }
 
@@ -67,39 +57,138 @@ function getAIText(response: any): string {
   if (typeof content === 'string') return content
 
   if (Array.isArray(content)) {
-    return content.map((item: any) => item.text || '').join('\n')
+    return content.map((item: any) => item?.text || '').join('\n')
   }
 
-  return response?.text || String(response)
+  return response?.text || ''
 }
 
-function cleanAIResponse(text: string) {
-  return text
+function parseCode(raw: string) {
+  const text = raw
     .replace(/```(?:html|css|javascript|js)?/gi, '')
     .replace(/```/g, '')
     .trim()
+
+  const markerRegex = /---(HTML|CSS|JS)---/gi
+  const matches = [...text.matchAll(markerRegex)]
+
+  if (matches.length) {
+    const result = { html: '', css: '', js: '' }
+
+    matches.forEach((match, index) => {
+      const start = (match.index || 0) + match[0].length
+      const end = matches[index + 1]?.index ?? text.length
+      const value = text.slice(start, end).trim()
+      const key = match[1].toLowerCase() as 'html' | 'css' | 'js'
+      result[key] = value
+    })
+
+    return result
+  }
+
+  let html = text
+  let css = ''
+  let js = ''
+
+  const style = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)
+  if (style) {
+    css = style[1].trim()
+    html = html.replace(style[0], '')
+  }
+
+  const script = html.match(/<script[^>]*>([\s\S]*?)<\/script>/i)
+  if (script) {
+    js = script[1].trim()
+    html = html.replace(script[0], '')
+  }
+
+  return { html: html.trim(), css, js }
+}
+
+function buildDocument(
+  html: string,
+  css: string,
+  js: string,
+  title = 'PromptForge'
+) {
+  let documentText = html.trim()
+
+  if (!documentText) return ''
+
+  if (!/<html[\s>]/i.test(documentText)) {
+    documentText = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+</head>
+<body>
+${documentText}
+</body>
+</html>`
+  }
+
+  if (!/<head[\s>]/i.test(documentText)) {
+    documentText = documentText.replace(
+      /<html([^>]*)>/i,
+      `<html$1><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>`
+    )
+  }
+
+  if (css.trim()) {
+    const styleTag = `<style>${css}</style>`
+
+    if (/<\/head>/i.test(documentText)) {
+      documentText = documentText.replace(
+        /<\/head>/i,
+        `${styleTag}</head>`
+      )
+    } else {
+      documentText = documentText.replace(
+        /<html[^>]*>/i,
+        (tag) => `${tag}<head>${styleTag}</head>`
+      )
+    }
+  }
+
+  if (js.trim()) {
+    const scriptTag = `<script>${js}<\/script>`
+
+    if (/<\/body>/i.test(documentText)) {
+      documentText = documentText.replace(
+        /<\/body>/i,
+        `${scriptTag}</body>`
+      )
+    } else {
+      documentText += scriptTag
+    }
+  }
+
+  return documentText
 }
 
 export default function Home() {
   const router = useRouter()
 
+  // OTURUM
   const [session, setSession] = useState<any>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // GENEL
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [activeView, setActiveView] = useState<'dashboard' | 'editor'>('dashboard')
+  const [error, setError] = useState('')
+  const [saveStatus, setSaveStatus] = useState('')
+
+  // AI ÜRETİM
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  const [codeHtml, setCodeHtml] = useState('')
-  const [codeCss, setCodeCss] = useState('')
-  const [codeJs, setCodeJs] = useState('')
-  const [activeTab, setActiveTab] = useState('html')
-  const [copied, setCopied] = useState(false)
-
   const [variationLoading, setVariationLoading] = useState(false)
   const [designVariants, setDesignVariants] = useState<DesignVariant[]>([])
 
+  // CODE WIZARD
   const [showWizard, setShowWizard] = useState(false)
   const [wizardLoading, setWizardLoading] = useState(false)
   const [wizardType, setWizardType] = useState('Kurumsal Web Sitesi')
@@ -110,36 +199,40 @@ export default function Home() {
   ])
   const [wizardDescription, setWizardDescription] = useState('')
 
+  // KODLAR
+  const [codeHtml, setCodeHtml] = useState('')
+  const [codeCss, setCodeCss] = useState('')
+  const [codeJs, setCodeJs] = useState('')
+  const [activeTab, setActiveTab] = useState<'html' | 'css' | 'js'>('html')
+  const [copied, setCopied] = useState(false)
+
+  // PROJE
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [projectTitle, setProjectTitle] = useState('Yeni Proje')
-  const [projects, setProjects] = useState<any[]>([])
-  const [showProjects, setShowProjects] = useState(false)
-  const [saveStatus, setSaveStatus] = useState('')
-
+  const [projects, setProjects] = useState<Project[]>([])
   const [projectSearch, setProjectSearch] = useState('')
   const [projectSort, setProjectSort] = useState<'updated' | 'name'>('updated')
   const [favoriteFilter, setFavoriteFilter] = useState(false)
   const [tagFilter, setTagFilter] = useState('')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
+  const [duplicateLoading, setDuplicateLoading] = useState(false)
 
+  // AI SOHBET VE ARAÇLAR
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
-
   const [reviewLoading, setReviewLoading] = useState(false)
   const [fixLoading, setFixLoading] = useState(false)
   const [reviewResult, setReviewResult] = useState('')
-
   const [designLoading, setDesignLoading] = useState(false)
   const [designSuggestions, setDesignSuggestions] = useState('')
 
+  // ZIP VE ÖNİZLEME
   const [zipLoading, setZipLoading] = useState(false)
+  const [previewSize, setPreviewSize] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
 
-  const [previewSize, setPreviewSize] = useState<
-    'desktop' | 'tablet' | 'mobile'
-  >('desktop')
-
-  const [activeView, setActiveView] = useState<'dashboard' | 'editor'>('dashboard')
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  // BİLDİRİMLER
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
 
@@ -149,19 +242,12 @@ export default function Home() {
   const [versionLoading, setVersionLoading] = useState(false)
   const [restoreLoading, setRestoreLoading] = useState(false)
 
-  // FAVORİ / KOPYALAMA
-  const [duplicateLoading, setDuplicateLoading] = useState(false)
-
-  // ETİKETLER
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [tagInput, setTagInput] = useState('')
-
   // PAYLAŞIM
   const [shareLoading, setShareLoading] = useState(false)
   const [shareLink, setShareLink] = useState('')
 
   // ÇÖP KUTUSU
-  const [trashProjects, setTrashProjects] = useState<any[]>([])
+  const [trashProjects, setTrashProjects] = useState<Project[]>([])
   const [showTrash, setShowTrash] = useState(false)
   const [trashLoading, setTrashLoading] = useState(false)
 
@@ -173,43 +259,53 @@ export default function Home() {
   const [profileAvatar, setProfileAvatar] = useState('')
 
   const isLight = theme === 'light'
+  const userId = session?.user?.id
+  const unreadCount = notifications.filter((item) => !item.read).length
 
-  const addNotification = (title: string, message: string) => {
-    const item: Notification = {
-      id: `${Date.now()}-${Math.random()}`,
+  const panelClass = isLight
+    ? 'bg-white border-gray-200 text-gray-900'
+    : 'bg-[#131722] border-[#252b39] text-white'
+
+  const inputClass = isLight
+    ? 'bg-gray-50 border-gray-200 text-gray-900'
+    : 'bg-[#090d16] border-[#303747] text-white'
+
+  // BİLDİRİM EKLE
+  const addNotification = useCallback((title: string, message: string, id?: string) => {
+    const notification: Notification = {
+      id: id || `${Date.now()}-${Math.random()}`,
       title,
       message,
       date: new Date().toISOString(),
       read: false,
     }
 
-    setNotifications((prev) => [item, ...prev].slice(0, 30))
+    setNotifications((previous) => {
+      if (previous.some((item) => item.id === notification.id)) return previous
+      return [notification, ...previous].slice(0, 50)
+    })
+  }, [])
+
+  // AI ÇAĞRISI
+  const askAI = async (promptText: string) => {
+    if (!window.puter?.ai?.chat) {
+      throw new Error('AI servisi henüz yüklenmedi. Birkaç saniye sonra tekrar dene.')
+    }
+
+    const response = await window.puter.ai.chat(promptText, {
+      model: 'gpt-4o-mini',
+    })
+
+    return getAIText(response)
   }
 
-  const unreadCount = notifications.filter((n) => !n.read).length
-
+  // TEMA
   useEffect(() => {
     try {
-      const savedTheme = localStorage.getItem('promptforge-theme')
-      if (savedTheme === 'light' || savedTheme === 'dark') {
-        setTheme(savedTheme)
-      }
-
-      const savedNotifications = localStorage.getItem('promptforge-notifications')
-
-      if (savedNotifications) {
-        setNotifications(JSON.parse(savedNotifications))
-      } else {
-        setNotifications([{
-          id: 'welcome',
-          title: 'PromptForge’a hoş geldin!',
-          message: 'İlk projenı oluşturarak başlayabilirsin.',
-          date: new Date().toISOString(),
-          read: false,
-        }])
-      }
+      const saved = localStorage.getItem('promptforge-theme')
+      if (saved === 'light' || saved === 'dark') setTheme(saved)
     } catch (err) {
-      console.error('LOCAL STORAGE ERROR:', err)
+      console.error('Tema okunamadı:', err)
     }
   }, [])
 
@@ -217,23 +313,57 @@ export default function Home() {
     try {
       localStorage.setItem('promptforge-theme', theme)
     } catch (err) {
-      console.error(err)
+      console.error('Tema kaydedilemedi:', err)
     }
   }, [theme])
 
+  // KULLANICIYA ÖZEL BİLDİRİMLER
   useEffect(() => {
+    if (!userId) return
+
+    const storageKey = `promptforge-notifications-${userId}`
+
+    try {
+      const saved = localStorage.getItem(storageKey)
+
+      if (saved) {
+        setNotifications(JSON.parse(saved))
+      } else {
+        const legacy = localStorage.getItem('promptforge-notifications')
+        setNotifications(
+          legacy
+            ? JSON.parse(legacy)
+            : [{
+                id: 'welcome',
+                title: 'PromptForge’a hoş geldin!',
+                message: 'İlk projenı oluşturarak başlayabilirsin.',
+                date: new Date().toISOString(),
+                read: false,
+              }]
+        )
+      }
+    } catch (err) {
+      console.error('Bildirimler okunamadı:', err)
+      setNotifications([])
+    }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) return
+
     try {
       localStorage.setItem(
-        'promptforge-notifications',
+        `promptforge-notifications-${userId}`,
         JSON.stringify(notifications)
       )
     } catch (err) {
-      console.error(err)
+      console.error('Bildirimler kaydedilemedi:', err)
     }
-  }, [notifications])
+  }, [notifications, userId])
 
-  const fetchProjects = async (userId?: string) => {
-    const activeUserId = userId || session?.user?.id
+  // PROJELERİ GETİR
+  const fetchProjects = useCallback(async (targetUserId?: string) => {
+    const activeUserId = targetUserId || userId
     if (!activeUserId) return
 
     const { data, error } = await supabase
@@ -244,59 +374,56 @@ export default function Home() {
       .order('updated_at', { ascending: false })
 
     if (error) {
-      console.error('PROJECT FETCH ERROR:', error.message)
+      console.error('Projeler yüklenemedi:', error.message)
       return
     }
 
     setProjects(data || [])
-  }
+  }, [userId])
 
-  // KULLANICI OTURUMU
+  // OTURUM KONTROLÜ
   useEffect(() => {
-    let active = true
+    let mounted = true
 
-    const checkUser = async (currentSession: any) => {
+    const checkSession = async (currentSession: any) => {
       if (!currentSession) {
+        if (!mounted) return
         setSession(null)
         setIsAdmin(false)
         setProjects([])
         setAuthLoading(false)
-        router.push('/auth')
+        router.replace('/auth')
         return
       }
 
-      setSession(currentSession)
-
-      const { data: userProfile, error: profileError } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role, approval_status')
         .eq('id', currentSession.user.id)
         .maybeSingle()
 
-      if (!active) return
+      if (!mounted) return
+
+      setSession(currentSession)
 
       if (profileError) {
-        console.error('PROFILE CHECK ERROR:', profileError.message)
+        console.error('Profil kontrolü başarısız:', profileError.message)
         setIsAdmin(false)
       } else {
-        const role = String(userProfile?.role || '').trim().toLowerCase()
-        const approval = String(userProfile?.approval_status || '').trim().toLowerCase()
-
+        const role = String(profile?.role || '').toLowerCase().trim()
+        const approval = String(profile?.approval_status || '').toLowerCase().trim()
         setIsAdmin(role === 'admin' && approval === 'approved')
       }
 
       await fetchProjects(currentSession.user.id)
 
-      if (active) setAuthLoading(false)
+      if (mounted) setAuthLoading(false)
     }
 
     const initialize = async () => {
       const { data, error } = await supabase.auth.getSession()
-
-      if (!active) return
-      if (error) console.error('SESSION ERROR:', error.message)
-
-      await checkUser(data.session)
+      if (error) console.error('Oturum alınamadı:', error.message)
+      if (mounted) await checkSession(data.session)
     }
 
     initialize()
@@ -304,34 +431,108 @@ export default function Home() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (!active) return
+      if (!mounted) return
 
       if (!newSession) {
         setSession(null)
         setIsAdmin(false)
         setProjects([])
-        router.push('/auth')
+        router.replace('/auth')
         return
       }
 
       setSession(newSession)
-
       setTimeout(() => {
-        if (active) checkUser(newSession)
+        if (mounted) checkSession(newSession)
       }, 0)
     })
 
     return () => {
-      active = false
+      mounted = false
       subscription.unsubscribe()
     }
-  }, [router])
+  }, [router, fetchProjects])
 
+  // DESTEK CEVAPLARINI KONTROL ET
+  useEffect(() => {
+    if (!userId) return
+
+    let mounted = true
+    let firstCheck = true
+    const storageKey = `promptforge-seen-support-replies-${userId}`
+
+    const checkReplies = async () => {
+      const { data, error } = await supabase
+        .from('support_tickets')
+        .select('id, subject, admin_reply, replied_at, updated_at')
+        .eq('user_id', userId)
+        .not('admin_reply', 'is', null)
+
+      if (!mounted || error) {
+        if (error) console.error('Destek cevapları kontrol edilemedi:', error.message)
+        return
+      }
+
+      let seen: Record<string, string> = {}
+
+      try {
+        seen = JSON.parse(localStorage.getItem(storageKey) || '{}')
+      } catch {
+        seen = {}
+      }
+
+      const nextSeen = { ...seen }
+
+      for (const ticket of data || []) {
+        if (!ticket.admin_reply) continue
+
+        const marker = `${ticket.replied_at || ticket.updated_at || ''}|${ticket.admin_reply}`
+        const previousMarker = seen[ticket.id]
+
+        if (firstCheck && !previousMarker) {
+          nextSeen[ticket.id] = marker
+          continue
+        }
+
+        if (previousMarker !== marker) {
+          addNotification(
+            'Destek talebine cevap geldi',
+            `${ticket.subject || 'Destek talebin'} için yeni bir cevap var.`,
+            `support-${ticket.id}-${marker}`
+          )
+          nextSeen[ticket.id] = marker
+        }
+      }
+
+      firstCheck = false
+
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(nextSeen))
+      } catch (err) {
+        console.error('Destek bildirim durumu kaydedilemedi:', err)
+      }
+    }
+
+    checkReplies()
+    const interval = setInterval(checkReplies, 60000)
+
+    return () => {
+      mounted = false
+      clearInterval(interval)
+    }
+  }, [userId, addNotification])
+
+  // ÇIKIŞ
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth')
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      alert('Çıkış yapılamadı: ' + error.message)
+      return
+    }
+    router.replace('/auth')
   }
 
+  // YENİ PROJE
   const startNewProject = () => {
     setCurrentProjectId(null)
     setProjectTitle('Yeni Proje')
@@ -340,6 +541,7 @@ export default function Home() {
     setCodeCss('')
     setCodeJs('')
     setError('')
+    setSaveStatus('')
     setChatInput('')
     setChatMessages([])
     setReviewResult('')
@@ -353,12 +555,13 @@ export default function Home() {
     setActiveTab('html')
     setActiveView('editor')
     setShowTrash(false)
+    setShowWizard(false)
   }
 
-  // AI PROJE OLUŞTURMA
+  // AI WEB SİTESİ OLUŞTUR
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      alert('Lütfen bir site fikri yazın.')
+      alert('Lütfen oluşturmak istediğin siteyi açıkla.')
       return
     }
 
@@ -369,47 +572,38 @@ export default function Home() {
     setCodeJs('')
     setDesignVariants([])
     setCurrentProjectId(null)
-    setProjectTitle(prompt.slice(0, 30) + '...')
+    setProjectTitle(prompt.trim().slice(0, 45))
     setChatMessages([])
     setSelectedTags([])
 
     try {
-      const aiPrompt = `Sen kıdemli bir front-end geliştiricisin.
-Aşağıdaki fikir için 3 AYRI DOSYA üret.
+      const result = await askAI(`Sen kıdemli bir front-end geliştiricisin.
+Kullanıcının fikrine göre eksiksiz, modern ve responsive bir web sitesi oluştur.
+HTML, CSS ve JavaScript kodlarını ayrı döndür.
+Açıklama yazma. Kodları kısaltma.
 
-KURALLAR:
-- Çıktıyı tam olarak şu formatta ver:
+ÇIKTI FORMATI:
 ---HTML---
 HTML kodu
 ---CSS---
 CSS kodu
 ---JS---
 JavaScript kodu
-- Modern ve responsive olsun.
-- Kodlar eksiksiz olsun.
 
-FİKİR: ${prompt}`
+KULLANICI FİKRİ:
+${prompt}`)
 
-      // @ts-ignore
-      const response = await puter.ai.chat(aiPrompt, {
-        model: 'gpt-4o-mini',
-      })
-
-      const parsed = parseCode(cleanAIResponse(getAIText(response)))
-
-      if (!parsed.html.trim()) {
-        throw new Error('AI geçerli HTML kodu döndürmedi.')
-      }
+      const parsed = parseCode(result)
+      if (!parsed.html) throw new Error('AI geçerli HTML kodu döndürmedi.')
 
       setCodeHtml(parsed.html)
       setCodeCss(parsed.css)
       setCodeJs(parsed.js)
       setActiveTab('html')
       setActiveView('editor')
-
-      addNotification('Proje oluşturuldu', 'AI yeni web sitesi kodunu oluşturdu.')
+      addNotification('Proje oluşturuldu', 'AI web sitesi kodlarını hazırladı.')
     } catch (err: any) {
-      setError('Hata: ' + (err.message || 'Bilinmeyen hata'))
+      setError(err.message || 'Site oluşturulurken hata oluştu.')
     } finally {
       setLoading(false)
     }
@@ -418,7 +612,7 @@ FİKİR: ${prompt}`
   // CODE WIZARD
   const handleWizardGenerate = async () => {
     if (!wizardDescription.trim()) {
-      alert('Lütfen oluşturmak istediğin siteyi kısaca açıkla.')
+      alert('Lütfen oluşturmak istediğin siteyi açıkla.')
       return
     }
 
@@ -426,36 +620,27 @@ FİKİR: ${prompt}`
     setError('')
 
     try {
-      const aiPrompt = `Sen uzman bir UI/UX tasarımcısı ve kıdemli front-end geliştiricisin.
+      const result = await askAI(`Sen uzman bir UI/UX tasarımcısı ve front-end geliştiricisin.
 
 Proje türü: ${wizardType}
 Tasarım stili: ${wizardStyle}
 İstenen özellikler: ${wizardFeatures.join(', ')}
 Ek açıklama: ${wizardDescription}
 
-Eksiksiz, profesyonel ve çalışan bir web sitesi oluştur.
-HTML, CSS ve JavaScript ayrı olsun.
-Responsive tasarım yap.
+Eksiksiz, profesyonel ve responsive web sitesi oluştur.
 Butonlar ve etkileşimler çalışsın.
-HTML içine CSS veya JavaScript yerleştirme.
+HTML, CSS ve JavaScript ayrı olsun.
 Açıklama yazma.
 
-ÇIKTI:
 ---HTML---
 HTML kodu
 ---CSS---
 CSS kodu
 ---JS---
-JavaScript kodu`
+JavaScript kodu`)
 
-      // @ts-ignore
-      const response = await puter.ai.chat(aiPrompt, {
-        model: 'gpt-4o-mini',
-      })
-
-      const parsed = parseCode(cleanAIResponse(getAIText(response)))
-
-      if (!parsed.html.trim()) throw new Error('AI geçerli HTML kodu döndürmedi.')
+      const parsed = parseCode(result)
+      if (!parsed.html) throw new Error('AI geçerli HTML oluşturmadı.')
 
       setPrompt(`${wizardType}: ${wizardDescription}`)
       setProjectTitle(wizardType)
@@ -465,22 +650,21 @@ JavaScript kodu`
       setCurrentProjectId(null)
       setSelectedTags([])
       setChatMessages([])
+      setReviewResult('')
+      setDesignSuggestions('')
+      setDesignVariants([])
       setActiveTab('html')
       setActiveView('editor')
       setShowWizard(false)
-      setDesignVariants([])
-      setReviewResult('')
-      setDesignSuggestions('')
-
-      addNotification('Code Wizard tamamlandı', 'Web siten oluşturuldu.')
+      addNotification('Code Wizard tamamlandı', 'Yeni web siten hazır.')
     } catch (err: any) {
-      setError('Code Wizard hatası: ' + (err.message || 'Bilinmeyen hata'))
+      setError(err.message || 'Code Wizard sırasında hata oluştu.')
     } finally {
       setWizardLoading(false)
     }
   }
 
-  // TASARIM VARYASYONLARI
+  // 3 TASARIM VARYASYONU
   const handleGenerateVariations = async () => {
     if (!prompt.trim()) {
       alert('Önce site fikrini yazmalısın.')
@@ -494,15 +678,15 @@ JavaScript kodu`
     const styles = [
       {
         name: 'Modern Minimal',
-        description: 'Sade, ferah, profesyonel ve minimal tasarım.',
+        description: 'Sade, ferah ve profesyonel.',
       },
       {
         name: 'Dark Premium',
-        description: 'Koyu arka plan, premium görünüm, güçlü kontrastlar.',
+        description: 'Koyu arka plan, güçlü kontrast ve premium görünüm.',
       },
       {
         name: 'Creative Colorful',
-        description: 'Canlı renkler, yaratıcı düzen ve dikkat çekici detaylar.',
+        description: 'Canlı renkler ve yaratıcı tasarım.',
       },
     ]
 
@@ -510,40 +694,27 @@ JavaScript kodu`
       const results: DesignVariant[] = []
 
       for (const style of styles) {
-        const aiPrompt = `Sen uzman bir UI/UX tasarımcısı ve front-end geliştiricisin.
-
-Kullanıcının fikri:
-${prompt}
-
+        const result = await askAI(`Sen uzman bir UI/UX tasarımcısı ve front-end geliştiricisin.
+Kullanıcının fikri: ${prompt}
 Tasarım adı: ${style.name}
 Tasarım açıklaması: ${style.description}
 
-Eksiksiz, responsive ve çalışır bir web sitesi oluştur.
+Eksiksiz, responsive ve çalışan web sitesi oluştur.
 HTML, CSS ve JavaScript ayrı olsun.
 Açıklama yazma.
 
-ÇIKTI:
 ---HTML---
 HTML kodu
 ---CSS---
 CSS kodu
 ---JS---
-JavaScript kodu`
+JavaScript kodu`)
 
-        // @ts-ignore
-        const response = await puter.ai.chat(aiPrompt, {
-          model: 'gpt-4o-mini',
-        })
-
-        const parsed = parseCode(cleanAIResponse(getAIText(response)))
-
-        if (!parsed.html.trim()) {
-          throw new Error(`${style.name} tasarımı oluşturulamadı.`)
-        }
+        const parsed = parseCode(result)
+        if (!parsed.html) throw new Error(`${style.name} oluşturulamadı.`)
 
         results.push({
-          name: style.name,
-          description: style.description,
+          ...style,
           html: parsed.html,
           css: parsed.css,
           js: parsed.js,
@@ -552,9 +723,9 @@ JavaScript kodu`
         setDesignVariants([...results])
       }
 
-      addNotification('Tasarım varyasyonları hazır', 'Üç tasarım seçeneği oluşturuldu.')
+      addNotification('Tasarım seçenekleri hazır', 'Üç farklı tasarım oluşturuldu.')
     } catch (err: any) {
-      setError('Varyasyon hatası: ' + (err.message || 'Bilinmeyen hata'))
+      setError(err.message || 'Tasarım varyasyonları oluşturulamadı.')
     } finally {
       setVariationLoading(false)
     }
@@ -564,59 +735,42 @@ JavaScript kodu`
     setCodeHtml(variant.html)
     setCodeCss(variant.css)
     setCodeJs(variant.js)
-    setProjectTitle(`${prompt.slice(0, 22)} - ${variant.name}`)
+    setProjectTitle(`${prompt.slice(0, 25)} - ${variant.name}`)
     setCurrentProjectId(null)
     setSelectedTags([])
     setChatMessages([])
-    setActiveTab('html')
-    setActiveView('editor')
-    setDesignVariants([])
     setReviewResult('')
     setDesignSuggestions('')
+    setDesignVariants([])
+    setActiveTab('html')
+    setActiveView('editor')
     addNotification('Tasarım seçildi', `${variant.name} editöre aktarıldı.`)
   }
 
-  // AI İLE KOD DÜZENLEME
+  // AI İLE KOD DÜZENLE
   const handleRevise = async () => {
-    if (!chatInput.trim()) return
-
-    if (!codeHtml) {
-      alert('Önce bir kod üretmelisin.')
-      return
-    }
+    if (!chatInput.trim() || !codeHtml.trim()) return
 
     const request = chatInput.trim()
+    const nextMessages = [...chatMessages, { role: 'user' as const, content: request }]
+
     setChatInput('')
+    setChatMessages(nextMessages)
     setChatLoading(true)
     setError('')
-
-    const nextMessages: ChatMessage[] = [
-      ...chatMessages,
-      { role: 'user', content: request },
-    ]
-
-    setChatMessages(nextMessages)
 
     try {
       const history = nextMessages
         .slice(-12)
-        .map((message) => `${message.role === 'user' ? 'KULLANICI' : 'ASİSTAN'}: ${message.content}`)
+        .map((item) => `${item.role === 'user' ? 'KULLANICI' : 'ASİSTAN'}: ${item.content}`)
         .join('\n\n')
 
-      const aiPrompt = `Sen PromptForge içerisinde çalışan kıdemli bir front-end geliştiricisin.
-
-Önceki konuşmaları dikkate al.
+      const result = await askAI(`Sen PromptForge içinde çalışan kıdemli bir front-end geliştiricisin.
 Kullanıcının son isteğini mevcut projeye uygula.
+Önceki konuşmaları dikkate al.
 Çalışan özellikleri koru.
-Kodları eksiksiz döndür.
-
-ÇIKTI FORMATI:
----HTML---
-HTML kodu
----CSS---
-CSS kodu
----JS---
-JavaScript kodu
+Üç dosyanın da eksiksiz halini döndür.
+Açıklama yazma.
 
 MEVCUT HTML:
 ${codeHtml}
@@ -627,67 +781,55 @@ ${codeCss}
 MEVCUT JAVASCRIPT:
 ${codeJs}
 
-SOHBET GEÇMİŞİ:
+SOHBET:
 ${history}
 
-Son isteği uygula ve üç dosyayı döndür.`
+ÇIKTI:
+---HTML---
+HTML kodu
+---CSS---
+CSS kodu
+---JS---
+JavaScript kodu`)
 
-      // @ts-ignore
-      const response = await puter.ai.chat(aiPrompt, {
-        model: 'gpt-4o-mini',
-      })
-
-      const parsed = parseCode(cleanAIResponse(getAIText(response)))
-
-      if (!parsed.html.trim()) {
-        throw new Error('AI geçerli HTML kodu döndürmedi.')
-      }
+      const parsed = parseCode(result)
+      if (!parsed.html) throw new Error('AI geçerli HTML döndürmedi.')
 
       setCodeHtml(parsed.html)
       setCodeCss(parsed.css)
       setCodeJs(parsed.js)
       setActiveTab('html')
-
-      setChatMessages((prev) => [
-        ...prev,
+      setChatMessages((previous) => [
+        ...previous,
         {
           role: 'assistant',
-          content: 'İstediğin değişiklikleri uyguladım. Güncel kodları editörde görebilirsin.',
+          content: 'İstediğin değişiklikleri uyguladım. Güncel kodlar editörde.',
         },
       ])
-
       addNotification('Proje güncellendi', 'AI değişiklikleri uyguladı.')
     } catch (err: any) {
-      setError('Revizyon hatası: ' + (err.message || 'Bilinmeyen hata'))
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'İşlem sırasında hata oluştu: ' + (err.message || 'Bilinmeyen hata'),
-        },
+      setError(err.message || 'Kod düzenlenirken hata oluştu.')
+      setChatMessages((previous) => [
+        ...previous,
+        { role: 'assistant', content: `Hata: ${err.message || 'İşlem başarısız.'}` },
       ])
     } finally {
       setChatLoading(false)
     }
   }
 
-  // KOD ANALİZİ
+  // AI KOD ANALİZİ
   const handleCodeReview = async () => {
-    if (!codeHtml.trim()) {
-      alert('Önce bir proje oluşturmalısın.')
-      return
-    }
+    if (!codeHtml.trim()) return
 
     setReviewLoading(true)
     setReviewResult('')
     setError('')
 
     try {
-      const aiPrompt = `Sen deneyimli bir front-end kod inceleme uzmanısın.
-
+      const result = await askAI(`Sen deneyimli bir front-end kod inceleme uzmanısın.
 HTML, CSS ve JavaScript kodlarını incele.
-HTML hataları, CSS hataları, responsive problemleri, JavaScript hataları,
-performans sorunları ve erişilebilirlik eksiklerini açıkla.
+HTML/CSS/JS hatalarını, responsive sorunlarını, performans ve erişilebilirlik eksiklerini açıkla.
 Her sorun için çözüm öner.
 Kodları değiştirme. Sadece rapor oluştur.
 
@@ -698,41 +840,41 @@ CSS:
 ${codeCss}
 
 JavaScript:
-${codeJs}`
+${codeJs}`)
 
-      // @ts-ignore
-      const response = await puter.ai.chat(aiPrompt, {
-        model: 'gpt-4o-mini',
-      })
-
-      setReviewResult(getAIText(response))
+      setReviewResult(result)
       addNotification('Kod analizi tamamlandı', 'AI kodlarını inceledi.')
     } catch (err: any) {
-      setError('Analiz hatası: ' + (err.message || 'Bilinmeyen hata'))
+      setError(err.message || 'Kod analizi başarısız.')
     } finally {
       setReviewLoading(false)
     }
   }
 
-  // OTOMATİK DÜZELTME
+  // OTOMATİK KOD DÜZELTME
   const handleAutoFix = async () => {
-    if (!codeHtml.trim()) {
-      alert('Önce bir proje oluşturmalısın.')
-      return
-    }
-
+    if (!codeHtml.trim()) return
     if (!confirm('AI kodlarını inceleyip düzeltilmiş sürümü oluştursun mu?')) return
 
     setFixLoading(true)
     setError('')
 
     try {
-      const aiPrompt = `Sen kıdemli bir front-end geliştiricisin.
-Aşağıdaki kodlardaki HTML, CSS ve JavaScript hatalarını düzelt.
+      const result = await askAI(`Sen kıdemli bir front-end geliştiricisin.
+Aşağıdaki HTML, CSS ve JavaScript kodlarındaki hataları düzelt.
 Çalışan özellikleri koru.
 Responsive sorunlarını düzelt.
 Kodları kısaltma.
 Açıklama yazma.
+
+HTML:
+${codeHtml}
+
+CSS:
+${codeCss}
+
+JavaScript:
+${codeJs}
 
 ÇIKTI:
 ---HTML---
@@ -740,35 +882,19 @@ HTML kodu
 ---CSS---
 CSS kodu
 ---JS---
-JavaScript kodu
+JavaScript kodu`)
 
-MEVCUT HTML:
-${codeHtml}
-
-MEVCUT CSS:
-${codeCss}
-
-MEVCUT JAVASCRIPT:
-${codeJs}`
-
-      // @ts-ignore
-      const response = await puter.ai.chat(aiPrompt, {
-        model: 'gpt-4o-mini',
-      })
-
-      const parsed = parseCode(cleanAIResponse(getAIText(response)))
-
-      if (!parsed.html.trim()) throw new Error('AI geçerli HTML kodu döndürmedi.')
+      const parsed = parseCode(result)
+      if (!parsed.html) throw new Error('AI geçerli HTML döndürmedi.')
 
       setCodeHtml(parsed.html)
       setCodeCss(parsed.css)
       setCodeJs(parsed.js)
       setActiveTab('html')
       setReviewResult('Kodlar AI tarafından düzeltildi.')
-
       addNotification('Kodlar düzeltildi', 'AI düzeltilmiş kodları editöre aktardı.')
     } catch (err: any) {
-      setError('Düzeltme hatası: ' + (err.message || 'Bilinmeyen hata'))
+      setError(err.message || 'Otomatik düzeltme başarısız.')
     } finally {
       setFixLoading(false)
     }
@@ -776,17 +902,14 @@ ${codeJs}`
 
   // TASARIM ÖNERİLERİ
   const handleDesignSuggestions = async () => {
-    if (!codeHtml.trim()) {
-      alert('Önce bir proje oluşturmalısın.')
-      return
-    }
+    if (!codeHtml.trim()) return
 
     setDesignLoading(true)
     setDesignSuggestions('')
     setError('')
 
     try {
-      const aiPrompt = `Sen deneyimli bir UI/UX tasarım uzmanısın.
+      const result = await askAI(`Sen deneyimli bir UI/UX tasarım uzmanısın.
 Aşağıdaki web sitesini incele.
 Renk paleti, tipografi, sayfa düzeni, kullanıcı deneyimi,
 mobil uyumluluk, butonlar, kartlar ve animasyonlar için
@@ -800,28 +923,20 @@ CSS:
 ${codeCss}
 
 JavaScript:
-${codeJs}`
+${codeJs}`)
 
-      // @ts-ignore
-      const response = await puter.ai.chat(aiPrompt, {
-        model: 'gpt-4o-mini',
-      })
-
-      setDesignSuggestions(getAIText(response))
+      setDesignSuggestions(result)
       addNotification('Tasarım önerileri hazır', 'AI tasarım önerilerini oluşturdu.')
     } catch (err: any) {
-      setError('Tasarım önerisi hatası: ' + (err.message || 'Bilinmeyen hata'))
+      setError(err.message || 'Tasarım önerileri oluşturulamadı.')
     } finally {
       setDesignLoading(false)
     }
   }
 
-  // ZIP İNDİRME
+  // ZIP İNDİR
   const handleDownloadZip = async () => {
-    if (!codeHtml.trim()) {
-      alert('Önce bir proje oluşturmalısın.')
-      return
-    }
+    if (!codeHtml.trim()) return
 
     setZipLoading(true)
     setError('')
@@ -830,20 +945,7 @@ ${codeJs}`
       const JSZip = (await import('jszip')).default
       const zip = new JSZip()
 
-      const htmlFile = `<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${projectTitle}</title>
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-${codeHtml}
-<script src="script.js"></script>
-</body>
-</html>`
-
+      const htmlFile = buildDocument(codeHtml, '', '', projectTitle)
       zip.file('index.html', htmlFile)
       zip.file('styles.css', codeCss)
       zip.file('script.js', codeJs)
@@ -855,41 +957,26 @@ ${codeHtml}
 
       const url = URL.createObjectURL(content)
       const link = document.createElement('a')
-
       link.href = url
       link.download = `${projectTitle.replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ_-]/gi, '_').slice(0, 40) || 'promptforge-proje'}.zip`
-
       document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
+      link.remove()
       URL.revokeObjectURL(url)
 
       addNotification('ZIP hazırlandı', 'Projen ZIP dosyası olarak indirildi.')
     } catch (err: any) {
-      setError('ZIP indirme hatası: ' + (err.message || 'Bilinmeyen hata'))
+      setError(err.message || 'ZIP oluşturulamadı.')
     } finally {
       setZipLoading(false)
     }
   }
 
-  // EKRAN GÖRÜNTÜSÜ
+  // OTOMATİK THUMBNAIL
   const generateThumbnail = async (projectId: string) => {
-    if (!session?.access_token) {
-      throw new Error('Oturum bilgisi bulunamadı.')
-    }
+    if (!session?.access_token) throw new Error('Oturum bilgisi bulunamadı.')
 
-    const htmlDocument = `<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>${codeCss}</style>
-</head>
-<body>
-${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/gi, '')}
-<script>${codeJs}<\/script>
-</body>
-</html>`
+    const htmlDocument = buildDocument(codeHtml, codeCss, codeJs, projectTitle)
 
     const response = await fetch('/api/thumbnail', {
       method: 'POST',
@@ -906,38 +993,38 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     const result = await response.json()
 
     if (!response.ok || !result.success) {
-      throw new Error(result.error || 'Görsel oluşturulamadı.')
+      throw new Error(result.error || 'Thumbnail oluşturulamadı.')
     }
 
     return result.thumbnail_url
   }
 
-  // PROJE KAYDETME
+  // PROJE KAYDET
   const handleSaveProject = async () => {
-    if (!codeHtml || !session?.user?.id) return
+    if (!codeHtml.trim() || !userId) return
 
     setSaveStatus('Kaydediliyor...')
 
     const projectData = {
-      title: projectTitle,
+      title: projectTitle.trim() || 'Yeni Proje',
       prompt,
       html_code: codeHtml,
       css_code: codeCss,
       js_code: codeJs,
-      user_id: session.user.id,
+      user_id: userId,
       tags: selectedTags,
       updated_at: new Date().toISOString(),
     }
 
-    let savedProjectId = currentProjectId
-
     try {
-      if (savedProjectId) {
+      let savedId = currentProjectId
+
+      if (savedId) {
         const { error } = await supabase
           .from('projects')
           .update(projectData)
-          .eq('id', savedProjectId)
-          .eq('user_id', session.user.id)
+          .eq('id', savedId)
+          .eq('user_id', userId)
 
         if (error) throw error
       } else {
@@ -947,21 +1034,22 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
             ...projectData,
             is_favorite: false,
             deleted_at: null,
+            is_public: false,
           })
           .select('id')
           .single()
 
         if (error) throw error
 
-        savedProjectId = data.id
+        savedId = data.id
         setCurrentProjectId(data.id)
       }
 
       const { error: versionError } = await supabase
         .from('project_versions')
         .insert({
-          project_id: savedProjectId,
-          user_id: session.user.id,
+          project_id: savedId,
+          user_id: userId,
           title: projectTitle,
           prompt,
           html_code: codeHtml,
@@ -970,33 +1058,41 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
           created_at: new Date().toISOString(),
         })
 
+      let versionMessage = ''
+
       if (versionError) {
-        console.error('VERSION SAVE ERROR:', versionError)
+        console.error('Sürüm kaydedilemedi:', versionError.message)
+        versionMessage = ' Ancak sürüm geçmişi kaydedilemedi.'
       }
 
       setSaveStatus('Proje kaydedildi. Görsel hazırlanıyor...')
 
       try {
-        await generateThumbnail(savedProjectId!)
-        setSaveStatus('Kaydedildi! Görsel hazır.')
+        const thumbnail = await generateThumbnail(savedId!)
+        if (thumbnail) {
+          await supabase
+            .from('projects')
+            .update({ thumbnail_url: thumbnail })
+            .eq('id', savedId)
+            .eq('user_id', userId)
+        }
+        setSaveStatus(`Proje kaydedildi! Görsel hazır.${versionMessage}`)
       } catch (thumbnailError) {
-        console.error('THUMBNAIL ERROR:', thumbnailError)
-        setSaveStatus('Kaydedildi! Görsel oluşturulamadı.')
+        console.error('Thumbnail oluşturulamadı:', thumbnailError)
+        setSaveStatus(`Proje kaydedildi, ancak görsel oluşturulamadı.${versionMessage}`)
       }
 
-      await fetchProjects(session.user.id)
+      await fetchProjects(userId)
       addNotification('Proje kaydedildi', 'Projen başarıyla kaydedildi.')
     } catch (err: any) {
-      console.error('PROJECT SAVE ERROR:', err)
-      setSaveStatus('Kayıt hatası: ' + err.message)
+      console.error('Proje kaydetme hatası:', err)
+      setSaveStatus(`Kayıt hatası: ${err.message || 'Bilinmeyen hata'}`)
     }
-
-    setTimeout(() => setSaveStatus(''), 5000)
   }
 
   // PROJE AÇ
-  const handleLoadProject = (project: any) => {
-    if (project.user_id !== session?.user?.id) {
+  const handleLoadProject = (project: Project) => {
+    if (project.user_id !== userId) {
       alert('Bu projeye erişim iznin yok.')
       return
     }
@@ -1019,30 +1115,29 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     setDesignVariants([])
     setVersions([])
     setShowVersionHistory(false)
-    setShowProjects(false)
     setShowTrash(false)
+    setActiveTab('html')
     setActiveView('editor')
   }
 
-  // SİLME: ÇÖP KUTUSUNA TAŞI
-  const handleDeleteProject = async (id: string, e?: any) => {
-    e?.stopPropagation()
-
-    if (!session?.user?.id) return
+  // ÇÖP KUTUSUNA TAŞI
+  const handleDeleteProject = async (id: string, event?: React.MouseEvent) => {
+    event?.stopPropagation()
+    if (!userId) return
     if (!confirm('Bu proje çöp kutusuna taşınsın mı?')) return
 
     const { error } = await supabase
       .from('projects')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
 
     if (error) {
       alert('Proje taşınamadı: ' + error.message)
       return
     }
 
-    setProjects((prev) => prev.filter((project) => project.id !== id))
+    setProjects((previous) => previous.filter((project) => project.id !== id))
 
     if (currentProjectId === id) {
       setCurrentProjectId(null)
@@ -1054,14 +1149,13 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       setShowVersionHistory(false)
     }
 
-    addNotification('Proje çöp kutusuna taşındı', 'İstersen daha sonra geri yükleyebilirsin.')
+    addNotification('Proje çöp kutusuna taşındı', 'Projen çöp kutusuna taşındı.')
   }
 
   // FAVORİ DEĞİŞTİR
-  const handleToggleFavorite = async (project: any, e?: any) => {
-    e?.stopPropagation()
-
-    if (!session?.user?.id) return
+  const handleToggleFavorite = async (project: Project, event?: React.MouseEvent) => {
+    event?.stopPropagation()
+    if (!userId) return
 
     const nextFavorite = !project.is_favorite
 
@@ -1069,15 +1163,15 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       .from('projects')
       .update({ is_favorite: nextFavorite })
       .eq('id', project.id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
 
     if (error) {
-      alert('Favori durumu değiştirilemedi: ' + error.message)
+      alert('Favori değiştirilemedi: ' + error.message)
       return
     }
 
-    setProjects((prev) =>
-      prev.map((item) =>
+    setProjects((previous) =>
+      previous.map((item) =>
         item.id === project.id
           ? { ...item, is_favorite: nextFavorite }
           : item
@@ -1086,10 +1180,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
   }
 
   // PROJE KOPYALA
-  const handleDuplicateProject = async (project: any, e?: any) => {
-    e?.stopPropagation()
-
-    if (!session?.user?.id || duplicateLoading) return
+  const handleDuplicateProject = async (project: Project, event?: React.MouseEvent) => {
+    event?.stopPropagation()
+    if (!userId || duplicateLoading) return
 
     setDuplicateLoading(true)
 
@@ -1102,7 +1195,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
           html_code: project.html_code || '',
           css_code: project.css_code || '',
           js_code: project.js_code || '',
-          user_id: session.user.id,
+          user_id: userId,
           thumbnail_url: project.thumbnail_url || null,
           is_favorite: false,
           tags: project.tags || [],
@@ -1114,7 +1207,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
 
       if (error) throw error
 
-      await fetchProjects(session.user.id)
+      await fetchProjects(userId)
       addNotification('Proje kopyalandı', 'Projenin kopyası oluşturuldu.')
     } catch (err: any) {
       alert('Kopyalama hatası: ' + err.message)
@@ -1127,7 +1220,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
   const handleShareProject = async (targetProjectId?: string) => {
     const projectId = targetProjectId || currentProjectId
 
-    if (!projectId || !session?.user?.id) {
+    if (!projectId || !userId) {
       alert('Önce projeyi kaydetmelisin.')
       return
     }
@@ -1139,7 +1232,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
         .from('projects')
         .select('share_token')
         .eq('id', projectId)
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .is('deleted_at', null)
         .maybeSingle()
 
@@ -1159,25 +1252,23 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
           is_public: true,
         })
         .eq('id', projectId)
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
 
       if (error) throw error
 
       const link = `${window.location.origin}/share/${token}`
 
-      if (projectId === currentProjectId) {
-        setShareLink(link)
-      }
+      if (projectId === currentProjectId) setShareLink(link)
 
       try {
         await navigator.clipboard.writeText(link)
-        alert('Paylaşım bağlantısı kopyalandı!')
+        alert('Paylaşım bağlantısı kopyalandı.')
       } catch {
         alert(`Paylaşım bağlantısı oluşturuldu:\n${link}`)
       }
 
-      await fetchProjects(session.user.id)
-      addNotification('Paylaşım bağlantısı hazır', 'Proje paylaşım bağlantısı oluşturuldu.')
+      await fetchProjects(userId)
+      addNotification('Paylaşım bağlantısı hazır', 'Proje bağlantısı oluşturuldu.')
     } catch (err: any) {
       alert('Paylaşım hatası: ' + err.message)
     } finally {
@@ -1185,17 +1276,15 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     }
   }
 
+  // PAYLAŞIMI KAPAT
   const handleDisableSharing = async () => {
-    if (!currentProjectId || !session?.user?.id) return
+    if (!currentProjectId || !userId) return
 
     const { error } = await supabase
       .from('projects')
-      .update({
-        is_public: false,
-        share_token: null,
-      })
+      .update({ is_public: false, share_token: null })
       .eq('id', currentProjectId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
 
     if (error) {
       alert('Paylaşım kapatılamadı: ' + error.message)
@@ -1203,13 +1292,13 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     }
 
     setShareLink('')
-    await fetchProjects(session.user.id)
+    await fetchProjects(userId)
     addNotification('Paylaşım kapatıldı', 'Projen artık bağlantıyla görüntülenemez.')
   }
 
-  // ÇÖP KUTUSU
+  // ÇÖP KUTUSUNU GETİR
   const handleFetchTrash = async () => {
-    if (!session?.user?.id) return
+    if (!userId) return
 
     setTrashLoading(true)
     setShowTrash(true)
@@ -1217,7 +1306,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     const { data, error } = await supabase
       .from('projects')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false })
 
@@ -1230,37 +1319,36 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     setTrashLoading(false)
   }
 
+  // PROJE GERİ YÜKLE
   const handleRestoreDeletedProject = async (id: string) => {
-    if (!session?.user?.id) return
+    if (!userId) return
 
     const { error } = await supabase
       .from('projects')
       .update({ deleted_at: null })
       .eq('id', id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
 
     if (error) {
       alert('Proje geri yüklenemedi: ' + error.message)
       return
     }
 
-    await fetchProjects(session.user.id)
+    await fetchProjects(userId)
     await handleFetchTrash()
     addNotification('Proje geri yüklendi', 'Proje tekrar listene eklendi.')
   }
 
+  // KALICI SİL
   const handlePermanentDelete = async (id: string) => {
-    if (!session?.user?.id) return
-
-    if (!confirm('Bu proje kalıcı olarak silinsin mi? Bu işlem geri alınamaz.')) {
-      return
-    }
+    if (!userId) return
+    if (!confirm('Bu proje kalıcı olarak silinsin mi? Bu işlem geri alınamaz.')) return
 
     const { error } = await supabase
       .from('projects')
       .delete()
       .eq('id', id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
 
     if (error) {
       alert('Proje silinemedi: ' + error.message)
@@ -1271,9 +1359,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     addNotification('Proje kalıcı olarak silindi', 'Proje çöp kutusundan kaldırıldı.')
   }
 
-  // PROFİL GETİR
+  // PROFİLİ GETİR
   const handleFetchProfile = async () => {
-    if (!session?.user?.id) return
+    if (!userId) return
 
     setProfileLoading(true)
     setShowProfile(true)
@@ -1281,7 +1369,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('id', userId)
       .maybeSingle()
 
     if (error) {
@@ -1295,16 +1383,16 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     setProfileLoading(false)
   }
 
-  // PROFİL KAYDET
+  // PROFİLİ KAYDET
   const handleSaveProfile = async () => {
-    if (!session?.user?.id) return
+    if (!userId) return
 
     setProfileLoading(true)
 
     const { error } = await supabase
       .from('profiles')
       .upsert({
-        id: session.user.id,
+        id: userId,
         username: profileUsername.trim() || null,
         bio: profileBio.trim(),
         avatar_url: profileAvatar.trim(),
@@ -1323,7 +1411,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
 
   // ETİKET EKLE
   const handleAddTag = async () => {
-    if (!currentProjectId || !session?.user?.id) {
+    if (!currentProjectId || !userId) {
       alert('Etiket eklemek için önce projeyi kaydetmelisin.')
       return
     }
@@ -1337,7 +1425,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       .from('projects')
       .update({ tags: nextTags })
       .eq('id', currentProjectId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
 
     if (error) {
       alert('Etiket eklenemedi: ' + error.message)
@@ -1346,11 +1434,12 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
 
     setSelectedTags(nextTags)
     setTagInput('')
-    await fetchProjects(session.user.id)
+    await fetchProjects(userId)
   }
 
+  // ETİKET SİL
   const handleRemoveTag = async (tag: string) => {
-    if (!currentProjectId || !session?.user?.id) return
+    if (!currentProjectId || !userId) return
 
     const nextTags = selectedTags.filter((item) => item !== tag)
 
@@ -1358,7 +1447,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       .from('projects')
       .update({ tags: nextTags })
       .eq('id', currentProjectId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
 
     if (error) {
       alert('Etiket silinemedi: ' + error.message)
@@ -1366,12 +1455,12 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     }
 
     setSelectedTags(nextTags)
-    await fetchProjects(session.user.id)
+    await fetchProjects(userId)
   }
 
-  // SÜRÜM GEÇMİŞİ
+  // SÜRÜM GEÇMİŞİNİ GETİR
   const handleFetchVersions = async () => {
-    if (!currentProjectId || !session?.user?.id) {
+    if (!currentProjectId || !userId) {
       alert('Önce kayıtlı bir projeyi açmalısın.')
       return
     }
@@ -1383,11 +1472,10 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       .from('project_versions')
       .select('*')
       .eq('project_id', currentProjectId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('VERSION FETCH ERROR:', error)
       alert('Sürüm geçmişi yüklenemedi: ' + error.message)
     } else {
       setVersions(data || [])
@@ -1396,8 +1484,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     setVersionLoading(false)
   }
 
+  // SÜRÜM GERİ YÜKLE
   const handleRestoreVersion = async (version: any) => {
-    if (!currentProjectId || !session?.user?.id) return
+    if (!currentProjectId || !userId) return
 
     if (!confirm('Bu sürüme geri dönmek istiyor musun? Mevcut kodun da geçmişe kaydedilecek.')) {
       return
@@ -1410,7 +1499,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
         .from('project_versions')
         .insert({
           project_id: currentProjectId,
-          user_id: session.user.id,
+          user_id: userId,
           title: projectTitle,
           prompt,
           html_code: codeHtml,
@@ -1432,7 +1521,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
           updated_at: new Date().toISOString(),
         })
         .eq('id', currentProjectId)
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
 
       if (error) throw error
 
@@ -1443,11 +1532,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       setCodeJs(version.js_code || '')
       setActiveTab('html')
 
-      await fetchProjects(session.user.id)
+      await fetchProjects(userId)
       await handleFetchVersions()
-
       addNotification('Sürüm geri yüklendi', 'Seçtiğin sürüm geri yüklendi.')
-      alert('Sürüm başarıyla geri yüklendi.')
     } catch (err: any) {
       alert('Sürüm geri yüklenemedi: ' + err.message)
     } finally {
@@ -1455,85 +1542,67 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     }
   }
 
-  const handleCopy = () => {
-    const textToCopy =
-      activeTab === 'html'
-        ? codeHtml
-        : activeTab === 'css'
-          ? codeCss
-          : codeJs
+  // KOD KOPYALA
+  const handleCopy = async () => {
+    const value = activeTab === 'html'
+      ? codeHtml
+      : activeTab === 'css'
+        ? codeCss
+        : codeJs
 
-    if (!textToCopy) return
+    if (!value) return
 
-    navigator.clipboard.writeText(textToCopy)
-      .then(() => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      })
-      .catch(() => setError('Kod kopyalanamadı.'))
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      setError('Kod kopyalanamadı.')
+    }
   }
 
+  // BİLDİRİMLER
   const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    setNotifications((previous) => previous.map((item) => ({ ...item, read: true })))
   }
 
   const clearNotifications = () => setNotifications([])
 
-  const allTags = Array.from(
-    new Set(projects.flatMap((project) => project.tags || []))
+  // HESAPLAMALAR
+  const allTags = useMemo(
+    () => Array.from(new Set(projects.flatMap((project) => project.tags || []))),
+    [projects]
   )
 
-  const filteredProjects = [...projects]
-    .filter((project) =>
-      (project.title || '')
-        .toLowerCase()
-        .includes(projectSearch.toLowerCase().trim())
-    )
-    .filter((project) => !favoriteFilter || project.is_favorite)
-    .filter((project) => !tagFilter || (project.tags || []).includes(tagFilter))
-    .sort((a, b) => {
-      if (projectSort === 'name') {
-        return (a.title || '').localeCompare(b.title || '', 'tr')
-      }
-
-      return (
-        new Date(b.updated_at || 0).getTime() -
-        new Date(a.updated_at || 0).getTime()
+  const filteredProjects = useMemo(() => {
+    return [...projects]
+      .filter((project) =>
+        (project.title || '').toLowerCase().includes(projectSearch.toLowerCase().trim())
       )
-    })
+      .filter((project) => !favoriteFilter || project.is_favorite)
+      .filter((project) => !tagFilter || (project.tags || []).includes(tagFilter))
+      .sort((a, b) => {
+        if (projectSort === 'name') {
+          return (a.title || '').localeCompare(b.title || '', 'tr')
+        }
 
-  const combinedCode = `<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>${codeCss}</style>
-</head>
-<body>
-${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/gi, '')}
-<script>${codeJs}<\/script>
-</body>
-</html>`
+        return new Date(b.updated_at || 0).getTime() -
+          new Date(a.updated_at || 0).getTime()
+      })
+  }, [projects, projectSearch, favoriteFilter, tagFilter, projectSort])
 
-  const totalHtml = projects.filter((p) => Boolean(p.html_code)).length
-  const totalCss = projects.filter((p) => Boolean(p.css_code)).length
-  const totalJs = projects.filter((p) => Boolean(p.js_code)).length
+  const totalHtml = projects.filter((project) => Boolean(project.html_code)).length
+  const totalCss = projects.filter((project) => Boolean(project.css_code)).length
+  const totalJs = projects.filter((project) => Boolean(project.js_code)).length
 
-  const panelClass = isLight
-    ? 'bg-white border-gray-200 text-gray-900'
-    : 'bg-[#131722] border-[#252b39] text-white'
-
-  const inputClass = isLight
-    ? 'bg-gray-50 border-gray-200 text-gray-900'
-    : 'bg-[#090d16] border-[#303747] text-white'
-
-  return (
+  const combinedCode = buildDocument(codeHtml, codeCss, codeJs, projectTitle)
+    return (
     <main className={`min-h-screen ${isLight ? 'bg-gray-100 text-gray-900' : 'bg-[#090b10] text-white'}`}>
-      <script src="https://js.puter.com/v2/" async />
 
       {/* ÜST MENÜ */}
-      <header className={`sticky top-0 z-40 border-b ${isLight ? 'bg-white border-gray-200' : 'bg-[#10131b] border-[#252a36]'}`}>
+      <header className={`sticky top-0 z-40 border-b backdrop-blur-xl ${isLight ? 'bg-white/95 border-gray-200' : 'bg-[#10131b]/95 border-[#252a36]'}`}>
         <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+
           <button
             onClick={() => {
               setActiveView('dashboard')
@@ -1542,15 +1611,15 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
             }}
             className="flex items-center gap-2"
           >
-            <div className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center font-black text-white">
+            <span className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center font-black text-white">
               P
-            </div>
+            </span>
             <span className="text-xl font-black">
               Prompt<span className="text-purple-500">Forge</span>
             </span>
           </button>
 
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <nav className="flex items-center gap-2 flex-wrap justify-end">
             <button
               onClick={() => {
                 setActiveView('dashboard')
@@ -1567,26 +1636,43 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                 setActiveView('dashboard')
                 setShowTrash(false)
                 setTimeout(() => {
-                  document.getElementById('projects-section')?.scrollIntoView({ behavior: 'smooth' })
+                  document.getElementById('projects-section')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                  })
                 }, 150)
               }}
               className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
             >
-<div className="flex items-center gap-3">
-  <button
-    onClick={() => router.push('/projects')}
-    className="px-4 py-2 rounded-lg hover:bg-white/10 transition"
-  >
-    📁 Projelerim
-  </button>
+              📁 Projelerim
+            </button>
 
-  <button
-    onClick={() => router.push('/gallery')}
-    className="px-4 py-2 rounded-lg hover:bg-white/10 transition"
-  >
-    🎨 Galeri
-  </button>
-</div>
+            <button
+              onClick={() => router.push('/gallery')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
+            >
+              🎨 Galeri
+            </button>
+
+            <button
+              onClick={() => router.push('/vision')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
+            >
+              👁️ Vision
+            </button>
+
+            <button
+              onClick={() => router.push('/support')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
+            >
+              🎧 Destek
+            </button>
+
+            <button
+              onClick={() => router.push('/settings')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
+            >
+              ⚙️ Ayarlar
             </button>
 
             <button
@@ -1626,13 +1712,13 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
             </button>
 
             <button
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => setShowNotifications((previous) => !previous)}
               className={`relative p-2 rounded-lg ${isLight ? 'bg-gray-100' : 'bg-[#202431]'}`}
               title="Bildirimler"
             >
               🔔
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
@@ -1649,15 +1735,15 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
 
             <button
               onClick={handleLogout}
-              className={`px-3 py-2 rounded-lg text-sm ${isLight ? 'bg-gray-200 hover:bg-gray-300' : 'bg-[#252a36] hover:bg-[#343a49]'}`}
+              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-200 hover:bg-gray-300' : 'bg-[#252a36] hover:bg-[#343a49]'}`}
             >
               Çıkış
             </button>
-          </div>
+          </nav>
         </div>
       </header>
 
-      {/* BİLDİRİMLER */}
+      {/* BİLDİRİM PANELİ */}
       {showNotifications && (
         <div className={`fixed right-4 top-20 z-50 w-[min(380px,calc(100vw-32px))] rounded-xl border shadow-2xl p-4 ${panelClass}`}>
           <div className="flex justify-between items-center mb-3">
@@ -1676,19 +1762,25 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
 
           <div className="max-h-80 overflow-y-auto space-y-2">
             {notifications.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4">Henüz bildirimin yok.</p>
-            ) : notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-3 rounded-lg ${notification.read ? 'opacity-60' : 'bg-purple-500/10'}`}
-              >
-                <p className="font-bold text-sm">{notification.title}</p>
-                <p className="text-xs text-gray-400 mt-1">{notification.message}</p>
-                <p className="text-[10px] text-gray-500 mt-2">
-                  {new Date(notification.date).toLocaleString('tr-TR')}
-                </p>
-              </div>
-            ))}
+              <p className="text-sm text-gray-400 py-4">
+                Henüz bildirimin yok.
+              </p>
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-3 rounded-lg ${notification.read ? 'opacity-60' : 'bg-purple-500/10'}`}
+                >
+                  <p className="font-bold text-sm">{notification.title}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {notification.message}
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-2">
+                    {new Date(notification.date).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -1707,7 +1799,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
             ) : (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold mb-2">Kullanıcı adı</label>
+                  <label className="block text-sm font-bold mb-2">
+                    Kullanıcı adı
+                  </label>
                   <input
                     value={profileUsername}
                     onChange={(e) => setProfileUsername(e.target.value)}
@@ -1718,7 +1812,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold mb-2">Hakkımda</label>
+                  <label className="block text-sm font-bold mb-2">
+                    Hakkımda
+                  </label>
                   <textarea
                     value={profileBio}
                     onChange={(e) => setProfileBio(e.target.value)}
@@ -1730,7 +1826,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold mb-2">Profil görseli URL</label>
+                  <label className="block text-sm font-bold mb-2">
+                    Profil görseli URL
+                  </label>
                   <input
                     value={profileAvatar}
                     onChange={(e) => setProfileAvatar(e.target.value)}
@@ -1760,7 +1858,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
         </div>
       )}
 
-      {/* ÇÖP KUTUSU PENCERESİ */}
+      {/* ÇÖP KUTUSU */}
       {showTrash && (
         <div className="fixed inset-0 z-[65] bg-black/70 flex items-center justify-center p-4">
           <div className={`w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl border p-5 ${panelClass}`}>
@@ -1793,7 +1891,10 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                     <div>
                       <h3 className="font-bold">{project.title}</h3>
                       <p className="text-xs text-gray-400 mt-1">
-                        Silinme tarihi: {project.deleted_at ? new Date(project.deleted_at).toLocaleString('tr-TR') : '-'}
+                        Silinme tarihi:{' '}
+                        {project.deleted_at
+                          ? new Date(project.deleted_at).toLocaleString('tr-TR')
+                          : '-'}
                       </p>
                     </div>
 
@@ -1819,6 +1920,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
         </div>
       )}
 
+      {/* YÜKLENİYOR */}
       {authLoading ? (
         <div className="min-h-[70vh] flex items-center justify-center">
           <div className="text-center">
@@ -1831,12 +1933,15 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
           {/* DASHBOARD */}
           {activeView === 'dashboard' && (
             <section className="max-w-[1400px] mx-auto px-4 py-8">
+
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-8">
                 <div>
                   <p className="text-purple-500 text-sm font-bold mb-2">
                     AI WEB DEVELOPMENT STUDIO
                   </p>
-                  <h1 className="text-3xl md:text-4xl font-black">Projelerin</h1>
+                  <h1 className="text-3xl md:text-4xl font-black">
+                    Projelerin
+                  </h1>
                   <p className="text-gray-400 mt-2">
                     Fikirlerini çalışan web sitelerine dönüştür.
                   </p>
@@ -1844,7 +1949,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
-                    onClick={() => setShowWizard(!showWizard)}
+                    onClick={() => setShowWizard((previous) => !previous)}
                     className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold"
                   >
                     🧙 Code Wizard
@@ -1873,7 +1978,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold mb-2">Proje türü</label>
+                      <label className="block text-sm font-bold mb-2">
+                        Proje türü
+                      </label>
                       <select
                         value={wizardType}
                         onChange={(e) => setWizardType(e.target.value)}
@@ -1893,7 +2000,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold mb-2">Tasarım stili</label>
+                      <label className="block text-sm font-bold mb-2">
+                        Tasarım stili
+                      </label>
                       <select
                         value={wizardStyle}
                         onChange={(e) => setWizardStyle(e.target.value)}
@@ -1911,7 +2020,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                   </div>
 
                   <div className="mt-5">
-                    <label className="block text-sm font-bold mb-3">İstediğin özellikler</label>
+                    <label className="block text-sm font-bold mb-3">
+                      İstediğin özellikler
+                    </label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {[
                         'Mobil uyumluluk',
@@ -1929,16 +2040,22 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                       ].map((feature) => (
                         <label
                           key={feature}
-                          className={`flex items-center gap-2 p-3 rounded-lg border text-sm cursor-pointer ${wizardFeatures.includes(feature) ? 'border-purple-500 bg-purple-500/10' : 'border-gray-500/20'}`}
+                          className={`flex items-center gap-2 p-3 rounded-lg border text-sm cursor-pointer ${
+                            wizardFeatures.includes(feature)
+                              ? 'border-purple-500 bg-purple-500/10'
+                              : 'border-gray-500/20'
+                          }`}
                         >
                           <input
                             type="checkbox"
                             checked={wizardFeatures.includes(feature)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setWizardFeatures((prev) => [...prev, feature])
+                                setWizardFeatures((previous) => [...previous, feature])
                               } else {
-                                setWizardFeatures((prev) => prev.filter((item) => item !== feature))
+                                setWizardFeatures((previous) =>
+                                  previous.filter((item) => item !== feature)
+                                )
                               }
                             }}
                             className="accent-purple-600"
@@ -1950,7 +2067,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                   </div>
 
                   <div className="mt-5">
-                    <label className="block text-sm font-bold mb-2">Projeni açıkla</label>
+                    <label className="block text-sm font-bold mb-2">
+                      Projeni açıkla
+                    </label>
                     <textarea
                       value={wizardDescription}
                       onChange={(e) => setWizardDescription(e.target.value)}
@@ -1965,7 +2084,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                     disabled={wizardLoading}
                     className="w-full mt-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold disabled:opacity-50"
                   >
-                    {wizardLoading ? '⏳ Projen hazırlanıyor...' : '🧙 Seçimlerime Göre Site Oluştur'}
+                    {wizardLoading
+                      ? '⏳ Projen hazırlanıyor...'
+                      : '🧙 Seçimlerime Göre Site Oluştur'}
                   </button>
                 </div>
               )}
@@ -1978,7 +2099,10 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                   { label: 'CSS Dosyası', value: totalCss, icon: '🎨' },
                   { label: 'JavaScript', value: totalJs, icon: '⚡' },
                 ].map((stat) => (
-                  <div key={stat.label} className={`p-5 rounded-2xl border ${panelClass}`}>
+                  <div
+                    key={stat.label}
+                    className={`p-5 rounded-2xl border ${panelClass}`}
+                  >
                     <div className="flex justify-between items-center">
                       <span className="text-2xl">{stat.icon}</span>
                       <span className="text-2xl font-black">{stat.value}</span>
@@ -1990,7 +2114,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
 
               {/* YENİ PROJE */}
               <div className={`rounded-2xl border p-5 md:p-7 mb-8 ${panelClass}`}>
-                <h2 className="text-xl font-bold mb-2">Ne oluşturmak istiyorsun?</h2>
+                <h2 className="text-xl font-bold mb-2">
+                  Ne oluşturmak istiyorsun?
+                </h2>
                 <p className="text-sm text-gray-400 mb-4">
                   Web sitesi fikrini yaz, AI senin için kodlasın.
                 </p>
@@ -2017,7 +2143,9 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                     disabled={variationLoading || loading}
                     className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold disabled:opacity-50"
                   >
-                    {variationLoading ? `🎨 Tasarımlar hazırlanıyor (${designVariants.length}/3)...` : '✨ 3 Farklı Tasarım Oluştur'}
+                    {variationLoading
+                      ? `🎨 Tasarımlar hazırlanıyor (${designVariants.length}/3)...`
+                      : '✨ 3 Farklı Tasarım Oluştur'}
                   </button>
                 </div>
 
@@ -2027,67 +2155,73 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                   </div>
                 )}
 
+                {/* TASARIM SEÇENEKLERİ */}
                 {designVariants.length > 0 && (
                   <div className="mt-8">
-                    <h3 className="text-xl font-black mb-4">Tasarım seçenekleri</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {designVariants.map((variant, index) => {
-                        const variantDocument = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>${variant.css}</style>
-</head>
-<body>
-${variant.html}
-<script>${variant.js}<\/script>
-</body>
-</html>`
+                    <h3 className="text-xl font-black mb-4">
+                      Tasarım seçenekleri
+                    </h3>
 
-                        return (
-                          <div key={variant.name} className={`rounded-xl overflow-hidden border ${panelClass}`}>
-                            <div className="relative">
-                              <div className="absolute top-2 left-2 z-10 px-2 py-1 rounded-md bg-purple-600 text-white text-xs font-bold">
-                                TASARIM {index + 1}
-                              </div>
-                              <iframe
-                                title={`${variant.name} önizleme`}
-                                srcDoc={variantDocument}
-                                sandbox="allow-scripts allow-forms allow-modals"
-                                className="w-full h-52 bg-white pointer-events-none"
-                              />
-                            </div>
-                            <div className="p-4">
-                              <h4 className="font-bold">{variant.name}</h4>
-                              <p className="text-xs text-gray-400 mt-2">{variant.description}</p>
-                              <button
-                                onClick={() => handleSelectVariation(variant)}
-                                className="w-full mt-4 py-2.5 rounded-lg bg-purple-600 text-white text-sm font-bold"
-                              >
-                                Bu Tasarımı Kullan
-                              </button>
-                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {designVariants.map((variant, index) => (
+                        <div
+                          key={variant.name}
+                          className={`rounded-xl overflow-hidden border ${panelClass}`}
+                        >
+                          <div className="relative">
+                            <span className="absolute top-2 left-2 z-10 px-2 py-1 rounded-md bg-purple-600 text-white text-xs font-bold">
+                              TASARIM {index + 1}
+                            </span>
+                            <iframe
+                              title={`${variant.name} önizleme`}
+                              srcDoc={buildDocument(
+                                variant.html,
+                                variant.css,
+                                variant.js,
+                                variant.name
+                              )}
+                              sandbox="allow-scripts allow-forms allow-modals"
+                              className="w-full h-52 bg-white pointer-events-none"
+                            />
                           </div>
-                        )
-                      })}
+
+                          <div className="p-4">
+                            <h4 className="font-bold">{variant.name}</h4>
+                            <p className="text-xs text-gray-400 mt-2">
+                              {variant.description}
+                            </p>
+                            <button
+                              onClick={() => handleSelectVariation(variant)}
+                              className="w-full mt-4 py-2.5 rounded-lg bg-purple-600 text-white text-sm font-bold"
+                            >
+                              Bu Tasarımı Kullan
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
 
               {/* PROJE LİSTESİ */}
-              <div id="projects-section" className="flex flex-col gap-4 mb-5">
+              <div id="projects-section" className="flex flex-col gap-4 mb-5 scroll-mt-24">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h2 className="text-2xl font-black">Projelerim</h2>
-                    <p className="text-sm text-gray-400 mt-1">Kaydettiğin çalışmalar.</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Kaydettiğin çalışmalar.
+                    </p>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => setFavoriteFilter(!favoriteFilter)}
-                      className={`px-3 py-2 rounded-lg text-sm font-bold ${favoriteFilter ? 'bg-yellow-500 text-black' : 'bg-gray-500/10'}`}
+                      onClick={() => setFavoriteFilter((previous) => !previous)}
+                      className={`px-3 py-2 rounded-lg text-sm font-bold ${
+                        favoriteFilter
+                          ? 'bg-yellow-500 text-black'
+                          : 'bg-gray-500/10'
+                      }`}
                     >
                       {favoriteFilter ? '★ Favoriler' : '☆ Tüm Projeler'}
                     </button>
@@ -2126,7 +2260,9 @@ ${variant.html}
                 <div className="text-center py-16 rounded-2xl border border-dashed border-gray-500/30">
                   <div className="text-5xl mb-4">📂</div>
                   <h3 className="font-bold text-lg">
-                    {projects.length === 0 ? 'Henüz projen yok' : 'Aramana uygun proje bulunamadı'}
+                    {projects.length === 0
+                      ? 'Henüz projen yok'
+                      : 'Aramana uygun proje bulunamadı'}
                   </h3>
                   <p className="text-gray-400 text-sm mt-2">
                     Yeni bir proje oluşturarak başlayabilirsin.
@@ -2137,7 +2273,11 @@ ${variant.html}
                   {filteredProjects.map((project) => (
                     <div
                       key={project.id}
-                      className={`rounded-2xl border overflow-hidden cursor-pointer transition hover:-translate-y-1 ${isLight ? 'bg-white border-gray-200 hover:shadow-lg' : 'bg-[#131722] border-[#252b39] hover:border-purple-500'}`}
+                      className={`rounded-2xl border overflow-hidden cursor-pointer transition hover:-translate-y-1 ${
+                        isLight
+                          ? 'bg-white border-gray-200 hover:shadow-lg'
+                          : 'bg-[#131722] border-[#252b39] hover:border-purple-500'
+                      }`}
                       onClick={() => handleLoadProject(project)}
                     >
                       <div className="w-full h-44 overflow-hidden bg-[#080a10] border-b border-gray-500/20 flex items-center justify-center">
@@ -2157,7 +2297,7 @@ ${variant.html}
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="font-bold truncate">{project.title}</h3>
                           <button
-                            onClick={(e) => handleToggleFavorite(project, e)}
+                            onClick={(event) => handleToggleFavorite(project, event)}
                             className="text-xl"
                             title="Favori"
                           >
@@ -2166,13 +2306,18 @@ ${variant.html}
                         </div>
 
                         <p className="text-xs text-gray-400 mt-2">
-                          {project.updated_at ? new Date(project.updated_at).toLocaleDateString('tr-TR') : 'Tarih bilinmiyor'}
+                          {project.updated_at
+                            ? new Date(project.updated_at).toLocaleDateString('tr-TR')
+                            : 'Tarih bilinmiyor'}
                         </p>
 
-                        {project.tags?.length > 0 && (
+                        {project.tags && project.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-3">
-                            {project.tags.map((tag: string) => (
-                              <span key={tag} className="px-2 py-1 rounded bg-purple-500/10 text-purple-400 text-xs">
+                            {project.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="px-2 py-1 rounded bg-purple-500/10 text-purple-400 text-xs"
+                              >
                                 #{tag}
                               </span>
                             ))}
@@ -2187,14 +2332,15 @@ ${variant.html}
 
                         <div className="grid grid-cols-3 gap-2 mt-4">
                           <button
-                            onClick={(e) => handleDuplicateProject(project, e)}
+                            onClick={(event) => handleDuplicateProject(project, event)}
                             className="py-2 rounded-lg bg-blue-500/10 text-blue-400 text-xs font-bold"
                           >
                             📄 Kopyala
                           </button>
+
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation()
+                            onClick={(event) => {
+                              event.stopPropagation()
                               handleShareProject(project.id)
                             }}
                             disabled={shareLoading}
@@ -2202,8 +2348,9 @@ ${variant.html}
                           >
                             🔗 Paylaş
                           </button>
+
                           <button
-                            onClick={(e) => handleDeleteProject(project.id, e)}
+                            onClick={(event) => handleDeleteProject(project.id, event)}
                             className="py-2 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold"
                           >
                             🗑️ Sil
@@ -2220,6 +2367,7 @@ ${variant.html}
           {/* EDİTÖR */}
           {activeView === 'editor' && (
             <section className="max-w-[1600px] mx-auto px-4 py-6">
+
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                   <button
@@ -2249,8 +2397,8 @@ ${variant.html}
                   </button>
 
                   <button
-  onClick={() => handleShareProject()}
-  disabled={!currentProjectId || shareLoading}
+                    onClick={() => handleShareProject()}
+                    disabled={!currentProjectId || shareLoading}
                     className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold disabled:opacity-50"
                   >
                     {shareLoading ? 'Hazırlanıyor...' : '🔗 Paylaş'}
@@ -2258,7 +2406,7 @@ ${variant.html}
 
                   <button
                     onClick={handleSaveProject}
-                    disabled={!codeHtml}
+                    disabled={!codeHtml.trim()}
                     className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-bold disabled:opacity-50"
                   >
                     💾 Kaydet
@@ -2266,7 +2414,7 @@ ${variant.html}
 
                   <button
                     onClick={handleDownloadZip}
-                    disabled={!codeHtml || zipLoading}
+                    disabled={!codeHtml.trim() || zipLoading}
                     className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-50"
                   >
                     {zipLoading ? 'Hazırlanıyor...' : '📦 ZIP İndir'}
@@ -2277,19 +2425,31 @@ ${variant.html}
               {/* PAYLAŞIM BAĞLANTISI */}
               {shareLink && (
                 <div className="mb-5 p-4 rounded-xl border border-purple-500/30 bg-purple-500/10">
-                  <p className="font-bold text-purple-400 mb-2">🔗 Paylaşım bağlantın</p>
+                  <p className="font-bold text-purple-400 mb-2">
+                    🔗 Paylaşım bağlantın
+                  </p>
+
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       readOnly
                       value={shareLink}
                       className={`flex-1 min-w-0 p-2 rounded-lg border ${inputClass}`}
                     />
+
                     <button
-                      onClick={() => navigator.clipboard.writeText(shareLink)}
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(shareLink)
+                          alert('Bağlantı kopyalandı.')
+                        } catch {
+                          alert(shareLink)
+                        }
+                      }}
                       className="px-4 py-2 rounded-lg bg-purple-600 text-white font-bold"
                     >
                       Kopyala
                     </button>
+
                     <button
                       onClick={handleDisableSharing}
                       className="px-4 py-2 rounded-lg bg-red-600 text-white font-bold"
@@ -2303,15 +2463,27 @@ ${variant.html}
               {/* ETİKETLER */}
               <div className={`rounded-2xl border p-4 mb-5 ${panelClass}`}>
                 <h3 className="font-bold mb-3">🏷️ Proje Etiketleri</h3>
+
                 <div className="flex flex-wrap gap-2 mb-3">
                   {selectedTags.map((tag) => (
-                    <span key={tag} className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-sm">
+                    <span
+                      key={tag}
+                      className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-sm"
+                    >
                       #{tag}
-                      <button onClick={() => handleRemoveTag(tag)} className="text-red-400">×</button>
+                      <button
+                        onClick={() => handleRemoveTag(tag)}
+                        className="text-red-400"
+                      >
+                        ×
+                      </button>
                     </span>
                   ))}
+
                   {selectedTags.length === 0 && (
-                    <p className="text-sm text-gray-400">Henüz etiket eklenmedi.</p>
+                    <p className="text-sm text-gray-400">
+                      Henüz etiket eklenmedi.
+                    </p>
                   )}
                 </div>
 
@@ -2329,6 +2501,7 @@ ${variant.html}
                     maxLength={25}
                     className={`flex-1 min-w-0 p-2 rounded-lg border ${inputClass}`}
                   />
+
                   <button
                     onClick={handleAddTag}
                     disabled={!currentProjectId}
@@ -2337,8 +2510,11 @@ ${variant.html}
                     Ekle
                   </button>
                 </div>
+
                 {!currentProjectId && (
-                  <p className="text-xs text-gray-500 mt-2">Etiket eklemek için önce projeyi kaydet.</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Etiket eklemek için önce projeyi kaydet.
+                  </p>
                 )}
               </div>
 
@@ -2348,7 +2524,9 @@ ${variant.html}
                   <div className="flex items-center justify-between gap-3 mb-4">
                     <div>
                       <h3 className="text-xl font-black">🕘 Sürüm Geçmişi</h3>
-                      <p className="text-sm text-gray-400 mt-1">Kaydedilmiş sürümleri görüntüle ve geri yükle.</p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Kaydedilmiş sürümleri görüntüle ve geri yükle.
+                      </p>
                     </div>
                     <button onClick={() => setShowVersionHistory(false)}>✕</button>
                   </div>
@@ -2356,18 +2534,30 @@ ${variant.html}
                   {versionLoading ? (
                     <p className="text-purple-400 py-5">Sürümler yükleniyor...</p>
                   ) : versions.length === 0 ? (
-                    <p className="text-gray-400 py-5">Henüz kayıtlı sürüm bulunmuyor.</p>
+                    <p className="text-gray-400 py-5">
+                      Henüz kayıtlı sürüm bulunmuyor.
+                    </p>
                   ) : (
                     <div className="space-y-3">
                       {versions.map((version, index) => (
-                        <div key={`${version.project_id}-${version.created_at}-${index}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-gray-500/20">
+                        <div
+                          key={`${version.project_id}-${version.created_at}-${index}`}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-gray-500/20"
+                        >
                           <div>
-                            <p className="font-bold">{version.title || 'İsimsiz proje'}</p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {version.created_at ? new Date(version.created_at).toLocaleString('tr-TR') : 'Tarih bilinmiyor'}
+                            <p className="font-bold">
+                              {version.title || 'İsimsiz proje'}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">Sürüm #{versions.length - index}</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {version.created_at
+                                ? new Date(version.created_at).toLocaleString('tr-TR')
+                                : 'Tarih bilinmiyor'}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Sürüm #{versions.length - index}
+                            </p>
                           </div>
+
                           <button
                             onClick={() => handleRestoreVersion(version)}
                             disabled={restoreLoading}
@@ -2398,7 +2588,9 @@ ${variant.html}
                 <div className="rounded-2xl border border-dashed border-gray-500/30 p-10 text-center">
                   <div className="text-5xl mb-4">⚡</div>
                   <h2 className="text-xl font-bold">Henüz kod bulunmuyor</h2>
-                  <p className="text-gray-400 text-sm mt-2">Dashboard bölümünden bir proje oluşturabilirsin.</p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    Dashboard bölümünden bir proje oluşturabilirsin.
+                  </p>
                   <button
                     onClick={() => setActiveView('dashboard')}
                     className="mt-5 px-5 py-2 rounded-lg bg-purple-600 text-white font-bold"
@@ -2408,8 +2600,11 @@ ${variant.html}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-                  {/* KOD EDİTÖRÜ */}
+
+                  {/* SOL TARAF: KOD VE AI ARAÇLARI */}
                   <div className="space-y-4">
+
+                    {/* KOD EDİTÖRÜ */}
                     <div className={`rounded-2xl border overflow-hidden ${panelClass}`}>
                       <div className="flex items-center justify-between p-3 border-b border-gray-500/20">
                         <div className="flex gap-2">
@@ -2417,7 +2612,11 @@ ${variant.html}
                             <button
                               key={tab}
                               onClick={() => setActiveTab(tab)}
-                              className={`px-4 py-2 rounded-lg text-sm font-bold ${activeTab === tab ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-500/10'}`}
+                              className={`px-4 py-2 rounded-lg text-sm font-bold ${
+                                activeTab === tab
+                                  ? 'bg-purple-600 text-white'
+                                  : 'text-gray-400 hover:bg-gray-500/10'
+                              }`}
                             >
                               {tab.toUpperCase()}
                             </button>
@@ -2433,7 +2632,13 @@ ${variant.html}
                       </div>
 
                       <textarea
-                        value={activeTab === 'html' ? codeHtml : activeTab === 'css' ? codeCss : codeJs}
+                        value={
+                          activeTab === 'html'
+                            ? codeHtml
+                            : activeTab === 'css'
+                              ? codeCss
+                              : codeJs
+                        }
                         onChange={(e) => {
                           if (activeTab === 'html') setCodeHtml(e.target.value)
                           if (activeTab === 'css') setCodeCss(e.target.value)
@@ -2444,7 +2649,7 @@ ${variant.html}
                       />
                     </div>
 
-                    {/* GELİŞMİŞ AI SOHBETİ */}
+                    {/* AI GELİŞTİRME SOHBETİ */}
                     <div className={`rounded-2xl border p-4 ${panelClass}`}>
                       <div className="flex items-center justify-between mb-3">
                         <div>
@@ -2453,6 +2658,7 @@ ${variant.html}
                             Önceki mesajların bağlamı korunur.
                           </p>
                         </div>
+
                         <button
                           onClick={() => setChatMessages([])}
                           className="text-xs text-red-400"
@@ -2464,21 +2670,31 @@ ${variant.html}
                       <div className="max-h-72 overflow-y-auto space-y-3 mb-4">
                         {chatMessages.length === 0 ? (
                           <p className="text-sm text-gray-400 py-4">
-                            Örneğin: Menüye animasyon ekle, mobil görünümü geliştir veya yeni bir bölüm oluştur.
+                            Örneğin: Menüye animasyon ekle, mobil görünümü geliştir
+                            veya yeni bir bölüm oluştur.
                           </p>
-                        ) : chatMessages.map((message, index) => (
-                          <div
-                            key={`${index}-${message.role}`}
-                            className={`p-3 rounded-xl text-sm whitespace-pre-wrap ${message.role === 'user' ? 'bg-purple-600/15 border border-purple-500/20 ml-5' : 'bg-gray-500/10 mr-5'}`}
-                          >
-                            <p className="font-bold text-xs mb-1 text-purple-400">
-                              {message.role === 'user' ? 'Sen' : 'PromptForge AI'}
-                            </p>
-                            {message.content}
-                          </div>
-                        ))}
+                        ) : (
+                          chatMessages.map((message, index) => (
+                            <div
+                              key={`${index}-${message.role}`}
+                              className={`p-3 rounded-xl text-sm whitespace-pre-wrap ${
+                                message.role === 'user'
+                                  ? 'bg-purple-600/15 border border-purple-500/20 ml-5'
+                                  : 'bg-gray-500/10 mr-5'
+                              }`}
+                            >
+                              <p className="font-bold text-xs mb-1 text-purple-400">
+                                {message.role === 'user' ? 'Sen' : 'PromptForge AI'}
+                              </p>
+                              {message.content}
+                            </div>
+                          ))
+                        )}
+
                         {chatLoading && (
-                          <p className="text-sm text-purple-400">AI yanıt hazırlıyor...</p>
+                          <p className="text-sm text-purple-400">
+                            AI yanıt hazırlıyor...
+                          </p>
                         )}
                       </div>
 
@@ -2501,7 +2717,9 @@ ${variant.html}
                         disabled={chatLoading || !chatInput.trim()}
                         className="w-full mt-3 py-3 rounded-lg bg-purple-600 text-white font-bold disabled:opacity-50"
                       >
-                        {chatLoading ? 'AI yanıt hazırlıyor...' : 'Mesaj Gönder ve Değişiklikleri Uygula'}
+                        {chatLoading
+                          ? 'AI yanıt hazırlıyor...'
+                          : 'Mesaj Gönder ve Değişiklikleri Uygula'}
                       </button>
                     </div>
 
@@ -2531,27 +2749,37 @@ ${variant.html}
                           disabled={designLoading}
                           className="p-3 rounded-lg bg-purple-600/15 border border-purple-500/30 text-purple-400 font-bold text-sm disabled:opacity-50 sm:col-span-2"
                         >
-                          {designLoading ? 'Öneriler hazırlanıyor...' : '✨ AI Tasarım Önerileri'}
+                          {designLoading
+                            ? 'Öneriler hazırlanıyor...'
+                            : '✨ AI Tasarım Önerileri'}
                         </button>
                       </div>
 
                       {reviewResult && (
                         <div className="mt-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                          <h4 className="font-bold text-blue-400 mb-2">Kod Analizi / Düzeltme Sonucu</h4>
-                          <pre className="whitespace-pre-wrap text-xs text-gray-300 font-sans">{reviewResult}</pre>
+                          <h4 className="font-bold text-blue-400 mb-2">
+                            Kod Analizi / Düzeltme Sonucu
+                          </h4>
+                          <pre className="whitespace-pre-wrap text-xs text-gray-300 font-sans">
+                            {reviewResult}
+                          </pre>
                         </div>
                       )}
 
                       {designSuggestions && (
                         <div className="mt-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                          <h4 className="font-bold text-purple-400 mb-2">Tasarım Önerileri</h4>
-                          <pre className="whitespace-pre-wrap text-xs text-gray-300 font-sans">{designSuggestions}</pre>
+                          <h4 className="font-bold text-purple-400 mb-2">
+                            Tasarım Önerileri
+                          </h4>
+                          <pre className="whitespace-pre-wrap text-xs text-gray-300 font-sans">
+                            {designSuggestions}
+                          </pre>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* CANLI ÖNİZLEME */}
+                  {/* SAĞ TARAF: CANLI ÖNİZLEME */}
                   <div className={`rounded-2xl border overflow-hidden ${panelClass}`}>
                     <div className="p-3 border-b border-gray-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <h3 className="font-bold">🌐 Canlı Önizleme</h3>
@@ -2565,7 +2793,11 @@ ${variant.html}
                           <button
                             key={size}
                             onClick={() => setPreviewSize(size)}
-                            className={`px-2 py-1.5 rounded-lg text-xs ${previewSize === size ? 'bg-purple-600 text-white' : 'bg-gray-500/10 text-gray-400'}`}
+                            className={`px-2 py-1.5 rounded-lg text-xs ${
+                              previewSize === size
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-gray-500/10 text-gray-400'
+                            }`}
                           >
                             {label}
                           </button>
@@ -2577,7 +2809,12 @@ ${variant.html}
                       <div
                         className="bg-white overflow-hidden transition-all"
                         style={{
-                          width: previewSize === 'mobile' ? '375px' : previewSize === 'tablet' ? '768px' : '100%',
+                          width:
+                            previewSize === 'mobile'
+                              ? '375px'
+                              : previewSize === 'tablet'
+                                ? '768px'
+                                : '100%',
                           maxWidth: '100%',
                           minHeight: '580px',
                         }}
@@ -2599,4 +2836,4 @@ ${variant.html}
       )}
     </main>
   )
-}
+        }
