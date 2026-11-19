@@ -126,7 +126,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-5 pf-scroll">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 space-y-5 pf-scroll">
         {groups.map((group) => (
           <div key={group.title}>
             <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">

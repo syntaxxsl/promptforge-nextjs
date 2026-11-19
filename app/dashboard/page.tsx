@@ -232,7 +232,7 @@ function Sidebar({
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-5 pf-scroll">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 space-y-5 pf-scroll">
         {groups.map((group) => (
           <div key={group.title}>
             <p
