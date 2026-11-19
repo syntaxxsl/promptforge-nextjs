@@ -453,7 +453,7 @@ export default function AdminPanel() {
       }
 
       setMessage(result.message || 'İşlem başarılı.')
-      await fetchUsers()
+      await Promise.all([fetchUsers(), fetchLogs(), fetchTraffic()])
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'Bir hata oluştu.'
@@ -511,7 +511,7 @@ export default function AdminPanel() {
       }
 
       setMessage(result.message || 'İşlem başarılı.')
-      await fetchUsers()
+      await Promise.all([fetchUsers(), fetchLogs(), fetchTraffic()])
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'Bir hata oluştu.'
