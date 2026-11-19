@@ -656,11 +656,23 @@ export default function Home() {
         return
       }
 
-      const { data: profile, error: profileError } = await supabase
+      const extended = await supabase
         .from('users')
         .select('role, approval_status, permissions')
         .eq('id', currentSession.user.id)
         .maybeSingle()
+
+      // Yetki kolonu yoksa eski sorguya düş.
+      const fallback = extended.error
+        ? await supabase
+            .from('users')
+            .select('role, approval_status')
+            .eq('id', currentSession.user.id)
+            .maybeSingle()
+        : null
+
+      const profile = extended.error ? fallback?.data : extended.data
+      const profileError = extended.error ? fallback?.error : null
 
       if (!mounted) return
 

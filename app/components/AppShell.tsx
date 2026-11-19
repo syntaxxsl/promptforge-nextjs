@@ -90,15 +90,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       setEmail(data.user.email || '')
 
-      const { data: profile } = await supabase
+      const extended = await supabase
         .from('users')
         .select('role, permissions')
         .eq('id', data.user.id)
         .maybeSingle()
 
+      // Yetki kolonu yoksa yalnızca rolü oku.
+      const profile = extended.error
+        ? (
+            await supabase
+              .from('users')
+              .select('role')
+              .eq('id', data.user.id)
+              .maybeSingle()
+          ).data
+        : extended.data
+
       if (cancelled) return
 
-      const role = String(profile?.role || '').toLowerCase().trim()
+      const role = String((profile as any)?.role || '').toLowerCase().trim()
       const permissions = normalizePermissions((profile as any)?.permissions)
 
       setIsAdmin(role === 'admin' || permissions.length > 0)

@@ -583,13 +583,24 @@ export default function AdminPanel() {
       let permissions: PermissionKey[] = []
 
       if (userId) {
-        const { data: profile } = await supabase
+        const extended = await supabase
           .from('users')
           .select('role, permissions')
           .eq('id', userId)
           .maybeSingle()
 
-        role = String(profile?.role || '').toLowerCase().trim()
+        // Yetki kolonu henüz eklenmediyse sadece rolü oku.
+        const profile = extended.error
+          ? (
+              await supabase
+                .from('users')
+                .select('role')
+                .eq('id', userId)
+                .maybeSingle()
+            ).data
+          : extended.data
+
+        role = String((profile as any)?.role || '').toLowerCase().trim()
         permissions = normalizePermissions((profile as any)?.permissions)
       }
 
