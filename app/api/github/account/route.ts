@@ -1,7 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { clientIp, rateLimit, tooMany } from '../../../../lib/security'
 
 export async function GET(request: NextRequest) {
+  const limit = rateLimit(`github-account:${clientIp(request)}`, 30, 60_000)
+
+  if (!limit.ok) return tooMany(limit.retryAfter)
+
   const token = request.cookies.get('github_access_token')?.value
 
   if (!token) {

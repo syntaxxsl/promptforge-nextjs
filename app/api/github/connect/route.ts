@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
+import { clientIp, isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
 
 export async function GET(request: NextRequest) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json(
+      { error: 'Geçersiz istek kaynağı.' },
+      { status: 403 }
+    )
+  }
+
+  const limit = rateLimit(`github-connect:${clientIp(request)}`, 10, 60_000)
+
+  if (!limit.ok) return tooMany(limit.retryAfter)
+
   const clientId = process.env.GITHUB_CLIENT_ID
   const redirectUri = process.env.GITHUB_REDIRECT_URI
 
