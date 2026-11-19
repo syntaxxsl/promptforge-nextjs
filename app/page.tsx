@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -130,6 +129,12 @@ export default function Home() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
 
+  // SÜRÜM GEÇMİŞİ
+  const [versions, setVersions] = useState<any[]>([])
+  const [showVersionHistory, setShowVersionHistory] = useState(false)
+  const [versionLoading, setVersionLoading] = useState(false)
+  const [restoreLoading, setRestoreLoading] = useState(false)
+
   const router = useRouter()
 
   useEffect(() => {
@@ -220,6 +225,100 @@ export default function Home() {
     }
 
     if (data) setProjects(data)
+  }
+
+  // SÜRÜMLERİ GETİR
+  const handleFetchVersions = async () => {
+    if (!currentProjectId || !session?.user?.id) {
+      alert('Önce kayıtlı bir projeyi açmalısın.')
+      return
+    }
+
+    setVersionLoading(true)
+    setShowVersionHistory(true)
+
+    const { data, error } = await supabase
+      .from('project_versions')
+      .select('*')
+      .eq('project_id', currentProjectId)
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('VERSION FETCH ERROR:', error)
+      alert('Sürüm geçmişi yüklenemedi: ' + error.message)
+    } else {
+      setVersions(data || [])
+    }
+
+    setVersionLoading(false)
+  }
+
+  // SÜRÜM GERİ YÜKLE
+  const handleRestoreVersion = async (version: any) => {
+    if (!currentProjectId || !session?.user?.id) return
+
+    if (!confirm(
+      'Bu sürüme geri dönmek istiyor musun? Mevcut kodun da geçmişe kaydedilecek.'
+    )) return
+
+    setRestoreLoading(true)
+
+    try {
+      // Şu anki kodu da geçmişe kaydet
+      const { error: historyError } = await supabase
+        .from('project_versions')
+        .insert({
+          project_id: currentProjectId,
+          user_id: session.user.id,
+          title: projectTitle,
+          prompt,
+          html_code: codeHtml,
+          css_code: codeCss,
+          js_code: codeJs,
+          created_at: new Date().toISOString(),
+        })
+
+      if (historyError) throw historyError
+
+      // Seçilen sürümü projeye aktar
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          title: version.title,
+          prompt: version.prompt,
+          html_code: version.html_code,
+          css_code: version.css_code,
+          js_code: version.js_code,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentProjectId)
+        .eq('user_id', session.user.id)
+
+      if (error) throw error
+
+      setProjectTitle(version.title || 'Yeni Proje')
+      setPrompt(version.prompt || '')
+      setCodeHtml(version.html_code || '')
+      setCodeCss(version.css_code || '')
+      setCodeJs(version.js_code || '')
+      setActiveTab('html')
+
+      await fetchProjects(session.user.id)
+      await handleFetchVersions()
+
+      addNotification(
+        'Sürüm geri yüklendi',
+        'Seçtiğin proje sürümü başarıyla geri yüklendi.'
+      )
+
+      alert('Sürüm başarıyla geri yüklendi.')
+    } catch (error: any) {
+      console.error('VERSION RESTORE ERROR:', error)
+      alert('Sürüm geri yüklenemedi: ' + error.message)
+    } finally {
+      setRestoreLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -317,6 +416,8 @@ export default function Home() {
     setReviewResult('')
     setDesignSuggestions('')
     setDesignVariants([])
+    setVersions([])
+    setShowVersionHistory(false)
     setActiveTab('html')
     setActiveView('editor')
   }
@@ -971,12 +1072,38 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
         setCurrentProjectId(data.id)
       }
 
+      // SÜRÜM GEÇMİŞİNE KAYDET
+      const { error: versionError } = await supabase
+        .from('project_versions')
+        .insert({
+          project_id: savedProjectId!,
+          user_id: session.user.id,
+          title: projectTitle,
+          prompt,
+          html_code: codeHtml,
+          css_code: codeCss,
+          js_code: codeJs,
+          created_at: new Date().toISOString(),
+        })
+
+      if (versionError) {
+        console.error('VERSION SAVE ERROR:', versionError)
+        addNotification(
+          'Sürüm kaydedilemedi',
+          'Proje kaydedildi ancak sürüm geçmişi oluşturulamadı.'
+        )
+      }
+
       setSaveStatus('Ekran görüntüsü hazırlanıyor...')
 
       try {
         await generateThumbnail(savedProjectId!)
 
-        setSaveStatus('Kaydedildi! Görsel hazır.')
+        setSaveStatus(
+          versionError
+            ? 'Kaydedildi! Sürüm geçmişi oluşturulamadı.'
+            : 'Kaydedildi! Görsel hazır.'
+        )
 
         addNotification(
           'Proje vitrini güncellendi',
@@ -985,7 +1112,11 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       } catch (thumbnailError: any) {
         console.error('THUMBNAIL ERROR:', thumbnailError)
 
-        setSaveStatus('Kaydedildi! Görsel alınamadı.')
+        setSaveStatus(
+          versionError
+            ? 'Kaydedildi! Görsel ve sürüm geçmişi oluşturulamadı.'
+            : 'Kaydedildi! Görsel alınamadı.'
+        )
 
         addNotification(
           'Proje kaydedildi',
@@ -1000,7 +1131,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       setSaveStatus('Kayıt hatası!')
     }
 
-    setTimeout(() => setSaveStatus(''), 3500)
+    setTimeout(() => setSaveStatus(''), 5000)
   }
 
   const handleLoadProject = (project: any) => {
@@ -1018,6 +1149,8 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     setReviewResult('')
     setDesignSuggestions('')
     setDesignVariants([])
+    setVersions([])
+    setShowVersionHistory(false)
     setShowProjects(false)
     setActiveView('editor')
   }
@@ -1051,6 +1184,8 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       setCodeCss('')
       setCodeJs('')
       setCurrentProjectId(null)
+      setVersions([])
+      setShowVersionHistory(false)
     }
   }
 
@@ -1111,7 +1246,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
   const isLight = theme === 'light'
 
   return (
-    <main className={`min-h-screen ${
+        <main className={`min-h-screen ${
       isLight
         ? 'bg-gray-100 text-gray-900'
         : 'bg-[#090b10] text-white'
@@ -1126,7 +1261,10 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       }`}>
         <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <button
-            onClick={() => setActiveView('dashboard')}
+            onClick={() => {
+              setActiveView('dashboard')
+              setShowNotifications(false)
+            }}
             className="flex items-center gap-2"
           >
             <div className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center font-black text-white">
@@ -1138,6 +1276,64 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
           </button>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
+
+            {/* ANA SAYFA */}
+            <button
+              onClick={() => {
+                setActiveView('dashboard')
+                setShowNotifications(false)
+              }}
+              className={`px-3 py-2 rounded-lg text-sm font-bold ${
+                isLight
+                  ? 'bg-gray-100 hover:bg-gray-200'
+                  : 'bg-[#202431] hover:bg-[#303747]'
+              }`}
+            >
+              🏠 Ana Sayfa
+            </button>
+
+            {/* PROJELERİM */}
+            <button
+              onClick={() => {
+                setActiveView('dashboard')
+                setShowNotifications(false)
+
+                setTimeout(() => {
+                  document.getElementById('projects-section')?.scrollIntoView({
+                    behavior: 'smooth',
+                  })
+                }, 150)
+              }}
+              className={`px-3 py-2 rounded-lg text-sm font-bold ${
+                isLight
+                  ? 'bg-gray-100 hover:bg-gray-200'
+                  : 'bg-[#202431] hover:bg-[#303747]'
+              }`}
+            >
+              📁 Projelerim
+            </button>
+
+            {/* YENİ PROJE */}
+            <button
+              onClick={startNewProject}
+              className="px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold"
+            >
+              + Yeni Proje
+            </button>
+
+            {/* EDİTÖRE GİT */}
+            <button
+              onClick={() => setActiveView('editor')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold ${
+                isLight
+                  ? 'bg-gray-100 hover:bg-gray-200'
+                  : 'bg-[#202431] hover:bg-[#303747]'
+              }`}
+            >
+              💻 Editör
+            </button>
+
+            {/* TEMA */}
             <button
               onClick={() => setTheme(isLight ? 'dark' : 'light')}
               className={`p-2 rounded-lg ${
@@ -1148,6 +1344,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
               {isLight ? '🌙' : '☀️'}
             </button>
 
+            {/* BİLDİRİMLER */}
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className={`relative p-2 rounded-lg ${
@@ -1163,6 +1360,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
               )}
             </button>
 
+            {/* ADMIN */}
             {isAdmin && (
               <button
                 onClick={() => router.push('/admin')}
@@ -1172,6 +1370,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
               </button>
             )}
 
+            {/* ÇIKIŞ */}
             <button
               onClick={handleLogout}
               className={`px-3 py-2 rounded-lg text-sm ${
@@ -1624,7 +1823,10 @@ ${variant.html}
               </div>
 
               {/* PROJE LİSTESİ */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+              <div
+                id="projects-section"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5"
+              >
                 <div>
                   <h2 className="text-2xl font-black">Projelerim</h2>
                   <p className="text-sm text-gray-400 mt-1">
@@ -1772,6 +1974,14 @@ ${variant.html}
 
                 <div className="flex flex-wrap gap-2">
                   <button
+                    onClick={handleFetchVersions}
+                    disabled={!currentProjectId || versionLoading}
+                    className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold disabled:opacity-50"
+                  >
+                    🕘 Sürüm Geçmişi
+                  </button>
+
+                  <button
                     onClick={handleSaveProject}
                     disabled={!codeHtml}
                     className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-bold disabled:opacity-50"
@@ -1788,6 +1998,82 @@ ${variant.html}
                   </button>
                 </div>
               </div>
+
+              {/* SÜRÜM GEÇMİŞİ PANELİ */}
+              {showVersionHistory && (
+                <div className={`mb-5 rounded-2xl border p-5 ${
+                  isLight
+                    ? 'bg-white border-gray-200'
+                    : 'bg-[#131722] border-[#343b4b]'
+                }`}>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="text-xl font-black">
+                        🕘 Sürüm Geçmişi
+                      </h3>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Kaydedilmiş proje sürümlerini görüntüle ve geri yükle.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setShowVersionHistory(false)}
+                      className="px-3 py-2 rounded-lg bg-gray-500/10 text-gray-400"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {versionLoading ? (
+                    <p className="text-purple-400 py-5">
+                      Sürümler yükleniyor...
+                    </p>
+                  ) : versions.length === 0 ? (
+                    <p className="text-gray-400 py-5">
+                      Henüz kayıtlı bir sürüm bulunmuyor. Projeni kaydettiğinde sürüm burada görünecek.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {versions.map((version, index) => (
+                        <div
+                          key={`${version.project_id}-${version.created_at}-${index}`}
+                          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border ${
+                            isLight
+                              ? 'bg-gray-50 border-gray-200'
+                              : 'bg-[#090d16] border-[#303747]'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-bold">
+                              {version.title || 'İsimsiz proje'}
+                            </p>
+
+                            <p className="text-xs text-gray-400 mt-1">
+                              {version.created_at
+                                ? new Date(version.created_at).toLocaleString('tr-TR')
+                                : 'Tarih bilinmiyor'}
+                            </p>
+
+                            <p className="text-xs text-gray-500 mt-1">
+                              Sürüm #{versions.length - index}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => handleRestoreVersion(version)}
+                            disabled={restoreLoading}
+                            className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-bold disabled:opacity-50"
+                          >
+                            {restoreLoading
+                              ? 'Yükleniyor...'
+                              : 'Bu Sürümü Geri Yükle'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {saveStatus && (
                 <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
@@ -2028,4 +2314,4 @@ ${variant.html}
       )}
     </main>
   )
-}
+                        }
