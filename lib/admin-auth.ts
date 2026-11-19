@@ -54,15 +54,26 @@ export async function checkAdminAccess(
     }
   }
 
-  const { data: profile } = await adminClient
+  const extended = await adminClient
     .from('users')
     .select('role, approval_status, permissions')
     .eq('id', user.id)
     .maybeSingle()
 
-  const role = String(profile?.role || '').toLowerCase().trim()
-  const approval = String(profile?.approval_status || '').toLowerCase().trim()
-  const permissions = normalizePermissions(profile?.permissions)
+  // Yetki kolonu henüz eklenmediyse yalnızca rol ve durumu oku.
+  const profile = extended.error
+    ? (
+        await adminClient
+          .from('users')
+          .select('role, approval_status')
+          .eq('id', user.id)
+          .maybeSingle()
+      ).data
+    : extended.data
+
+  const role = String((profile as any)?.role || '').toLowerCase().trim()
+  const approval = String((profile as any)?.approval_status || '').toLowerCase().trim()
+  const permissions = normalizePermissions((profile as any)?.permissions)
 
   if (approval !== 'approved') {
     return {
