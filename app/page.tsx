@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -42,6 +41,29 @@ function parseCode(rawText: string) {
   return { html, css, js }
 }
 
+function getAIText(response: any): string {
+  if (typeof response === 'string') return response
+
+  const content = response?.message?.content
+
+  if (typeof content === 'string') return content
+
+  if (Array.isArray(content)) {
+    return content
+      .map((item: any) => item.text || '')
+      .join('\n')
+  }
+
+  return response?.text || String(response)
+}
+
+function cleanAIResponse(text: string) {
+  return text
+    .replace(/```(?:html|css|javascript|js)?/gi, '')
+    .replace(/```/g, '')
+    .trim()
+}
+
 export default function Home() {
   const [session, setSession] = useState<any>(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -68,13 +90,21 @@ export default function Home() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
 
-  // AI Editor 2.0
+  // AI geliştirici araçları
   const [reviewLoading, setReviewLoading] = useState(false)
   const [fixLoading, setFixLoading] = useState(false)
   const [reviewResult, setReviewResult] = useState('')
-  const [previewSize, setPreviewSize] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
 
-  // Dashboard özellikleri
+  const [designLoading, setDesignLoading] = useState(false)
+  const [designSuggestions, setDesignSuggestions] = useState('')
+
+  const [zipLoading, setZipLoading] = useState(false)
+
+  const [previewSize, setPreviewSize] = useState<
+    'desktop' | 'tablet' | 'mobile'
+  >('desktop')
+
+  // Dashboard
   const [activeView, setActiveView] = useState<'dashboard' | 'editor'>('dashboard')
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [showNotifications, setShowNotifications] = useState(false)
@@ -82,15 +112,19 @@ export default function Home() {
 
   const router = useRouter()
 
-  // Tema ve bildirimleri cihazdan yükle
+  // Tema ve bildirimleri yükle
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem('promptforge-theme')
+
       if (savedTheme === 'light' || savedTheme === 'dark') {
         setTheme(savedTheme)
       }
 
-      const savedNotifications = localStorage.getItem('promptforge-notifications')
+      const savedNotifications = localStorage.getItem(
+        'promptforge-notifications'
+      )
+
       if (savedNotifications) {
         setNotifications(JSON.parse(savedNotifications))
       } else {
@@ -117,7 +151,10 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('promptforge-notifications', JSON.stringify(notifications))
+      localStorage.setItem(
+        'promptforge-notifications',
+        JSON.stringify(notifications)
+      )
     } catch (err) {
       console.error(err)
     }
@@ -261,10 +298,12 @@ export default function Home() {
     setError('')
     setChatInput('')
     setReviewResult('')
+    setDesignSuggestions('')
     setActiveTab('html')
     setActiveView('editor')
   }
 
+  // AI site oluşturma
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       alert('Lütfen bir site fikri yazın.')
@@ -280,39 +319,43 @@ export default function Home() {
     setProjectTitle(prompt.slice(0, 30) + '...')
 
     try {
-      const aiPrompt = `Sen kıdemli bir front-end geliştiricisin. Aşağıdaki fikir için 3 AYRI DOSYA (HTML, CSS, JS) üret.
+      const aiPrompt = `Sen kıdemli bir front-end geliştiricisin.
+Aşağıdaki fikir için 3 AYRI DOSYA üret.
+
 KURALLAR:
 - Çıktıyı tam olarak şu formatta ver:
 ---HTML---
-(html kodu)
+HTML kodu
 ---CSS---
-(css kodu)
+CSS kodu
 ---JS---
-(js kodu)
-- Modern ve responsive olsun. FİKİR: ${prompt}`
+JavaScript kodu
+- Modern ve responsive olsun.
+- Kodlar eksiksiz olsun.
+
+FİKİR: ${prompt}`
 
       // @ts-ignore
       const response = await puter.ai.chat(aiPrompt, {
         model: 'gpt-4o-mini',
       })
 
-      let rawText = typeof response === 'string'
-        ? response
-        : (response.message?.content || response.text || String(response))
-
-      rawText = rawText
-        .replace(/```(?:html|css|javascript|js)?/g, '')
-        .replace(/```/g, '')
-        .trim()
-
+      const rawText = cleanAIResponse(getAIText(response))
       const parsed = parseCode(rawText)
+
+      if (!parsed.html.trim()) {
+        throw new Error('AI geçerli HTML kodu döndürmedi.')
+      }
 
       setCodeHtml(parsed.html)
       setCodeCss(parsed.css)
       setCodeJs(parsed.js)
       setActiveTab('html')
 
-      addNotification('Proje oluşturuldu', 'AI yeni web sitesi kodunu oluşturdu.')
+      addNotification(
+        'Proje oluşturuldu',
+        'AI yeni web sitesi kodunu oluşturdu.'
+      )
     } catch (err: any) {
       setError('Hata: ' + (err.message || 'Bilinmeyen hata'))
     } finally {
@@ -320,6 +363,7 @@ KURALLAR:
     }
   }
 
+  // Sohbet ile kod değiştirme
   const handleRevise = async () => {
     if (!chatInput.trim()) return
 
@@ -342,36 +386,32 @@ ${codeJs}`
     setChatInput('')
 
     try {
-      const aiPrompt = `Sen kıdemli bir front-end geliştiricisin. Aşağıda mevcut bir web sitesinin kodu var. Kullanıcı bu kodda bir değişiklik yapmak istiyor.
+      const aiPrompt = `Sen kıdemli bir front-end geliştiricisin.
+
 KURALLAR:
-- Sadece istenen değişikliği yap. Diğer kısımları aynen koru.
+- Sadece istenen değişikliği yap.
+- Diğer kısımları mümkün olduğunca koru.
 - Çıktıyı tam olarak şu formatta ver:
+
 ---HTML---
-(html kodu)
+HTML kodu
 ---CSS---
-(css kodu)
+CSS kodu
 ---JS---
-(js kodu)
+JavaScript kodu
 
 MEVCUT KOD:
 ${currentCode}
 
-KULLANICI İSTEĞİ: ${changeRequest}`
+KULLANICI İSTEĞİ:
+${changeRequest}`
 
       // @ts-ignore
       const response = await puter.ai.chat(aiPrompt, {
         model: 'gpt-4o-mini',
       })
 
-      let rawText = typeof response === 'string'
-        ? response
-        : (response.message?.content || response.text || String(response))
-
-      rawText = rawText
-        .replace(/```(?:html|css|javascript|js)?/g, '')
-        .replace(/```/g, '')
-        .trim()
-
+      const rawText = cleanAIResponse(getAIText(response))
       const parsed = parseCode(rawText)
 
       if (!parsed.html.trim()) {
@@ -383,7 +423,10 @@ KULLANICI İSTEĞİ: ${changeRequest}`
       setCodeJs(parsed.js)
       setActiveTab('html')
 
-      addNotification('Proje güncellendi', 'AI istediğin değişiklikleri uyguladı.')
+      addNotification(
+        'Proje güncellendi',
+        'AI istediğin değişiklikleri uyguladı.'
+      )
     } catch (err: any) {
       setError('Revizyon Hatası: ' + (err.message || 'Bilinmeyen hata'))
     } finally {
@@ -391,7 +434,7 @@ KULLANICI İSTEĞİ: ${changeRequest}`
     }
   }
 
-  // AI KOD ANALİZİ
+  // AI kod analizi
   const handleCodeReview = async () => {
     if (!codeHtml.trim()) {
       alert('Önce bir proje oluşturmalısın.')
@@ -414,22 +457,17 @@ ${codeJs}`
 
       const aiPrompt = `Sen deneyimli bir front-end kod inceleme uzmanısın.
 
-Aşağıdaki HTML, CSS ve JavaScript kodlarını incele.
+Aşağıdaki kodları incele:
+1. HTML hataları
+2. CSS hataları
+3. Responsive problemleri
+4. JavaScript hataları
+5. Eksik bağlantılar
+6. Performans sorunları
+7. Erişilebilirlik eksikleri
 
-Şunları kontrol et:
-1. HTML yapısındaki sorunlar
-2. CSS hataları ve responsive problemleri
-3. JavaScript hataları
-4. Eksik veya yanlış bağlantılar
-5. Performans sorunları
-6. Erişilebilirlik eksikleri
-
-Her sorun için:
-- Sorunun ne olduğunu yaz.
-- Hangi dosyada olduğunu belirt.
-- Nasıl düzeltileceğini açıkla.
-
-Sorun yoksa bunu açıkça belirt.
+Her sorun için dosyayı, sorunu ve çözümünü açıkla.
+Sorun yoksa bunu belirt.
 Kodları değiştirme. Sadece analiz raporu oluştur.
 
 KODLAR:
@@ -440,12 +478,12 @@ ${currentCode}`
         model: 'gpt-4o-mini',
       })
 
-      const result = typeof response === 'string'
-        ? response
-        : (response.message?.content || response.text || String(response))
+      setReviewResult(getAIText(response))
 
-      setReviewResult(result)
-      addNotification('Kod analizi tamamlandı', 'AI projenin kodlarını inceledi.')
+      addNotification(
+        'Kod analizi tamamlandı',
+        'AI projenin kodlarını inceledi.'
+      )
     } catch (err: any) {
       setError('Analiz hatası: ' + (err.message || 'Bilinmeyen hata'))
     } finally {
@@ -453,18 +491,16 @@ ${currentCode}`
     }
   }
 
-  // OTOMATİK HATA DÜZELTME
+  // Otomatik hata düzeltme
   const handleAutoFix = async () => {
     if (!codeHtml.trim()) {
       alert('Önce bir proje oluşturmalısın.')
       return
     }
 
-    const confirmed = confirm(
-      'AI mevcut kodlarını inceleyip düzeltilmiş sürümü oluşturacak. Devam edilsin mi?'
-    )
-
-    if (!confirmed) return
+    if (!confirm('AI kodlarını inceleyip düzeltilmiş sürümü oluştursun mu?')) {
+      return
+    }
 
     setFixLoading(true)
     setError('')
@@ -479,19 +515,18 @@ ${codeJs}`
 
       const aiPrompt = `Sen kıdemli bir front-end geliştiricisin.
 
-Aşağıdaki web sitesi kodlarını incele ve hataları düzelt.
+Aşağıdaki kodları incele ve hataları düzelt.
 
 KURALLAR:
 - HTML, CSS ve JavaScript hatalarını düzelt.
 - Çalışan özellikleri koru.
 - Tasarımın genel görünümünü gereksiz yere değiştirme.
 - Responsive sorunlarını düzelt.
-- Eksik bağlantıları ve gerekli kodları tamamla.
-- Kodları kısaltma veya gereksiz yere silme.
-- Üç dosyayı da eksiksiz döndür.
-- Açıklama yazma, sadece kodları ver.
+- Kodları kısaltma.
+- Üç dosyayı eksiksiz döndür.
+- Açıklama yazma.
 
-ÇIKTI FORMATI:
+ÇIKTI:
 ---HTML---
 HTML kodu
 ---CSS---
@@ -499,7 +534,7 @@ CSS kodu
 ---JS---
 JavaScript kodu
 
-MEVCUT KODLAR:
+MEVCUT KOD:
 ${currentCode}`
 
       // @ts-ignore
@@ -507,26 +542,21 @@ ${currentCode}`
         model: 'gpt-4o-mini',
       })
 
-      let rawText = typeof response === 'string'
-        ? response
-        : (response.message?.content || response.text || String(response))
-
-      rawText = rawText
-        .replace(/```(?:html|css|javascript|js)?/gi, '')
-        .replace(/```/g, '')
-        .trim()
-
+      const rawText = cleanAIResponse(getAIText(response))
       const parsed = parseCode(rawText)
 
       if (!parsed.html.trim()) {
-        throw new Error('AI geçerli HTML kodu döndürmedi. Mevcut kodların korunuyor.')
+        throw new Error('AI geçerli HTML kodu döndürmedi.')
       }
 
       setCodeHtml(parsed.html)
       setCodeCss(parsed.css)
       setCodeJs(parsed.js)
       setActiveTab('html')
-      setReviewResult('Kodlar AI tarafından düzeltildi. Değişiklikleri canlı önizlemede kontrol edebilirsin.')
+
+      setReviewResult(
+        'Kodlar AI tarafından düzeltildi. Canlı önizlemede kontrol edebilirsin.'
+      )
 
       addNotification(
         'Kodlar düzeltildi',
@@ -539,6 +569,129 @@ ${currentCode}`
     }
   }
 
+  // AI tasarım önerileri
+  const handleDesignSuggestions = async () => {
+    if (!codeHtml.trim()) {
+      alert('Önce bir proje oluşturmalısın.')
+      return
+    }
+
+    setDesignLoading(true)
+    setDesignSuggestions('')
+    setError('')
+
+    try {
+      const aiPrompt = `Sen deneyimli bir UI/UX tasarım uzmanısın.
+
+Aşağıdaki web sitesini incele ve tasarımını geliştirmek için öneriler hazırla.
+
+Şunlara odaklan:
+- Renk paleti
+- Tipografi
+- Sayfa düzeni
+- Kullanıcı deneyimi
+- Mobil uyumluluk
+- Buton ve kart tasarımları
+- Animasyonlar
+- Görsel hiyerarşi
+
+En önemli 5 öneriyi açık ve uygulanabilir şekilde yaz.
+Mevcut kodları değiştirme.
+Sadece öneri raporu oluştur.
+
+HTML:
+${codeHtml}
+
+CSS:
+${codeCss}
+
+JavaScript:
+${codeJs}`
+
+      // @ts-ignore
+      const response = await puter.ai.chat(aiPrompt, {
+        model: 'gpt-4o-mini',
+      })
+
+      setDesignSuggestions(getAIText(response))
+
+      addNotification(
+        'Tasarım önerileri hazır',
+        'AI tasarım geliştirme önerilerini oluşturdu.'
+      )
+    } catch (err: any) {
+      setError(
+        'Tasarım önerisi hatası: ' +
+        (err.message || 'Bilinmeyen hata')
+      )
+    } finally {
+      setDesignLoading(false)
+    }
+  }
+
+  // ZIP indirme
+  const handleDownloadZip = async () => {
+    if (!codeHtml.trim()) {
+      alert('Önce bir proje oluşturmalısın.')
+      return
+    }
+
+    setZipLoading(true)
+    setError('')
+
+    try {
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+
+      const htmlFile = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectTitle}</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+${codeHtml}
+<script src="script.js"></script>
+</body>
+</html>`
+
+      zip.file('index.html', htmlFile)
+      zip.file('styles.css', codeCss)
+      zip.file('script.js', codeJs)
+
+      const content = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+      })
+
+      const url = URL.createObjectURL(content)
+      const link = document.createElement('a')
+
+      link.href = url
+      link.download = `${projectTitle
+        .replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ_-]/gi, '_')
+        .slice(0, 40) || 'promptforge-proje'}.zip`
+
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      URL.revokeObjectURL(url)
+
+      addNotification(
+        'ZIP hazırlandı',
+        'Projen ZIP dosyası olarak indirildi.'
+      )
+    } catch (err: any) {
+      setError('ZIP indirme hatası: ' + (err.message || 'Bilinmeyen hata'))
+    } finally {
+      setZipLoading(false)
+    }
+  }
+
+  // Proje kaydetme
   const handleSaveProject = async () => {
     if (!codeHtml || !session?.user?.id) return
 
@@ -566,7 +719,10 @@ ${currentCode}`
         setSaveStatus('Kayıt hatası!')
       } else {
         setSaveStatus('Güncellendi!')
-        addNotification('Proje güncellendi', `${projectTitle} başarıyla kaydedildi.`)
+        addNotification(
+          'Proje güncellendi',
+          `${projectTitle} başarıyla kaydedildi.`
+        )
       }
     } else {
       const { data, error } = await supabase
@@ -579,8 +735,13 @@ ${currentCode}`
         setSaveStatus('Kayıt hatası!')
       } else {
         if (data?.[0]) setCurrentProjectId(data[0].id)
+
         setSaveStatus('Kaydedildi!')
-        addNotification('Proje kaydedildi', `${projectTitle} projelerine eklendi.`)
+
+        addNotification(
+          'Proje kaydedildi',
+          `${projectTitle} projelerine eklendi.`
+        )
       }
     }
 
@@ -588,6 +749,7 @@ ${currentCode}`
     setTimeout(() => setSaveStatus(''), 2000)
   }
 
+  // Proje yükleme
   const handleLoadProject = (project: any) => {
     if (project.user_id !== session?.user?.id) {
       alert('Bu projeye erişim iznin yok.')
@@ -601,10 +763,12 @@ ${currentCode}`
     setCodeCss(project.css_code || '')
     setCodeJs(project.js_code || '')
     setReviewResult('')
+    setDesignSuggestions('')
     setShowProjects(false)
     setActiveView('editor')
   }
 
+  // Proje silme
   const handleDeleteProject = async (id: string, e: any) => {
     e.stopPropagation()
 
@@ -624,7 +788,10 @@ ${currentCode}`
 
     await fetchProjects(session.user.id)
 
-    addNotification('Proje silindi', 'Proje kayıtlarından kaldırıldı.')
+    addNotification(
+      'Proje silindi',
+      'Proje kayıtlarından kaldırıldı.'
+    )
 
     if (currentProjectId === id) {
       setCodeHtml('')
@@ -634,6 +801,7 @@ ${currentCode}`
     }
   }
 
+  // Kod kopyalama
   const handleCopy = () => {
     const textToCopy =
       activeTab === 'html'
@@ -644,12 +812,14 @@ ${currentCode}`
 
     if (!textToCopy) return
 
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }).catch(() => {
-      setError('Kod kopyalanamadı.')
-    })
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      })
+      .catch(() => {
+        setError('Kod kopyalanamadı.')
+      })
   }
 
   const filteredProjects = [...projects]
@@ -669,7 +839,18 @@ ${currentCode}`
       )
     })
 
-  const combinedCode = `<!DOCTYPE html><html><head><style>${codeCss}</style></head><body>${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/gi, '')}<script>${codeJs}<\/script></body></html>`
+  const combinedCode = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>${codeCss}</style>
+</head>
+<body>
+${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/gi, '')}
+<script>${codeJs}<\/script>
+</body>
+</html>`
 
   const totalHtml = projects.filter((p) => Boolean(p.html_code)).length
   const totalCss = projects.filter((p) => Boolean(p.css_code)).length
@@ -688,7 +869,7 @@ ${currentCode}`
   return (
     <div className={`min-h-screen ${isLight ? 'bg-slate-100 text-slate-900' : 'bg-[#080a10] text-white'} font-sans`}>
 
-      {/* BİLDİRİM MERKEZİ */}
+      {/* BİLDİRİMLER */}
       {showNotifications && (
         <div className="fixed inset-0 z-[80] bg-black/60 flex justify-end">
           <div className={`w-full max-w-md h-full p-5 overflow-y-auto shadow-2xl ${isLight ? 'bg-white' : 'bg-[#12141a]'}`}>
@@ -699,6 +880,7 @@ ${currentCode}`
                   {unreadCount} okunmamış bildirim
                 </p>
               </div>
+
               <button
                 onClick={() => setShowNotifications(false)}
                 className="px-3 py-2 rounded-lg bg-gray-500/10"
@@ -714,6 +896,7 @@ ${currentCode}`
               >
                 Tümünü okundu yap
               </button>
+
               <button
                 onClick={clearNotifications}
                 className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-500 text-sm"
@@ -734,7 +917,9 @@ ${currentCode}`
                     onClick={() => {
                       setNotifications((prev) =>
                         prev.map((n) =>
-                          n.id === notification.id ? { ...n, read: true } : n
+                          n.id === notification.id
+                            ? { ...n, read: true }
+                            : n
                         )
                       )
                     }}
@@ -745,14 +930,19 @@ ${currentCode}`
                     } ${!notification.read ? 'border-l-4 border-l-cyan-400' : ''}`}
                   >
                     <div className="flex justify-between gap-2">
-                      <strong className="text-sm">{notification.title}</strong>
+                      <strong className="text-sm">
+                        {notification.title}
+                      </strong>
+
                       {!notification.read && (
                         <span className="w-2 h-2 rounded-full bg-cyan-400 mt-1" />
                       )}
                     </div>
+
                     <p className="text-xs opacity-70 mt-2">
                       {notification.message}
                     </p>
+
                     <p className="text-[10px] opacity-40 mt-3">
                       {new Date(notification.date).toLocaleString('tr')}
                     </p>
@@ -764,17 +954,20 @@ ${currentCode}`
         </div>
       )}
 
-      {/* PROJE PENCERESİ */}
+      {/* PROJELER PENCERESİ */}
       {showProjects && (
         <div className="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-4">
           <div className="bg-[#12141a] border border-[#2a2e3b] rounded-xl w-full max-w-2xl p-6 flex flex-col gap-4 max-h-[85vh] text-white">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-bold text-[#25f4ee]">Projelerim</h3>
+                <h3 className="text-lg font-bold text-[#25f4ee]">
+                  Projelerim
+                </h3>
                 <p className="text-xs text-gray-500 mt-1">
                   {projects.length} kayıtlı proje
                 </p>
               </div>
+
               <button
                 onClick={() => setShowProjects(false)}
                 className="text-gray-400 hover:text-white"
@@ -821,7 +1014,10 @@ ${currentCode}`
                     className="p-3 bg-[#0b0c10] border border-[#2a2e3b] rounded-lg cursor-pointer hover:border-[#25f4ee] flex justify-between items-center gap-3"
                   >
                     <div className="min-w-0">
-                      <h4 className="font-bold text-sm truncate">{p.title}</h4>
+                      <h4 className="font-bold text-sm truncate">
+                        {p.title}
+                      </h4>
+
                       <p className="text-xs text-gray-500">
                         {p.updated_at
                           ? new Date(p.updated_at).toLocaleDateString('tr')
@@ -845,7 +1041,9 @@ ${currentCode}`
 
       {/* ÜST MENÜ */}
       <header className={`sticky top-0 z-40 border-b px-4 md:px-8 py-4 flex flex-wrap justify-between items-center gap-3 ${
-        isLight ? 'bg-white border-slate-200' : 'bg-[#0b0c10] border-[#252936]'
+        isLight
+          ? 'bg-white border-slate-200'
+          : 'bg-[#0b0c10] border-[#252936]'
       }`}>
         <button
           onClick={() => setActiveView('dashboard')}
@@ -889,6 +1087,7 @@ ${currentCode}`
             className="relative text-xs px-3 py-2 rounded-lg bg-gray-500/10"
           >
             🔔 Bildirimler
+
             {unreadCount > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full min-w-5 h-5 px-1 flex items-center justify-center text-[10px]">
                 {unreadCount}
@@ -929,9 +1128,11 @@ ${currentCode}`
               <p className="text-cyan-500 text-sm font-bold tracking-widest">
                 ÇALIŞMA ALANIN
               </p>
+
               <h1 className="text-3xl md:text-4xl font-black mt-2">
                 Dashboard
               </h1>
+
               <p className="opacity-60 text-sm mt-2">
                 Projelerini yönet, yeni fikirler üret ve çalışmalarına devam et.
               </p>
@@ -945,50 +1146,54 @@ ${currentCode}`
             </button>
           </div>
 
-          {/* İSTATİSTİKLER */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className={`p-5 rounded-2xl border ${
-              isLight ? 'bg-white border-slate-200' : 'bg-[#12141a] border-[#252936]'
-            }`}>
-              <p className="text-xs opacity-60">Toplam Proje</p>
-              <h2 className="text-3xl font-black text-cyan-500 mt-3">
-                {projects.length}
-              </h2>
-              <p className="text-xs opacity-50 mt-2">Kayıtlı çalışmaların</p>
-            </div>
+            {[
+              {
+                title: 'Toplam Proje',
+                value: projects.length,
+                color: 'text-cyan-500',
+                description: 'Kayıtlı çalışmaların',
+              },
+              {
+                title: 'HTML Dosyaları',
+                value: totalHtml,
+                color: 'text-orange-400',
+                description: 'HTML içeren projeler',
+              },
+              {
+                title: 'CSS Dosyaları',
+                value: totalCss,
+                color: 'text-blue-400',
+                description: 'CSS içeren projeler',
+              },
+              {
+                title: 'JavaScript Dosyaları',
+                value: totalJs,
+                color: 'text-yellow-400',
+                description: 'JS içeren projeler',
+              },
+            ].map((stat) => (
+              <div
+                key={stat.title}
+                className={`p-5 rounded-2xl border ${
+                  isLight
+                    ? 'bg-white border-slate-200'
+                    : 'bg-[#12141a] border-[#252936]'
+                }`}
+              >
+                <p className="text-xs opacity-60">{stat.title}</p>
 
-            <div className={`p-5 rounded-2xl border ${
-              isLight ? 'bg-white border-slate-200' : 'bg-[#12141a] border-[#252936]'
-            }`}>
-              <p className="text-xs opacity-60">HTML Dosyaları</p>
-              <h2 className="text-3xl font-black text-orange-400 mt-3">
-                {totalHtml}
-              </h2>
-              <p className="text-xs opacity-50 mt-2">HTML içeren projeler</p>
-            </div>
+                <h2 className={`text-3xl font-black mt-3 ${stat.color}`}>
+                  {stat.value}
+                </h2>
 
-            <div className={`p-5 rounded-2xl border ${
-              isLight ? 'bg-white border-slate-200' : 'bg-[#12141a] border-[#252936]'
-            }`}>
-              <p className="text-xs opacity-60">CSS Dosyaları</p>
-              <h2 className="text-3xl font-black text-blue-400 mt-3">
-                {totalCss}
-              </h2>
-              <p className="text-xs opacity-50 mt-2">CSS içeren projeler</p>
-            </div>
-
-            <div className={`p-5 rounded-2xl border ${
-              isLight ? 'bg-white border-slate-200' : 'bg-[#12141a] border-[#252936]'
-            }`}>
-              <p className="text-xs opacity-60">JavaScript Dosyaları</p>
-              <h2 className="text-3xl font-black text-yellow-400 mt-3">
-                {totalJs}
-              </h2>
-              <p className="text-xs opacity-50 mt-2">JS içeren projeler</p>
-            </div>
+                <p className="text-xs opacity-50 mt-2">
+                  {stat.description}
+                </p>
+              </div>
+            ))}
           </div>
 
-          {/* HIZLI ERİŞİM */}
           <div className="mb-8">
             <h2 className="text-xl font-bold mb-4">Hızlı Erişim</h2>
 
@@ -996,29 +1201,39 @@ ${currentCode}`
               <button
                 onClick={startNewProject}
                 className={`text-left p-5 rounded-2xl border transition hover:border-cyan-400 ${
-                  isLight ? 'bg-white border-slate-200' : 'bg-[#12141a] border-[#252936]'
+                  isLight
+                    ? 'bg-white border-slate-200'
+                    : 'bg-[#12141a] border-[#252936]'
                 }`}
               >
                 <span className="text-3xl">✨</span>
                 <h3 className="font-bold mt-3">AI ile site oluştur</h3>
-                <p className="text-xs opacity-60 mt-2">Fikrini yaz, kodlarını üret.</p>
+                <p className="text-xs opacity-60 mt-2">
+                  Fikrini yaz, kodlarını üret.
+                </p>
               </button>
 
               <button
                 onClick={() => setShowProjects(true)}
                 className={`text-left p-5 rounded-2xl border transition hover:border-cyan-400 ${
-                  isLight ? 'bg-white border-slate-200' : 'bg-[#12141a] border-[#252936]'
+                  isLight
+                    ? 'bg-white border-slate-200'
+                    : 'bg-[#12141a] border-[#252936]'
                 }`}
               >
                 <span className="text-3xl">📂</span>
                 <h3 className="font-bold mt-3">Projelerimi görüntüle</h3>
-                <p className="text-xs opacity-60 mt-2">Kayıtlı projelerini yönet.</p>
+                <p className="text-xs opacity-60 mt-2">
+                  Kayıtlı projelerini yönet.
+                </p>
               </button>
 
               <button
                 onClick={() => setShowNotifications(true)}
                 className={`text-left p-5 rounded-2xl border transition hover:border-cyan-400 ${
-                  isLight ? 'bg-white border-slate-200' : 'bg-[#12141a] border-[#252936]'
+                  isLight
+                    ? 'bg-white border-slate-200'
+                    : 'bg-[#12141a] border-[#252936]'
                 }`}
               >
                 <span className="text-3xl">🔔</span>
@@ -1035,7 +1250,9 @@ ${currentCode}`
             <div className="flex justify-between items-center mb-4 gap-3">
               <div>
                 <h2 className="text-xl font-bold">Son Projeler</h2>
-                <p className="text-xs opacity-50 mt-1">En son üzerinde çalıştıkların</p>
+                <p className="text-xs opacity-50 mt-1">
+                  En son üzerinde çalıştıkların
+                </p>
               </div>
 
               <button
@@ -1048,13 +1265,18 @@ ${currentCode}`
 
             {projects.length === 0 ? (
               <div className={`rounded-2xl border border-dashed p-10 text-center ${
-                isLight ? 'border-slate-300' : 'border-[#343a4a]'
+                isLight
+                  ? 'border-slate-300'
+                  : 'border-[#343a4a]'
               }`}>
                 <div className="text-4xl mb-3">🪄</div>
+
                 <h3 className="font-bold">Henüz projen yok</h3>
+
                 <p className="text-sm opacity-60 mt-2">
                   İlk web siteni oluşturarak başlayabilirsin.
                 </p>
+
                 <button
                   onClick={startNewProject}
                   className="mt-5 px-5 py-2 bg-cyan-400 text-black rounded-lg text-sm font-bold"
@@ -1068,11 +1290,14 @@ ${currentCode}`
                   <div
                     key={project.id}
                     className={`p-5 rounded-2xl border transition hover:border-cyan-400 ${
-                      isLight ? 'bg-white border-slate-200' : 'bg-[#12141a] border-[#252936]'
+                      isLight
+                        ? 'bg-white border-slate-200'
+                        : 'bg-[#12141a] border-[#252936]'
                     }`}
                   >
                     <div className="flex justify-between items-start gap-2">
                       <div className="text-2xl">🌐</div>
+
                       <span className="text-[10px] opacity-50">
                         {project.updated_at
                           ? new Date(project.updated_at).toLocaleDateString('tr')
@@ -1111,11 +1336,12 @@ ${currentCode}`
         </main>
       )}
 
-      {/* AI EDİTÖR */}
+      {/* EDİTÖR */}
       {activeView === 'editor' && (
-        <main className="h-[calc(100vh-73px)] flex flex-col md:flex-row bg-[#0b0c10] text-white overflow-hidden">
+        <main className="min-h-[calc(100vh-73px)] flex flex-col md:flex-row bg-[#0b0c10] text-white">
 
-          <div className="w-full md:w-1/3 h-1/2 md:h-full border-b md:border-b-0 md:border-r border-[#2a2e3b] flex flex-col">
+          {/* SOL PANEL */}
+          <div className="w-full md:w-1/3 md:min-h-[calc(100vh-73px)] border-b md:border-b-0 md:border-r border-[#2a2e3b] flex flex-col">
             <div className="p-4 border-b border-[#2a2e3b]">
               <button
                 onClick={() => setActiveView('dashboard')}
@@ -1123,6 +1349,7 @@ ${currentCode}`
               >
                 ← Dashboard'a dön
               </button>
+
               <h2 className="text-xl font-bold text-[#25f4ee] mt-3">
                 AI Site Oluşturucu
               </h2>
@@ -1149,114 +1376,147 @@ ${currentCode}`
               </button>
 
               {codeHtml && (
-                <div className="mt-4 flex flex-col gap-2 border-t border-[#2a2e3b] pt-4">
-                  <input
-                    value={projectTitle}
-                    onChange={(e) => setProjectTitle(e.target.value)}
-                    className="w-full bg-[#12141a] text-white border border-[#2a2e3b] rounded p-2 text-sm"
-                    placeholder="Proje Adı"
-                  />
+                <>
+                  <div className="mt-4 flex flex-col gap-2 border-t border-[#2a2e3b] pt-4">
+                    <input
+                      value={projectTitle}
+                      onChange={(e) => setProjectTitle(e.target.value)}
+                      className="w-full bg-[#12141a] text-white border border-[#2a2e3b] rounded p-2 text-sm"
+                      placeholder="Proje Adı"
+                    />
 
-                  <button
-                    onClick={handleSaveProject}
-                    className="w-full py-2 bg-green-600 text-white font-bold rounded hover:bg-green-500 transition"
-                  >
-                    {saveStatus || '💾 Projeyi Kaydet'}
-                  </button>
-                </div>
-              )}
-
-              {/* AI GELİŞTİRİCİ ARAÇLARI */}
-              {codeHtml && (
-                <div className="border-t border-[#2a2e3b] pt-4 mt-2">
-                  <h3 className="text-sm font-bold text-white mb-3">
-                    ✨ AI Geliştirici Araçları
-                  </h3>
-
-                  <div className="grid grid-cols-1 gap-2">
                     <button
-                      onClick={handleCodeReview}
-                      disabled={reviewLoading || fixLoading}
-                      className="w-full py-3 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 text-sm font-bold disabled:opacity-50"
+                      onClick={handleSaveProject}
+                      className="w-full py-2 bg-green-600 text-white font-bold rounded hover:bg-green-500 transition"
                     >
-                      {reviewLoading ? '🔍 Kodlar inceleniyor...' : '🔍 AI Kod Analizi'}
+                      {saveStatus || '💾 Projeyi Kaydet'}
                     </button>
 
                     <button
-                      onClick={handleAutoFix}
-                      disabled={fixLoading || reviewLoading}
-                      className="w-full py-3 rounded-lg bg-green-500/15 border border-green-500/30 text-green-300 text-sm font-bold disabled:opacity-50"
+                      onClick={handleDownloadZip}
+                      disabled={zipLoading}
+                      className="w-full py-2 bg-purple-600 text-white font-bold rounded hover:bg-purple-500 disabled:opacity-50"
                     >
-                      {fixLoading ? '⚙️ Kodlar düzeltiliyor...' : '🛠️ Otomatik Hata Düzelt'}
+                      {zipLoading ? 'ZIP hazırlanıyor...' : '📦 ZIP olarak indir'}
                     </button>
                   </div>
 
-                  {reviewResult && (
-                    <div className="mt-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
-                      <div className="flex justify-between items-center mb-2">
-                        <strong className="text-xs text-blue-300">
-                          AI Analiz Raporu
-                        </strong>
+                  {/* AI ARAÇLARI */}
+                  <div className="border-t border-[#2a2e3b] pt-4 mt-2">
+                    <h3 className="text-sm font-bold text-white mb-3">
+                      ✨ AI Geliştirici Araçları
+                    </h3>
 
-                        <button
-                          onClick={() => setReviewResult('')}
-                          className="text-xs text-gray-400"
-                        >
-                          Kapat
-                        </button>
-                      </div>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={handleCodeReview}
+                        disabled={reviewLoading || fixLoading || designLoading}
+                        className="w-full py-3 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 text-sm font-bold disabled:opacity-50"
+                      >
+                        {reviewLoading
+                          ? '🔍 Kodlar inceleniyor...'
+                          : '🔍 AI Kod Analizi'}
+                      </button>
 
-                      <div className="text-xs text-gray-200 whitespace-pre-wrap leading-6 max-h-64 overflow-y-auto">
-                        {reviewResult}
-                      </div>
+                      <button
+                        onClick={handleAutoFix}
+                        disabled={fixLoading || reviewLoading || designLoading}
+                        className="w-full py-3 rounded-lg bg-green-500/15 border border-green-500/30 text-green-300 text-sm font-bold disabled:opacity-50"
+                      >
+                        {fixLoading
+                          ? '⚙️ Kodlar düzeltiliyor...'
+                          : '🛠️ Otomatik Hata Düzelt'}
+                      </button>
+
+                      <button
+                        onClick={handleDesignSuggestions}
+                        disabled={designLoading || reviewLoading || fixLoading}
+                        className="w-full py-3 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 text-sm font-bold disabled:opacity-50"
+                      >
+                        {designLoading
+                          ? '🎨 Tasarım inceleniyor...'
+                          : '🎨 AI Tasarım Önerileri'}
+                      </button>
                     </div>
-                  )}
-                </div>
+
+                    {/* KOD ANALİZ RAPORU */}
+                    {reviewResult && (
+                      <div className="mt-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <strong className="text-xs text-blue-300">
+                            AI Kod Analiz Raporu
+                          </strong>
+
+                          <button
+                            onClick={() => setReviewResult('')}
+                            className="text-xs text-gray-400"
+                          >
+                            Kapat
+                          </button>
+                        </div>
+
+                        <div className="text-xs text-gray-200 whitespace-pre-wrap leading-6 max-h-64 overflow-y-auto">
+                          {reviewResult}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TASARIM ÖNERİLERİ */}
+                    {designSuggestions && (
+                      <div className="mt-3 rounded-lg border border-purple-500/30 bg-purple-500/10 p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <strong className="text-xs text-purple-300">
+                            AI Tasarım Önerileri
+                          </strong>
+
+                          <button
+                            onClick={() => setDesignSuggestions('')}
+                            className="text-xs text-gray-400"
+                          >
+                            Kapat
+                          </button>
+                        </div>
+
+                        <div className="text-xs text-gray-200 whitespace-pre-wrap leading-6 max-h-64 overflow-y-auto">
+                          {designSuggestions}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
 
               {error && (
-                <div className="p-3 bg-red-900/30 border border-red-500 text-red-400 rounded-lg text-xs">
+                <div className="p-3 bg-red-900/30 border border-red-500 text-red-400 rounded-lg text-xs whitespace-pre-wrap">
                   {error}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="w-full md:w-2/3 h-1/2 md:h-full flex flex-col">
+          {/* SAĞ PANEL */}
+          <div className="w-full md:w-2/3 min-h-[700px] md:min-h-[calc(100vh-73px)] flex flex-col">
+
+            {/* DOSYA SEKME MENÜSÜ */}
             <div className="flex bg-[#12141a] border-b border-[#2a2e3b] justify-between items-center pr-4">
               <div className="flex overflow-x-auto">
-                <button
-                  onClick={() => setActiveTab('html')}
-                  className={`px-4 py-3 text-xs whitespace-nowrap ${
-                    activeTab === 'html'
-                      ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]'
-                      : 'text-[#8b92a5] border-r border-[#2a2e3b]'
-                  }`}
-                >
-                  🌐 index.html
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('css')}
-                  className={`px-4 py-3 text-xs whitespace-nowrap ${
-                    activeTab === 'css'
-                      ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]'
-                      : 'text-[#8b92a5] border-r border-[#2a2e3b]'
-                  }`}
-                >
-                  🎨 styles.css
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('js')}
-                  className={`px-4 py-3 text-xs whitespace-nowrap ${
-                    activeTab === 'js'
-                      ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]'
-                      : 'text-[#8b92a5] border-r border-[#2a2e3b]'
-                  }`}
-                >
-                  ⚡ script.js
-                </button>
+                {[
+                  { id: 'html', label: '🌐 index.html' },
+                  { id: 'css', label: '🎨 styles.css' },
+                  { id: 'js', label: '⚡ script.js' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-4 py-3 text-xs whitespace-nowrap ${
+                      activeTab === tab.id
+                        ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]'
+                        : 'text-[#8b92a5] border-r border-[#2a2e3b]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
 
               <button
@@ -1267,7 +1527,8 @@ ${currentCode}`
               </button>
             </div>
 
-            <div className="flex-1 bg-[#0b0c10] overflow-hidden relative">
+            {/* KOD ALANI */}
+            <div className="h-[350px] bg-[#0b0c10] overflow-hidden relative border-b border-[#2a2e3b]">
               <textarea
                 readOnly
                 value={
@@ -1283,7 +1544,7 @@ ${currentCode}`
             </div>
 
             {/* CANLI ÖNİZLEME */}
-            <div className="flex-1 bg-white border-t border-[#2a2e3b] flex flex-col relative min-h-0">
+            <div className="flex-1 bg-white border-t border-[#2a2e3b] flex flex-col relative min-h-[400px]">
               <div className="bg-[#12141a] px-3 py-2 border-b border-[#2a2e3b] flex flex-wrap justify-between items-center gap-2">
                 <span className="text-xs text-[#8b92a5]">
                   ▶ Canlı Önizleme
@@ -1326,10 +1587,10 @@ ${currentCode}`
               </div>
 
               {codeHtml ? (
-                <div className="flex-1 min-h-0 w-full overflow-auto bg-[#20232b] flex justify-center">
+                <div className="flex-1 min-h-[350px] w-full overflow-auto bg-[#20232b] flex justify-center">
                   <iframe
                     srcDoc={combinedCode}
-                    className="h-full min-h-[300px] border-none bg-white transition-all duration-300"
+                    className="h-full min-h-[350px] border-none bg-white transition-all duration-300"
                     style={{
                       width:
                         previewSize === 'mobile'
@@ -1340,6 +1601,7 @@ ${currentCode}`
                       maxWidth: '100%',
                     }}
                     title="Responsive Önizleme"
+                    sandbox="allow-scripts allow-forms allow-modals"
                   />
                 </div>
               ) : (
@@ -1348,6 +1610,7 @@ ${currentCode}`
                 </div>
               )}
 
+              {/* SOHBETLE DÜZENLEME */}
               <div className="p-3 bg-[#0b0c10]">
                 <div className="flex gap-2 bg-[#12141a] border border-[#2a2e3b] rounded-lg p-2">
                   <input
@@ -1374,4 +1637,4 @@ ${currentCode}`
       )}
     </div>
   )
-}
+    }
