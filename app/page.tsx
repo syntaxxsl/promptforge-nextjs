@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -11,6 +10,14 @@ type Notification = {
   message: string
   date: string
   read: boolean
+}
+
+type DesignVariant = {
+  name: string
+  description: string
+  html: string
+  css: string
+  js: string
 }
 
 function parseCode(rawText: string) {
@@ -76,6 +83,10 @@ export default function Home() {
   const [codeJs, setCodeJs] = useState('')
   const [activeTab, setActiveTab] = useState('html')
   const [copied, setCopied] = useState(false)
+
+  // 3 TASARIM VARYASYONU
+  const [variationLoading, setVariationLoading] = useState(false)
+  const [designVariants, setDesignVariants] = useState<DesignVariant[]>([])
 
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [projectTitle, setProjectTitle] = useState('Yeni Proje')
@@ -293,6 +304,7 @@ export default function Home() {
     setChatInput('')
     setReviewResult('')
     setDesignSuggestions('')
+    setDesignVariants([])
     setActiveTab('html')
     setActiveView('editor')
   }
@@ -308,6 +320,7 @@ export default function Home() {
     setCodeHtml('')
     setCodeCss('')
     setCodeJs('')
+    setDesignVariants([])
     setCurrentProjectId(null)
     setProjectTitle(prompt.slice(0, 30) + '...')
 
@@ -354,6 +367,117 @@ FİKİR: ${prompt}`
     } finally {
       setLoading(false)
     }
+  }
+
+  // 3 FARKLI TASARIM ÜRETME
+  const handleGenerateVariations = async () => {
+    if (!prompt.trim()) {
+      alert('Önce site fikrini yazmalısın.')
+      return
+    }
+
+    setVariationLoading(true)
+    setDesignVariants([])
+    setError('')
+
+    const styles = [
+      {
+        name: 'Modern Minimal',
+        description: 'Sade, ferah, profesyonel ve minimal tasarım.',
+      },
+      {
+        name: 'Dark Premium',
+        description: 'Koyu arka plan, premium görünüm, güçlü kontrastlar.',
+      },
+      {
+        name: 'Creative Colorful',
+        description: 'Canlı renkler, yaratıcı düzen ve dikkat çekici detaylar.',
+      },
+    ]
+
+    try {
+      const results: DesignVariant[] = []
+
+      for (const style of styles) {
+        const aiPrompt = `Sen uzman bir UI/UX tasarımcısı ve front-end geliştiricisin.
+
+Kullanıcının fikri:
+${prompt}
+
+Tasarım adı: ${style.name}
+Tasarım açıklaması: ${style.description}
+
+Bu fikre uygun, eksiksiz ve çalışır bir web sitesi oluştur.
+
+Kurallar:
+- HTML, CSS ve JavaScript ayrı olsun.
+- Modern ve responsive tasarım yap.
+- Mobil uyumluluğu sağla.
+- Butonlar ve etkileşimler çalışsın.
+- Özgün bir tasarım oluştur.
+- Açıklama veya Markdown kod bloğu yazma.
+
+ÇIKTI FORMATI:
+---HTML---
+HTML kodu
+---CSS---
+CSS kodu
+---JS---
+JavaScript kodu`
+
+        // @ts-ignore
+        const response = await puter.ai.chat(aiPrompt, {
+          model: 'gpt-4o-mini',
+        })
+
+        const parsed = parseCode(
+          cleanAIResponse(getAIText(response))
+        )
+
+        if (!parsed.html.trim()) {
+          throw new Error(`${style.name} tasarımı oluşturulamadı.`)
+        }
+
+        results.push({
+          name: style.name,
+          description: style.description,
+          html: parsed.html,
+          css: parsed.css,
+          js: parsed.js,
+        })
+
+        setDesignVariants([...results])
+      }
+
+      addNotification(
+        'Tasarım varyasyonları hazır',
+        'Üç farklı tasarım seçeneği oluşturuldu.'
+      )
+    } catch (err: any) {
+      setError(
+        'Varyasyon oluşturma hatası: ' +
+        (err.message || 'Bilinmeyen hata')
+      )
+    } finally {
+      setVariationLoading(false)
+    }
+  }
+
+  const handleSelectVariation = (variant: DesignVariant) => {
+    setCodeHtml(variant.html)
+    setCodeCss(variant.css)
+    setCodeJs(variant.js)
+    setProjectTitle(`${prompt.slice(0, 22)} - ${variant.name}`)
+    setCurrentProjectId(null)
+    setActiveTab('html')
+    setDesignVariants([])
+    setReviewResult('')
+    setDesignSuggestions('')
+
+    addNotification(
+      'Tasarım seçildi',
+      `${variant.name} tasarımı editöre aktarıldı.`
+    )
   }
 
   const handleRevise = async () => {
@@ -805,6 +929,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
     setCodeJs(project.js_code || '')
     setReviewResult('')
     setDesignSuggestions('')
+    setDesignVariants([])
     setShowProjects(false)
     setActiveView('editor')
   }
@@ -896,793 +1021,758 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
   const totalJs = projects.filter((p) => Boolean(p.js_code)).length
 
   const isLight = theme === 'light'
-
-  if (authLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#05070d] text-[#25f4ee]">
-        Yükleniyor...
-      </div>
-    )
-  }
-
-  return (
-    <div className={`min-h-screen ${isLight ? 'bg-slate-100 text-slate-900' : 'bg-[#080a10] text-white'} font-sans`}>
-
-      {/* BİLDİRİMLER */}
-      {showNotifications && (
-        <div className="fixed inset-0 z-[80] bg-black/60 flex justify-end">
-          <div className={`w-full max-w-md h-full p-5 overflow-y-auto shadow-2xl ${isLight ? 'bg-white' : 'bg-[#12141a]'}`}>
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-bold">Bildirimler</h2>
-                <p className="text-xs opacity-60 mt-1">
-                  {unreadCount} okunmamış bildirim
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowNotifications(false)}
-                className="px-3 py-2 rounded-lg bg-gray-500/10"
-              >
-                Kapat
-              </button>
-            </div>
-
-            <div className="flex gap-2 mb-5">
-              <button
-                onClick={markAllRead}
-                className="flex-1 py-2 rounded-lg bg-cyan-500/10 text-cyan-600 text-sm"
-              >
-                Tümünü okundu yap
-              </button>
-
-              <button
-                onClick={clearNotifications}
-                className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-500 text-sm"
-              >
-                Temizle
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {notifications.length === 0 ? (
-                <div className="text-center py-12 opacity-50">
-                  Henüz bildirimin yok.
-                </div>
-              ) : (
-                notifications.map((notification) => (
-                  <button
-                    key={notification.id}
-                    onClick={() => {
-                      setNotifications((prev) =>
-                        prev.map((n) =>
-                          n.id === notification.id
-                            ? { ...n, read: true }
-                            : n
-                        )
-                      )
-                    }}
-                    className={`text-left p-4 rounded-xl border ${
-                      isLight
-                        ? 'border-slate-200 bg-slate-50'
-                        : 'border-[#2a2e3b] bg-[#0b0c10]'
-                    } ${!notification.read ? 'border-l-4 border-l-cyan-400' : ''}`}
-                  >
-                    <div className="flex justify-between gap-2">
-                      <strong className="text-sm">
-                        {notification.title}
-                      </strong>
-
-                      {!notification.read && (
-                        <span className="w-2 h-2 rounded-full bg-cyan-400 mt-1" />
-                      )}
-                    </div>
-
-                    <p className="text-xs opacity-70 mt-2">
-                      {notification.message}
-                    </p>
-
-                    <p className="text-[10px] opacity-40 mt-3">
-                      {new Date(notification.date).toLocaleString('tr')}
-                    </p>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PROJELER PENCERESİ */}
-      {showProjects && (
-        <div className="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-4">
-          <div className="bg-[#12141a] border border-[#2a2e3b] rounded-xl w-full max-w-2xl p-6 flex flex-col gap-4 max-h-[85vh] text-white">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-bold text-[#25f4ee]">
-                  Projelerim
-                </h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  {projects.length} kayıtlı proje
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowProjects(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                Kapat
-              </button>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                value={projectSearch}
-                onChange={(e) => setProjectSearch(e.target.value)}
-                placeholder="🔍 Projelerde ara..."
-                className="flex-1 bg-[#0b0c10] border border-[#2a2e3b] rounded-lg p-3 text-sm outline-none focus:border-[#25f4ee]"
-              />
-
-              <select
-                value={projectSort}
-                onChange={(e) => setProjectSort(e.target.value as 'updated' | 'name')}
-                className="bg-[#0b0c10] border border-[#2a2e3b] rounded-lg p-3 text-sm outline-none"
-              >
-                <option value="updated">Son güncellenen</option>
-                <option value="name">İsme göre</option>
-              </select>
-            </div>
-
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>Toplam: {projects.length}</span>
-              <span>Bulunan: {filteredProjects.length}</span>
-            </div>
-
-            <div className="overflow-y-auto flex flex-col gap-2">
-              {filteredProjects.length === 0 ? (
-                <p className="text-gray-500 text-sm">
-                  {projects.length === 0
-                    ? 'Henüz proje kaydetmedin.'
-                    : 'Aramana uygun proje bulunamadı.'}
-                </p>
-              ) : (
-                filteredProjects.map((p) => (
-                  <div
-                    key={p.id}
-                    onClick={() => handleLoadProject(p)}
-                    className="p-3 bg-[#0b0c10] border border-[#2a2e3b] rounded-lg cursor-pointer hover:border-[#25f4ee] flex justify-between items-center gap-3"
-                  >
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-sm truncate">
-                        {p.title}
-                      </h4>
-
-                      <p className="text-xs text-gray-500">
-                        {p.updated_at
-                          ? new Date(p.updated_at).toLocaleDateString('tr')
-                          : 'Tarih yok'}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={(e) => handleDeleteProject(p.id, e)}
-                      className="text-red-500 text-xs px-3 py-2 bg-red-900/20 rounded"
-                    >
-                      Sil
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+    <main className={`min-h-screen ${
+      isLight
+        ? 'bg-gray-100 text-gray-900'
+        : 'bg-[#090b10] text-white'
+    }`}>
+      <script src="https://js.puter.com/v2/" async />
 
       {/* ÜST MENÜ */}
-      <header className={`sticky top-0 z-40 border-b px-4 md:px-8 py-4 flex flex-wrap justify-between items-center gap-3 ${
+      <header className={`sticky top-0 z-40 border-b ${
         isLight
-          ? 'bg-white border-slate-200'
-          : 'bg-[#0b0c10] border-[#252936]'
+          ? 'bg-white border-gray-200'
+          : 'bg-[#10131b] border-[#252a36]'
       }`}>
-        <button
-          onClick={() => setActiveView('dashboard')}
-          className="text-2xl font-black text-cyan-500"
-        >
-          PromptForge<span className="text-white">.</span>
-        </button>
-
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <button
             onClick={() => setActiveView('dashboard')}
-            className={`text-xs px-3 py-2 rounded-lg ${
-              activeView === 'dashboard'
-                ? 'bg-cyan-500 text-black'
-                : 'bg-gray-500/10'
-            }`}
+            className="flex items-center gap-2"
           >
-            Dashboard
+            <div className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center font-black text-white">
+              P
+            </div>
+            <span className="text-xl font-black">
+              Prompt<span className="text-purple-500">Forge</span>
+            </span>
           </button>
 
-          <button
-            onClick={startNewProject}
-            className={`text-xs px-3 py-2 rounded-lg ${
-              activeView === 'editor'
-                ? 'bg-cyan-500 text-black'
-                : 'bg-gray-500/10'
-            }`}
-          >
-            + Yeni Proje
-          </button>
-
-          <button
-            onClick={() => setShowProjects(true)}
-            className="text-xs px-3 py-2 rounded-lg bg-gray-500/10"
-          >
-            📁 Projelerim
-          </button>
-
-          <button
-            onClick={() => setShowNotifications(true)}
-            className="relative text-xs px-3 py-2 rounded-lg bg-gray-500/10"
-          >
-            🔔 Bildirimler
-
-            {unreadCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full min-w-5 h-5 px-1 flex items-center justify-center text-[10px]">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setTheme(isLight ? 'dark' : 'light')}
-            className="text-xs px-3 py-2 rounded-lg bg-gray-500/10"
-          >
-            {isLight ? '🌙 Koyu' : '☀️ Açık'}
-          </button>
-
-          {isAdmin && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => router.push('/admin')}
-              className="text-xs px-3 py-2 rounded-lg bg-purple-500/20 text-purple-500"
+              onClick={() => setTheme(isLight ? 'dark' : 'light')}
+              className={`p-2 rounded-lg ${
+                isLight ? 'bg-gray-100' : 'bg-[#202431]'
+              }`}
+              title="Tema değiştir"
             >
-              🛡️ Admin
+              {isLight ? '🌙' : '☀️'}
             </button>
-          )}
 
-          <button
-            onClick={handleLogout}
-            className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-500"
-          >
-            Çıkış
-          </button>
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className={`relative p-2 rounded-lg ${
+                isLight ? 'bg-gray-100' : 'bg-[#202431]'
+              }`}
+              title="Bildirimler"
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-5 h-5 flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => router.push('/admin')}
+                className="px-3 py-2 rounded-lg bg-purple-600 text-white text-sm font-bold"
+              >
+                Admin
+              </button>
+            )}
+
+            <button
+              onClick={handleLogout}
+              className={`px-3 py-2 rounded-lg text-sm ${
+                isLight
+                  ? 'bg-gray-200 hover:bg-gray-300'
+                  : 'bg-[#252a36] hover:bg-[#343a49]'
+              }`}
+            >
+              Çıkış
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* DASHBOARD */}
-      {activeView === 'dashboard' && (
-        <main className="max-w-7xl mx-auto p-5 md:p-8">
-          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
-            <div>
-              <p className="text-cyan-500 text-sm font-bold tracking-widest">
-                ÇALIŞMA ALANIN
-              </p>
-
-              <h1 className="text-3xl md:text-4xl font-black mt-2">
-                Dashboard
-              </h1>
-
-              <p className="opacity-60 text-sm mt-2">
-                Projelerini yönet, yeni fikirler üret ve çalışmalarına devam et.
-              </p>
-            </div>
-
+      {/* BİLDİRİMLER */}
+      {showNotifications && (
+        <div className={`fixed right-4 top-20 z-50 w-[min(380px,calc(100vw-32px))] rounded-xl border shadow-2xl p-4 ${
+          isLight
+            ? 'bg-white border-gray-200'
+            : 'bg-[#151923] border-[#303747]'
+        }`}>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-bold">Bildirimler</h3>
             <button
-              onClick={startNewProject}
-              className="px-6 py-3 bg-cyan-400 text-black font-bold rounded-xl hover:bg-cyan-300 transition"
+              onClick={() => setShowNotifications(false)}
+              className="text-gray-400"
             >
-              🚀 Yeni proje oluştur
+              ✕
             </button>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {[
-              {
-                title: 'Toplam Proje',
-                value: projects.length,
-                color: 'text-cyan-500',
-                description: 'Kayıtlı çalışmaların',
-              },
-              {
-                title: 'HTML Dosyaları',
-                value: totalHtml,
-                color: 'text-orange-400',
-                description: 'HTML içeren projeler',
-              },
-              {
-                title: 'CSS Dosyaları',
-                value: totalCss,
-                color: 'text-blue-400',
-                description: 'CSS içeren projeler',
-              },
-              {
-                title: 'JavaScript Dosyaları',
-                value: totalJs,
-                color: 'text-yellow-400',
-                description: 'JS içeren projeler',
-              },
-            ].map((stat) => (
-              <div
-                key={stat.title}
-                className={`p-5 rounded-2xl border ${
-                  isLight
-                    ? 'bg-white border-slate-200'
-                    : 'bg-[#12141a] border-[#252936]'
-                }`}
-              >
-                <p className="text-xs opacity-60">{stat.title}</p>
-
-                <h2 className={`text-3xl font-black mt-3 ${stat.color}`}>
-                  {stat.value}
-                </h2>
-
-                <p className="text-xs opacity-50 mt-2">
-                  {stat.description}
-                </p>
-              </div>
-            ))}
+          <div className="flex gap-3 mb-3 text-xs">
+            <button onClick={markAllRead} className="text-purple-500">
+              Tümünü okundu işaretle
+            </button>
+            <button onClick={clearNotifications} className="text-red-500">
+              Temizle
+            </button>
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Hızlı Erişim</h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <button
-                onClick={startNewProject}
-                className={`text-left p-5 rounded-2xl border transition hover:border-cyan-400 ${
-                  isLight
-                    ? 'bg-white border-slate-200'
-                    : 'bg-[#12141a] border-[#252936]'
-                }`}
-              >
-                <span className="text-3xl">✨</span>
-                <h3 className="font-bold mt-3">AI ile site oluştur</h3>
-                <p className="text-xs opacity-60 mt-2">
-                  Fikrini yaz, kodlarını üret.
-                </p>
-              </button>
-
-              <button
-                onClick={() => setShowProjects(true)}
-                className={`text-left p-5 rounded-2xl border transition hover:border-cyan-400 ${
-                  isLight
-                    ? 'bg-white border-slate-200'
-                    : 'bg-[#12141a] border-[#252936]'
-                }`}
-              >
-                <span className="text-3xl">📂</span>
-                <h3 className="font-bold mt-3">Projelerimi görüntüle</h3>
-                <p className="text-xs opacity-60 mt-2">
-                  Kayıtlı projelerini yönet.
-                </p>
-              </button>
-
-              <button
-                onClick={() => setShowNotifications(true)}
-                className={`text-left p-5 rounded-2xl border transition hover:border-cyan-400 ${
-                  isLight
-                    ? 'bg-white border-slate-200'
-                    : 'bg-[#12141a] border-[#252936]'
-                }`}
-              >
-                <span className="text-3xl">🔔</span>
-                <h3 className="font-bold mt-3">Bildirimler</h3>
-                <p className="text-xs opacity-60 mt-2">
-                  {unreadCount} okunmamış bildirimin var.
-                </p>
-              </button>
-            </div>
+          <div className="max-h-80 overflow-y-auto space-y-2">
+            {notifications.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4">
+                Henüz bildirimin yok.
+              </p>
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-3 rounded-lg ${
+                    notification.read
+                      ? 'opacity-60'
+                      : isLight
+                        ? 'bg-purple-50'
+                        : 'bg-[#252a36]'
+                  }`}
+                >
+                  <div className="flex justify-between gap-2">
+                    <p className="font-bold text-sm">
+                      {notification.title}
+                    </p>
+                    {!notification.read && (
+                      <span className="w-2 h-2 rounded-full bg-purple-500 mt-1" />
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {notification.message}
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-2">
+                    {new Date(notification.date).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
+        </div>
+      )}
 
-          {/* SON PROJELER */}
-          <div>
-            <div className="flex justify-between items-center mb-4 gap-3">
-              <div>
-                <h2 className="text-xl font-bold">Son Projeler</h2>
-                <p className="text-xs opacity-50 mt-1">
-                  En son üzerinde çalıştıkların
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowProjects(true)}
-                className="text-xs text-cyan-500 hover:underline"
-              >
-                Tümünü gör →
-              </button>
-            </div>
-
-            {projects.length === 0 ? (
-              <div className={`rounded-2xl border border-dashed p-10 text-center ${
-                isLight
-                  ? 'border-slate-300'
-                  : 'border-[#343a4a]'
-              }`}>
-                <div className="text-4xl mb-3">🪄</div>
-
-                <h3 className="font-bold">Henüz projen yok</h3>
-
-                <p className="text-sm opacity-60 mt-2">
-                  İlk web siteni oluşturarak başlayabilirsin.
-                </p>
+      {/* GİRİŞ YÜKLENİYOR */}
+      {authLoading ? (
+        <div className="min-h-[70vh] flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-400">PromptForge hazırlanıyor...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* DASHBOARD */}
+          {activeView === 'dashboard' && (
+            <section className="max-w-[1400px] mx-auto px-4 py-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-8">
+                <div>
+                  <p className="text-purple-500 text-sm font-bold mb-2">
+                    AI WEB DEVELOPMENT STUDIO
+                  </p>
+                  <h1 className="text-3xl md:text-4xl font-black">
+                    Projelerin
+                  </h1>
+                  <p className="text-gray-400 mt-2">
+                    Fikirlerini çalışan web sitelerine dönüştür.
+                  </p>
+                </div>
 
                 <button
                   onClick={startNewProject}
-                  className="mt-5 px-5 py-2 bg-cyan-400 text-black rounded-lg text-sm font-bold"
+                  className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition"
                 >
-                  İlk projemi oluştur
+                  + Yeni Proje Oluştur
                 </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {projects.slice(0, 6).map((project) => (
+
+              {/* İSTATİSTİKLER */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+                {[
+                  {
+                    label: 'Toplam Proje',
+                    value: projects.length,
+                    icon: '📁',
+                  },
+                  {
+                    label: 'HTML Dosyası',
+                    value: totalHtml,
+                    icon: '🌐',
+                  },
+                  {
+                    label: 'CSS Dosyası',
+                    value: totalCss,
+                    icon: '🎨',
+                  },
+                  {
+                    label: 'JavaScript',
+                    value: totalJs,
+                    icon: '⚡',
+                  },
+                ].map((stat) => (
                   <div
-                    key={project.id}
-                    className={`p-5 rounded-2xl border transition hover:border-cyan-400 ${
+                    key={stat.label}
+                    className={`p-5 rounded-2xl border ${
                       isLight
-                        ? 'bg-white border-slate-200'
-                        : 'bg-[#12141a] border-[#252936]'
+                        ? 'bg-white border-gray-200'
+                        : 'bg-[#131722] border-[#252b39]'
                     }`}
                   >
-                    <div className="w-full h-44 rounded-xl overflow-hidden bg-[#080a10] border border-[#2a2e3b] flex items-center justify-center">
-                      {project.thumbnail_url ? (
-                        <img
-                          src={project.thumbnail_url}
-                          alt={`${project.title} proje önizlemesi`}
-                          className="w-full h-full object-cover object-top"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="text-4xl opacity-40">🌐</div>
-                      )}
-                    </div>
-
-                    <div className="flex justify-end mt-3">
-                      <span className="text-[10px] opacity-50">
-                        {project.updated_at
-                          ? new Date(project.updated_at).toLocaleDateString('tr')
-                          : ''}
+                    <div className="flex justify-between items-center">
+                      <span className="text-2xl">{stat.icon}</span>
+                      <span className="text-2xl font-black">
+                        {stat.value}
                       </span>
                     </div>
-
-                    <h3 className="font-bold mt-2 truncate">
-                      {project.title || 'İsimsiz Proje'}
-                    </h3>
-
-                    <p className="text-xs opacity-50 mt-2 line-clamp-2 min-h-8">
-                      {project.prompt || 'Proje açıklaması bulunmuyor.'}
+                    <p className="text-sm text-gray-400 mt-3">
+                      {stat.label}
                     </p>
-
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={() => handleLoadProject(project)}
-                        className="flex-1 py-2 rounded-lg bg-cyan-500 text-black text-xs font-bold"
-                      >
-                        Aç
-                      </button>
-
-                      <button
-                        onClick={(e) => handleDeleteProject(project.id, e)}
-                        className="px-3 py-2 rounded-lg bg-red-500/10 text-red-500 text-xs"
-                      >
-                        Sil
-                      </button>
-                    </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </main>
-      )}
 
-      {/* EDİTÖR */}
-      {activeView === 'editor' && (
-        <main className="min-h-[calc(100vh-73px)] flex flex-col md:flex-row bg-[#0b0c10] text-white">
+              {/* YENİ PROJE ALANI */}
+              <div className={`rounded-2xl border p-5 md:p-7 mb-8 ${
+                isLight
+                  ? 'bg-white border-gray-200'
+                  : 'bg-[#131722] border-[#252b39]'
+              }`}>
+                <h2 className="text-xl font-bold mb-2">
+                  Ne oluşturmak istiyorsun?
+                </h2>
+                <p className="text-sm text-gray-400 mb-4">
+                  Web sitesi fikrini yaz, AI senin için kodlasın.
+                </p>
 
-          {/* SOL PANEL */}
-          <div className="w-full md:w-1/3 md:min-h-[calc(100vh-73px)] border-b md:border-b-0 md:border-r border-[#2a2e3b] flex flex-col">
-            <div className="p-4 border-b border-[#2a2e3b]">
-              <button
-                onClick={() => setActiveView('dashboard')}
-                className="text-xs text-cyan-400 hover:underline"
-              >
-                ← Dashboard'a dön
-              </button>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Örneğin: Modern, koyu temalı, animasyonlu bir teknoloji şirketi sitesi oluştur..."
+                  rows={4}
+                  className={`w-full p-4 rounded-xl border outline-none resize-y ${
+                    isLight
+                      ? 'bg-gray-50 border-gray-200 text-gray-900'
+                      : 'bg-[#090d16] border-[#303747] text-white'
+                  }`}
+                />
 
-              <h2 className="text-xl font-bold text-[#25f4ee] mt-3">
-                AI Site Oluşturucu
-              </h2>
-            </div>
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                  <button
+                    onClick={handleGenerate}
+                    disabled={loading || variationLoading}
+                    className="flex-1 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold disabled:opacity-50"
+                  >
+                    {loading ? '⏳ Site oluşturuluyor...' : '⚡ Site Oluştur'}
+                  </button>
 
-            <div className="p-4 flex flex-col gap-3 flex-1 overflow-y-auto">
-              <label className="text-xs text-[#8b92a5] font-bold">
-                SİTE FİKRİNİZ
-              </label>
+                  <button
+                    onClick={handleGenerateVariations}
+                    disabled={variationLoading || loading}
+                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold disabled:opacity-50"
+                  >
+                    {variationLoading
+                      ? `🎨 Tasarımlar hazırlanıyor (${designVariants.length}/3)...`
+                      : '✨ 3 Farklı Tasarım Oluştur'}
+                  </button>
+                </div>
 
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Örn: Karanlık temalı, neon renkli portfolyo..."
-                className="w-full h-32 bg-[#12141a] text-white border border-[#2a2e3b] rounded-lg p-3 text-sm resize-none outline-none focus:border-[#25f4ee]"
-              />
+                {error && (
+                  <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm whitespace-pre-wrap">
+                    {error}
+                  </div>
+                )}
 
-              <button
-                onClick={handleGenerate}
-                disabled={loading}
-                className="w-full py-3 bg-[#25f4ee] text-black font-bold rounded-lg hover:bg-cyan-300 disabled:opacity-50 transition"
-              >
-                {loading ? 'Üretiliyor...' : '🚀 ÜRET'}
-              </button>
+                {/* 3 TASARIM VARYASYONU KARTLARI */}
+                {designVariants.length > 0 && (
+                  <div className="mt-8">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-black">
+                        Tasarım seçenekleri
+                      </h3>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Beğendiğin tasarımı seçerek editöre aktarabilirsin.
+                      </p>
+                    </div>
 
-              {codeHtml && (
-                <>
-                  <div className="mt-4 flex flex-col gap-2 border-t border-[#2a2e3b] pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {designVariants.map((variant, index) => {
+                        const variantDocument = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>${variant.css}</style>
+</head>
+<body>
+${variant.html}
+<script>${variant.js}<\/script>
+</body>
+</html>`
+
+                        return (
+                          <div
+                            key={variant.name}
+                            className={`rounded-xl overflow-hidden border ${
+                              isLight
+                                ? 'bg-white border-gray-200'
+                                : 'bg-[#191e2a] border-[#343b4b]'
+                            }`}
+                          >
+                            <div className="relative">
+                              <div className="absolute top-2 left-2 z-10 px-2 py-1 rounded-md bg-purple-600 text-white text-xs font-bold">
+                                TASARIM {index + 1}
+                              </div>
+
+                              <iframe
+                                title={`${variant.name} önizleme`}
+                                srcDoc={variantDocument}
+                                sandbox="allow-scripts allow-forms allow-modals"
+                                className="w-full h-52 bg-white pointer-events-none"
+                              />
+                            </div>
+
+                            <div className="p-4">
+                              <h4 className="font-bold">
+                                {variant.name}
+                              </h4>
+                              <p className="text-xs text-gray-400 mt-2 min-h-10">
+                                {variant.description}
+                              </p>
+
+                              <button
+                                onClick={() => handleSelectVariation(variant)}
+                                className="w-full mt-4 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold"
+                              >
+                                Bu Tasarımı Kullan
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {variationLoading && designVariants.length < 3 && (
+                  <div className="mt-4 flex items-center gap-3 text-sm text-purple-400">
+                    <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    Yeni tasarımlar hazırlanıyor. Bu işlem biraz sürebilir.
+                  </div>
+                )}
+              </div>
+
+              {/* PROJE LİSTESİ */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <div>
+                  <h2 className="text-2xl font-black">Projelerim</h2>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Kaydettiğin çalışmalar.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    value={projectSearch}
+                    onChange={(e) => setProjectSearch(e.target.value)}
+                    placeholder="Proje ara..."
+                    className={`min-w-0 w-full sm:w-48 px-3 py-2 rounded-lg border outline-none ${
+                      isLight
+                        ? 'bg-white border-gray-200'
+                        : 'bg-[#131722] border-[#303747]'
+                    }`}
+                  />
+
+                  <select
+                    value={projectSort}
+                    onChange={(e) =>
+                      setProjectSort(e.target.value as 'updated' | 'name')
+                    }
+                    className={`px-3 py-2 rounded-lg border outline-none ${
+                      isLight
+                        ? 'bg-white border-gray-200'
+                        : 'bg-[#131722] border-[#303747]'
+                    }`}
+                  >
+                    <option value="updated">Son güncellenen</option>
+                    <option value="name">İsme göre</option>
+                  </select>
+                </div>
+              </div>
+
+              {filteredProjects.length === 0 ? (
+                <div className={`text-center py-16 rounded-2xl border border-dashed ${
+                  isLight
+                    ? 'border-gray-300'
+                    : 'border-[#343b4b]'
+                }`}>
+                  <div className="text-5xl mb-4">📂</div>
+                  <h3 className="font-bold text-lg">
+                    {projects.length === 0
+                      ? 'Henüz projen yok'
+                      : 'Aramana uygun proje bulunamadı'}
+                  </h3>
+                  <p className="text-gray-400 text-sm mt-2">
+                    Yeni bir proje oluşturarak başlayabilirsin.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {filteredProjects.map((project) => (
+                    <div
+                      key={project.id}
+                      className={`rounded-2xl border overflow-hidden cursor-pointer transition hover:-translate-y-1 ${
+                        isLight
+                          ? 'bg-white border-gray-200 hover:shadow-lg'
+                          : 'bg-[#131722] border-[#252b39] hover:border-purple-500'
+                      }`}
+                      onClick={() => handleLoadProject(project)}
+                    >
+                      <div className="w-full h-44 overflow-hidden bg-[#080a10] border-b border-[#2a2e3b] flex items-center justify-center">
+                        {project.thumbnail_url ? (
+                          <img
+                            src={project.thumbnail_url}
+                            alt={`${project.title} proje önizlemesi`}
+                            className="w-full h-full object-cover object-top"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="text-4xl opacity-40">🌐</div>
+                        )}
+                      </div>
+
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-bold truncate">
+                            {project.title}
+                          </h3>
+
+                          <button
+                            onClick={(e) =>
+                              handleDeleteProject(project.id, e)
+                            }
+                            className="text-red-400 hover:text-red-300"
+                            title="Projeyi sil"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+
+                        <p className="text-xs text-gray-400 mt-2">
+                          {project.updated_at
+                            ? new Date(project.updated_at).toLocaleDateString('tr-TR')
+                            : 'Tarih bilinmiyor'}
+                        </p>
+
+                        <div className="flex gap-2 mt-4 text-xs">
+                          <span className="px-2 py-1 rounded bg-orange-500/10 text-orange-400">
+                            HTML
+                          </span>
+                          <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-400">
+                            CSS
+                          </span>
+                          <span className="px-2 py-1 rounded bg-yellow-500/10 text-yellow-400">
+                            JS
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* EDİTÖR */}
+          {activeView === 'editor' && (
+            <section className="max-w-[1600px] mx-auto px-4 py-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setActiveView('dashboard')}
+                    className={`px-3 py-2 rounded-lg ${
+                      isLight ? 'bg-gray-200' : 'bg-[#202431]'
+                    }`}
+                  >
+                    ← Geri
+                  </button>
+
+                  <div className="min-w-0">
                     <input
                       value={projectTitle}
                       onChange={(e) => setProjectTitle(e.target.value)}
-                      className="w-full bg-[#12141a] text-white border border-[#2a2e3b] rounded p-2 text-sm"
-                      placeholder="Proje Adı"
+                      className="font-bold text-xl bg-transparent outline-none w-full max-w-xs"
                     />
-
-                    <button
-                      onClick={handleSaveProject}
-                      className="w-full py-2 bg-green-600 text-white font-bold rounded hover:bg-green-500 transition"
-                    >
-                      {saveStatus || '💾 Projeyi Kaydet'}
-                    </button>
-
-                    <button
-                      onClick={handleDownloadZip}
-                      disabled={zipLoading}
-                      className="w-full py-2 bg-purple-600 text-white font-bold rounded hover:bg-purple-500 disabled:opacity-50"
-                    >
-                      {zipLoading ? 'ZIP hazırlanıyor...' : '📦 ZIP olarak indir'}
-                    </button>
+                    <p className="text-xs text-gray-400">
+                      PromptForge Editor
+                    </p>
                   </div>
+                </div>
 
-                  {/* AI ARAÇLARI */}
-                  <div className="border-t border-[#2a2e3b] pt-4 mt-2">
-                    <h3 className="text-sm font-bold text-white mb-3">
-                      ✨ AI Geliştirici Araçları
-                    </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={handleSaveProject}
+                    disabled={!codeHtml}
+                    className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-bold disabled:opacity-50"
+                  >
+                    💾 Kaydet
+                  </button>
 
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={handleCodeReview}
-                        disabled={reviewLoading || fixLoading || designLoading}
-                        className="w-full py-3 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 text-sm font-bold disabled:opacity-50"
-                      >
-                        {reviewLoading
-                          ? '🔍 Kodlar inceleniyor...'
-                          : '🔍 AI Kod Analizi'}
-                      </button>
+                  <button
+                    onClick={handleDownloadZip}
+                    disabled={!codeHtml || zipLoading}
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold disabled:opacity-50"
+                  >
+                    {zipLoading ? 'Hazırlanıyor...' : '📦 ZIP İndir'}
+                  </button>
+                </div>
+              </div>
 
-                      <button
-                        onClick={handleAutoFix}
-                        disabled={fixLoading || reviewLoading || designLoading}
-                        className="w-full py-3 rounded-lg bg-green-500/15 border border-green-500/30 text-green-300 text-sm font-bold disabled:opacity-50"
-                      >
-                        {fixLoading
-                          ? '⚙️ Kodlar düzeltiliyor...'
-                          : '🛠️ Otomatik Hata Düzelt'}
-                      </button>
-
-                      <button
-                        onClick={handleDesignSuggestions}
-                        disabled={designLoading || reviewLoading || fixLoading}
-                        className="w-full py-3 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 text-sm font-bold disabled:opacity-50"
-                      >
-                        {designLoading
-                          ? '🎨 Tasarım inceleniyor...'
-                          : '🎨 AI Tasarım Önerileri'}
-                      </button>
-                    </div>
-
-                    {reviewResult && (
-                      <div className="mt-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
-                        <div className="flex justify-between items-center mb-2">
-                          <strong className="text-xs text-blue-300">
-                            AI Kod Analiz Raporu
-                          </strong>
-
-                          <button
-                            onClick={() => setReviewResult('')}
-                            className="text-xs text-gray-400"
-                          >
-                            Kapat
-                          </button>
-                        </div>
-
-                        <div className="text-xs text-gray-200 whitespace-pre-wrap leading-6 max-h-64 overflow-y-auto">
-                          {reviewResult}
-                        </div>
-                      </div>
-                    )}
-
-                    {designSuggestions && (
-                      <div className="mt-3 rounded-lg border border-purple-500/30 bg-purple-500/10 p-3">
-                        <div className="flex justify-between items-center mb-2">
-                          <strong className="text-xs text-purple-300">
-                            AI Tasarım Önerileri
-                          </strong>
-
-                          <button
-                            onClick={() => setDesignSuggestions('')}
-                            className="text-xs text-gray-400"
-                          >
-                            Kapat
-                          </button>
-                        </div>
-
-                        <div className="text-xs text-gray-200 whitespace-pre-wrap leading-6 max-h-64 overflow-y-auto">
-                          {designSuggestions}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </>
+              {saveStatus && (
+                <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
+                  {saveStatus}
+                </div>
               )}
 
               {error && (
-                <div className="p-3 bg-red-900/30 border border-red-500 text-red-400 rounded-lg text-xs whitespace-pre-wrap">
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm whitespace-pre-wrap">
                   {error}
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* SAĞ PANEL */}
-          <div className="w-full md:w-2/3 min-h-[700px] md:min-h-[calc(100vh-73px)] flex flex-col">
-
-            {/* DOSYA SEKME MENÜSÜ */}
-            <div className="flex bg-[#12141a] border-b border-[#2a2e3b] justify-between items-center pr-4">
-              <div className="flex overflow-x-auto">
-                {[
-                  { id: 'html', label: '🌐 index.html' },
-                  { id: 'css', label: '🎨 styles.css' },
-                  { id: 'js', label: '⚡ script.js' },
-                ].map((tab) => (
+              {!codeHtml ? (
+                <div className={`rounded-2xl border border-dashed p-10 text-center ${
+                  isLight ? 'border-gray-300' : 'border-[#343b4b]'
+                }`}>
+                  <div className="text-5xl mb-4">⚡</div>
+                  <h2 className="text-xl font-bold">
+                    Henüz kod bulunmuyor
+                  </h2>
+                  <p className="text-gray-400 text-sm mt-2">
+                    Dashboard bölümünden bir proje oluşturabilirsin.
+                  </p>
                   <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-3 text-xs whitespace-nowrap ${
-                      activeTab === tab.id
-                        ? 'text-[#25f4ee] border-b-2 border-[#25f4ee] bg-[#0b0c10]'
-                        : 'text-[#8b92a5] border-r border-[#2a2e3b]'
-                    }`}
+                    onClick={() => setActiveView('dashboard')}
+                    className="mt-5 px-5 py-2 rounded-lg bg-purple-600 text-white font-bold"
                   >
-                    {tab.label}
+                    Proje Oluştur
                   </button>
-                ))}
-              </div>
-
-              <button
-                onClick={handleCopy}
-                className="text-xs px-3 py-1 bg-[#2a2e3b] text-white rounded hover:bg-[#3a3f52] transition"
-              >
-                {copied ? '✅ Kopyalandı' : '📋 Kopyala'}
-              </button>
-            </div>
-
-            {/* KOD ALANI */}
-            <div className="h-[350px] bg-[#0b0c10] overflow-hidden relative border-b border-[#2a2e3b]">
-              <textarea
-                readOnly
-                value={
-                  activeTab === 'html'
-                    ? codeHtml
-                    : activeTab === 'css'
-                      ? codeCss
-                      : codeJs
-                }
-                className="absolute inset-0 w-full h-full bg-[#0b0c10] text-[#a8b9d4] p-4 font-mono text-xs resize-none outline-none"
-                placeholder={`${activeTab.toUpperCase()} kodu...`}
-              />
-            </div>
-
-            {/* CANLI ÖNİZLEME */}
-            <div className="flex-1 bg-white border-t border-[#2a2e3b] flex flex-col relative min-h-[400px]">
-              <div className="bg-[#12141a] px-3 py-2 border-b border-[#2a2e3b] flex flex-wrap justify-between items-center gap-2">
-                <span className="text-xs text-[#8b92a5]">
-                  ▶ Canlı Önizleme
-                </span>
-
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setPreviewSize('desktop')}
-                    className={`px-2 py-1 rounded text-xs ${
-                      previewSize === 'desktop'
-                        ? 'bg-cyan-400 text-black'
-                        : 'bg-[#252936] text-gray-300'
-                    }`}
-                  >
-                    🖥️ PC
-                  </button>
-
-                  <button
-                    onClick={() => setPreviewSize('tablet')}
-                    className={`px-2 py-1 rounded text-xs ${
-                      previewSize === 'tablet'
-                        ? 'bg-cyan-400 text-black'
-                        : 'bg-[#252936] text-gray-300'
-                    }`}
-                  >
-                    📱 Tablet
-                  </button>
-
-                  <button
-                    onClick={() => setPreviewSize('mobile')}
-                    className={`px-2 py-1 rounded text-xs ${
-                      previewSize === 'mobile'
-                        ? 'bg-cyan-400 text-black'
-                        : 'bg-[#252936] text-gray-300'
-                    }`}
-                  >
-                    📲 Telefon
-                  </button>
-                </div>
-              </div>
-
-              {codeHtml ? (
-                <div className="flex-1 min-h-[350px] w-full overflow-auto bg-[#20232b] flex justify-center">
-                  <iframe
-                    srcDoc={combinedCode}
-                    className="h-full min-h-[350px] border-none bg-white transition-all duration-300"
-                    style={{
-                      width:
-                        previewSize === 'mobile'
-                          ? '375px'
-                          : previewSize === 'tablet'
-                            ? '768px'
-                            : '100%',
-                      maxWidth: '100%',
-                    }}
-                    title="Responsive Önizleme"
-                    sandbox="allow-scripts allow-forms allow-modals"
-                  />
                 </div>
               ) : (
-                <div className="flex-1 flex justify-center items-center text-gray-500 text-sm">
-                  Önizleme Bekleniyor...
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                  {/* KOD EDİTÖRÜ */}
+                  <div className="space-y-4">
+                    <div className={`rounded-2xl border overflow-hidden ${
+                      isLight
+                        ? 'bg-white border-gray-200'
+                        : 'bg-[#131722] border-[#252b39]'
+                    }`}>
+                      <div className="flex items-center justify-between p-3 border-b border-gray-500/20">
+                        <div className="flex gap-2">
+                          {(['html', 'css', 'js'] as const).map((tab) => (
+                            <button
+                              key={tab}
+                              onClick={() => setActiveTab(tab)}
+                              className={`px-4 py-2 rounded-lg text-sm font-bold ${
+                                activeTab === tab
+                                  ? 'bg-purple-600 text-white'
+                                  : 'text-gray-400 hover:bg-gray-500/10'
+                              }`}
+                            >
+                              {tab.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={handleCopy}
+                          className="px-3 py-2 rounded-lg bg-gray-500/10 text-sm"
+                        >
+                          {copied ? '✓ Kopyalandı' : '📋 Kopyala'}
+                        </button>
+                      </div>
+
+                      <textarea
+                        value={
+                          activeTab === 'html'
+                            ? codeHtml
+                            : activeTab === 'css'
+                              ? codeCss
+                              : codeJs
+                        }
+                        onChange={(e) => {
+                          if (activeTab === 'html') setCodeHtml(e.target.value)
+                          if (activeTab === 'css') setCodeCss(e.target.value)
+                          if (activeTab === 'js') setCodeJs(e.target.value)
+                        }}
+                        spellCheck={false}
+                        className="w-full min-h-[500px] p-4 bg-[#090d16] text-green-300 font-mono text-xs md:text-sm outline-none resize-y"
+                      />
+                    </div>
+
+                    {/* AI REVİZYON */}
+                    <div className={`rounded-2xl border p-4 ${
+                      isLight
+                        ? 'bg-white border-gray-200'
+                        : 'bg-[#131722] border-[#252b39]'
+                    }`}>
+                      <h3 className="font-bold mb-2">
+                        🤖 AI ile Düzenle
+                      </h3>
+                      <p className="text-xs text-gray-400 mb-3">
+                        İstediğin değişikliği yaz, AI mevcut kodunu güncellesin.
+                      </p>
+
+                      <textarea
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Örneğin: Menüye animasyon ekle ve mobil görünümü geliştir..."
+                        rows={3}
+                        className={`w-full p-3 rounded-lg border outline-none ${
+                          isLight
+                            ? 'bg-gray-50 border-gray-200'
+                            : 'bg-[#090d16] border-[#303747]'
+                        }`}
+                      />
+
+                      <button
+                        onClick={handleRevise}
+                        disabled={chatLoading || !chatInput.trim()}
+                        className="w-full mt-3 py-3 rounded-lg bg-purple-600 text-white font-bold disabled:opacity-50"
+                      >
+                        {chatLoading ? 'AI düzenliyor...' : 'Değişiklikleri Uygula'}
+                      </button>
+                    </div>
+
+                    {/* AI ARAÇLARI */}
+                    <div className={`rounded-2xl border p-4 ${
+                      isLight
+                        ? 'bg-white border-gray-200'
+                        : 'bg-[#131722] border-[#252b39]'
+                    }`}>
+                      <h3 className="font-bold mb-4">
+                        🧠 AI Geliştirme Araçları
+                      </h3>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          onClick={handleCodeReview}
+                          disabled={reviewLoading}
+                          className="p-3 rounded-lg bg-blue-600/15 border border-blue-500/30 text-blue-400 font-bold text-sm disabled:opacity-50"
+                        >
+                          {reviewLoading ? 'Analiz ediliyor...' : '🔍 AI Kod Analizi'}
+                        </button>
+
+                        <button
+                          onClick={handleAutoFix}
+                          disabled={fixLoading}
+                          className="p-3 rounded-lg bg-green-600/15 border border-green-500/30 text-green-400 font-bold text-sm disabled:opacity-50"
+                        >
+                          {fixLoading ? 'Düzeltiliyor...' : '🛠️ Otomatik Düzelt'}
+                        </button>
+
+                        <button
+                          onClick={handleDesignSuggestions}
+                          disabled={designLoading}
+                          className="p-3 rounded-lg bg-purple-600/15 border border-purple-500/30 text-purple-400 font-bold text-sm disabled:opacity-50 sm:col-span-2"
+                        >
+                          {designLoading ? 'Öneriler hazırlanıyor...' : '✨ AI Tasarım Önerileri'}
+                        </button>
+                      </div>
+
+                      {reviewResult && (
+                        <div className="mt-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                          <h4 className="font-bold text-blue-400 mb-2">
+                            Kod Analizi / Düzeltme Sonucu
+                          </h4>
+                          <pre className="whitespace-pre-wrap text-xs text-gray-300 font-sans">
+                            {reviewResult}
+                          </pre>
+                        </div>
+                      )}
+
+                      {designSuggestions && (
+                        <div className="mt-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                          <h4 className="font-bold text-purple-400 mb-2">
+                            Tasarım Önerileri
+                          </h4>
+                          <pre className="whitespace-pre-wrap text-xs text-gray-300 font-sans">
+                            {designSuggestions}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CANLI ÖNİZLEME */}
+                  <div className={`rounded-2xl border overflow-hidden ${
+                    isLight
+                      ? 'bg-white border-gray-200'
+                      : 'bg-[#131722] border-[#252b39]'
+                  }`}>
+                    <div className="p-3 border-b border-gray-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <h3 className="font-bold">
+                        🌐 Canlı Önizleme
+                      </h3>
+
+                      <div className="flex gap-2">
+                        {([
+                          ['desktop', '🖥️ Masaüstü'],
+                          ['tablet', '📱 Tablet'],
+                          ['mobile', '📲 Telefon'],
+                        ] as const).map(([size, label]) => (
+                          <button
+                            key={size}
+                            onClick={() => setPreviewSize(size)}
+                            className={`px-2 py-1.5 rounded-lg text-xs ${
+                              previewSize === size
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-gray-500/10 text-gray-400'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#252a36] p-3 min-h-[600px] flex justify-center">
+                      <div
+                        className="bg-white overflow-hidden transition-all"
+                        style={{
+                          width:
+                            previewSize === 'mobile'
+                              ? '375px'
+                              : previewSize === 'tablet'
+                                ? '768px'
+                                : '100%',
+                          maxWidth: '100%',
+                          minHeight: '580px',
+                        }}
+                      >
+                        <iframe
+                          title="Proje canlı önizleme"
+                          srcDoc={combinedCode}
+                          className="w-full h-[580px] bg-white"
+                          sandbox="allow-scripts allow-forms allow-modals"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
-
-              {/* SOHBETLE DÜZENLEME */}
-              <div className="p-3 bg-[#0b0c10]">
-                <div className="flex gap-2 bg-[#12141a] border border-[#2a2e3b] rounded-lg p-2">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleRevise()}
-                    placeholder="Değişiklik isteğini yaz..."
-                    className="flex-1 bg-transparent text-white outline-none text-sm px-2"
-                  />
-
-                  <button
-                    onClick={handleRevise}
-                    disabled={chatLoading}
-                    className="bg-[#25f4ee] text-black px-4 py-2 rounded-md font-bold text-sm disabled:opacity-50"
-                  >
-                    {chatLoading ? '...' : '➤'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
+            </section>
+          )}
+        </>
       )}
-    </div>
+    </main>
   )
-}
+                }
