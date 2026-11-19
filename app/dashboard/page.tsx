@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import Icon, { type IconName } from '../components/Icon'
 
 type Notification = {
   id: string
@@ -171,7 +172,7 @@ ${documentText}
 type SidebarGroup = {
   title: string
   items: {
-    icon: string
+    icon: IconName
     label: string
     onClick: () => void
     active?: boolean
@@ -204,31 +205,32 @@ function Sidebar({
 }) {
   const softButton = isLight
     ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-    : 'bg-[#171c28] hover:bg-[#222939] text-gray-300'
+    : 'bg-[#141821] hover:bg-[#1c2230] text-[#c7cad3]'
 
   return (
     <div
       className={`flex h-full flex-col border-r ${
         isLight
           ? 'bg-white border-gray-200 text-gray-900'
-          : 'bg-[#0b0e16] border-[#1e2431] text-white'
+          : 'bg-[#0a0c11] border-[#1b1f28] text-white'
       }`}
     >
       <div className="flex items-center gap-2 px-4 h-16 shrink-0">
-        <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center font-black text-white">
+        <span className="w-8 h-8 rounded-lg bg-[#7c5cff] flex items-center justify-center text-[13px] font-black text-white">
           P
         </span>
-        <span className="text-lg font-black tracking-tight">
-          Prompt<span className="text-purple-500">Forge</span>
+        <span className="text-[15px] font-semibold tracking-tight">
+          PromptForge
         </span>
       </div>
 
       <div className="px-3 pb-3">
         <button
           onClick={onNewProject}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-sm font-bold shadow-lg shadow-purple-900/20 hover:-translate-y-0.5"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#7c5cff] hover:bg-[#8b6fff] text-white text-[13px] font-semibold"
         >
-          + Yeni Proje
+          <Icon name="plus" className="h-4 w-4" strokeWidth={2} />
+          Yeni Proje
         </button>
       </div>
 
@@ -236,10 +238,11 @@ function Sidebar({
         {groups.map((group) => (
           <div key={group.title}>
             <p
-              className={`px-3 mb-2 text-[11px] font-bold uppercase tracking-wider ${
-                isLight ? 'text-gray-400' : 'text-gray-500'
+              className={`mt-4 mb-1.5 flex items-center gap-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.16em] ${
+                isLight ? 'text-gray-400' : 'text-[#5f6573]'
               }`}
             >
+              <span className="h-px w-2.5 bg-[#7c5cff]/60" />
               {group.title}
             </p>
 
@@ -248,21 +251,29 @@ function Sidebar({
                 <button
                   key={item.label}
                   onClick={item.onClick}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold ${
+                  className={`relative w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium ${
                     item.active
-                      ? 'bg-purple-600/15 text-purple-400 ring-1 ring-purple-500/30'
+                      ? isLight
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'bg-white/[0.055] text-white'
                       : isLight
                       ? 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                      : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                      : 'text-[#8b909d] hover:bg-white/[0.035] hover:text-[#e7e9ee]'
                   }`}
                 >
-                  <span className="text-base w-5 text-center shrink-0">
-                    {item.icon}
-                  </span>
+                  {item.active && (
+                    <span className="absolute -left-2 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-[#7c5cff]" />
+                  )}
+                  <Icon
+                    name={item.icon}
+                    className={`h-[17px] w-[17px] shrink-0 ${
+                      item.active ? 'text-[#a48bff]' : ''
+                    }`}
+                  />
                   <span className="truncate">{item.label}</span>
 
                   {item.badge ? (
-                    <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] flex items-center justify-center">
+                    <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-[#7c5cff] text-white text-[11px] flex items-center justify-center">
                       {item.badge}
                     </span>
                   ) : null}
@@ -275,7 +286,7 @@ function Sidebar({
 
       <div
         className={`border-t px-3 pt-3 pb-5 space-y-2 shrink-0 ${
-          isLight ? 'border-gray-200' : 'border-[#1e2431]'
+          isLight ? 'border-gray-200' : 'border-[#1b1f28]'
         }`}
       >
         {email && (
@@ -296,7 +307,7 @@ function Sidebar({
             aria-label="Tema değiştir"
             className={`w-9 h-9 rounded-lg flex items-center justify-center ${softButton}`}
           >
-            {isLight ? '🌙' : '☀️'}
+            <Icon name={isLight ? 'moon' : 'sun'} className="h-4 w-4" />
           </button>
 
           <button
@@ -305,7 +316,7 @@ function Sidebar({
             aria-label="Bildirimler"
             className={`relative w-9 h-9 rounded-lg flex items-center justify-center ${softButton}`}
           >
-            🔔
+            <Icon name="bell" className="h-4 w-4" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full min-w-4 h-4 px-1 flex items-center justify-center">
                 {unreadCount}
@@ -465,11 +476,11 @@ export default function Home() {
 
   const panelClass = isLight
     ? 'bg-white border-gray-200 text-gray-900'
-    : 'bg-[#131722] border-[#252b39] text-white'
+    : 'bg-[#0b0d12] border-[#1b1f28] text-white'
 
   const inputClass = isLight
     ? 'bg-gray-50 border-gray-200 text-gray-900'
-    : 'bg-[#090d16] border-[#303747] text-white'
+    : 'bg-[#08090d] border-[#242a36] text-white'
 
   // BİLDİRİM EKLE
   const addNotification = useCallback((title: string, message: string, id?: string) => {
@@ -1832,23 +1843,23 @@ ${codeJs}`)
 
   const sidebarGroups: SidebarGroup[] = [
     {
-      title: 'Çalışma',
+      title: 'Çalışma Alanı',
       items: [
         {
-          icon: '🏠',
-          label: 'Ana Sayfa',
+          icon: 'overview',
+          label: 'Genel Bakış',
           active: activeView === 'dashboard',
           onClick: () => applyView('dashboard'),
         },
-        { icon: '📁', label: 'Projelerim', onClick: scrollToProjects },
+        { icon: 'folder', label: 'Projelerim', onClick: scrollToProjects },
         {
-          icon: '💻',
+          icon: 'code',
           label: 'Editör',
           active: activeView === 'editor',
           onClick: () => applyView('editor'),
         },
         {
-          icon: '🗑️',
+          icon: 'trash',
           label: 'Çöp Kutusu',
           onClick: () => {
             setNavOpen(false)
@@ -1856,7 +1867,7 @@ ${codeJs}`)
           },
         },
         {
-          icon: '👤',
+          icon: 'user',
           label: 'Profilim',
           onClick: () => {
             setNavOpen(false)
@@ -1866,24 +1877,38 @@ ${codeJs}`)
       ],
     },
     {
+      title: 'AI Araçları',
+      items: [
+        {
+          icon: 'sparkles',
+          label: 'Kod Sihirbazı',
+          onClick: () => {
+            setNavOpen(false)
+            setActiveView('dashboard')
+            setShowWizard(true)
+          },
+        },
+        { icon: 'vision', label: 'Vision-to-Code', onClick: () => goTo('/vision') },
+        { icon: 'bug', label: 'Hata Dedektörü', onClick: () => goTo('/critic') },
+        { icon: 'sliders', label: 'Araçlar', onClick: () => goTo('/tools') },
+      ],
+    },
+    {
       title: 'Keşfet',
       items: [
-        { icon: '🎨', label: 'Galeri', onClick: () => goTo('/gallery') },
-        { icon: '🧩', label: 'Keşfet', onClick: () => goTo('/explore') },
-        { icon: '🛒', label: 'Pazaryeri', onClick: () => goTo('/marketplace') },
-        { icon: '🧰', label: 'Araçlar', onClick: () => goTo('/tools') },
-        { icon: '👁️', label: 'Vision', onClick: () => goTo('/vision') },
-        { icon: '🧠', label: 'Critic', onClick: () => goTo('/critic') },
+        { icon: 'image', label: 'Galeri', onClick: () => goTo('/gallery') },
+        { icon: 'compass', label: 'Keşfet', onClick: () => goTo('/explore') },
+        { icon: 'bag', label: 'Pazaryeri', onClick: () => goTo('/marketplace') },
       ],
     },
     {
       title: 'Hesap',
       items: [
-        { icon: '⚙️', label: 'Ayarlar', onClick: () => goTo('/settings') },
-        { icon: '🎧', label: 'Destek', onClick: () => goTo('/support') },
-        { icon: '🛡️', label: 'Güvenlik', onClick: () => goTo('/security') },
-        { icon: '🕘', label: 'Aktivite', onClick: () => goTo('/activity') },
-        { icon: '💬', label: 'Geri Bildirim', onClick: () => goTo('/feedback') },
+        { icon: 'settings', label: 'Ayarlar', onClick: () => goTo('/settings') },
+        { icon: 'shield', label: 'Güvenlik', onClick: () => goTo('/security') },
+        { icon: 'headset', label: 'Destek', onClick: () => goTo('/support') },
+        { icon: 'activity', label: 'Aktivite', onClick: () => goTo('/activity') },
+        { icon: 'message', label: 'Geri Bildirim', onClick: () => goTo('/feedback') },
       ],
     },
     ...(isAdmin
@@ -1892,9 +1917,14 @@ ${codeJs}`)
             title: 'Yönetim',
             items: [
               {
-                icon: '🛠️',
+                icon: 'terminal' as IconName,
                 label: 'Admin Paneli',
                 onClick: () => goTo('/admin'),
+              },
+              {
+                icon: 'pulse' as IconName,
+                label: 'Sistem Sağlığı',
+                onClick: () => goTo('/health'),
               },
             ],
           },
@@ -1922,10 +1952,10 @@ ${codeJs}`)
   }
 
     return (
-    <main className={`min-h-screen lg:pl-[252px] ${isLight ? 'bg-gray-100 text-gray-900' : 'bg-[#090b10] text-white'}`}>
+    <main className={`min-h-screen lg:pl-[236px] ${isLight ? 'bg-gray-100 text-gray-900' : 'bg-[#08090d] text-white'}`}>
 
       {/* SOL MENÜ — MASAÜSTÜ */}
-      <aside className="hidden lg:block fixed inset-y-0 left-0 z-40 w-[252px]">
+      <aside className="hidden lg:block fixed inset-y-0 left-0 z-40 w-[236px]">
         <Sidebar {...sidebarCommon} />
       </aside>
 
@@ -1948,17 +1978,17 @@ ${codeJs}`)
         className={`lg:hidden sticky top-0 z-40 flex items-center gap-3 px-4 h-14 border-b backdrop-blur-xl ${
           isLight
             ? 'bg-white/95 border-gray-200'
-            : 'bg-[#0b0e16]/95 border-[#1e2431]'
+            : 'bg-[#0a0c11]/95 border-[#1b1f28]'
         }`}
       >
         <button
           onClick={() => setNavOpen(true)}
           aria-label="Menüyü aç"
-          className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${
-            isLight ? 'bg-gray-100' : 'bg-[#171c28]'
+          className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+            isLight ? 'bg-gray-100' : 'text-[#c7cad3] hover:bg-white/[0.06]'
           }`}
         >
-          ☰
+          <Icon name="menu" className="h-[18px] w-[18px]" />
         </button>
 
         <span className="font-black tracking-tight">
@@ -1968,11 +1998,11 @@ ${codeJs}`)
         <button
           onClick={() => setShowNotifications((previous) => !previous)}
           aria-label="Bildirimler"
-          className={`relative ml-auto w-10 h-10 rounded-xl flex items-center justify-center ${
-            isLight ? 'bg-gray-100' : 'bg-[#171c28]'
+          className={`relative ml-auto w-9 h-9 rounded-lg flex items-center justify-center ${
+            isLight ? 'bg-gray-100' : 'text-[#c7cad3] hover:bg-white/[0.06]'
           }`}
         >
-          🔔
+          <Icon name="bell" className="h-4 w-4" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full min-w-4 h-4 px-1 flex items-center justify-center">
               {unreadCount}
@@ -2035,7 +2065,7 @@ ${codeJs}`)
         <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4">
           <div className={`w-full max-w-lg rounded-2xl border p-6 ${panelClass}`}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-black">👤 Profil Ayarları</h2>
+              <h2 className="text-[17px] font-semibold">Profil Ayarları</h2>
               <button onClick={() => setShowProfile(false)}>✕</button>
             </div>
 
@@ -2109,7 +2139,7 @@ ${codeJs}`)
           <div className={`w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl border p-5 ${panelClass}`}>
             <div className="flex items-center justify-between gap-3 mb-5">
               <div>
-                <h2 className="text-xl font-black">🗑️ Çöp Kutusu</h2>
+                <h2 className="text-[17px] font-semibold">Çöp Kutusu</h2>
                 <p className="text-sm text-gray-400 mt-1">
                   Silinen projelerini buradan geri yükleyebilirsin.
                 </p>
@@ -2179,31 +2209,38 @@ ${codeJs}`)
           {activeView === 'dashboard' && (
             <section className="pf-enter max-w-[1400px] mx-auto px-4 py-8">
 
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-8">
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-7">
                 <div>
-                  <p className="text-purple-500 text-sm font-bold mb-2">
-                    AI WEB DEVELOPMENT STUDIO
+                  <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#5f6573]">
+                    <span className="h-px w-3 bg-[#7c5cff]/60" />
+                    Genel Bakış
                   </p>
-                  <h1 className="text-3xl md:text-4xl font-black">
+                  <h1 className="mt-2.5 text-[26px] font-semibold tracking-tight md:text-[30px]">
                     Projelerin
                   </h1>
-                  <p className="text-gray-400 mt-2">
-                    Fikirlerini çalışan web sitelerine dönüştür.
+                  <p className="mt-1.5 text-[13px] text-[#8b909d]">
+                    Fikrini yaz, çalışan bir siteye dönüşsün. Sonra editörde devam et.
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <button
                     onClick={() => setShowWizard((previous) => !previous)}
-                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold"
+                    className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-[13px] font-medium border ${
+                      isLight
+                        ? 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                        : 'border-[#242a36] text-[#c7cad3] hover:bg-white/[0.045]'
+                    }`}
                   >
-                    🧙 Code Wizard
+                    <Icon name="sparkles" className="h-4 w-4" />
+                    Kod Sihirbazı
                   </button>
                   <button
                     onClick={startNewProject}
-                    className="px-6 py-3 rounded-xl bg-purple-600 text-white font-bold"
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#7c5cff] hover:bg-[#8b6fff] text-white text-[13px] font-semibold"
                   >
-                    + Yeni Proje Oluştur
+                    <Icon name="plus" className="h-4 w-4" strokeWidth={2} />
+                    Yeni Proje
                   </button>
                 </div>
               </div>
@@ -2213,7 +2250,7 @@ ${codeJs}`)
                 <div className={`rounded-2xl border p-5 md:p-7 mb-8 ${panelClass}`}>
                   <div className="flex items-center justify-between gap-3 mb-5">
                     <div>
-                      <h2 className="text-xl font-black">🧙 Code Wizard</h2>
+                      <h2 className="text-[17px] font-semibold">Kod Sihirbazı</h2>
                       <p className="text-sm text-gray-400 mt-1">
                         Birkaç seçim yap, AI senin için projeyi oluştursun.
                       </p>
@@ -2327,32 +2364,38 @@ ${codeJs}`)
                   <button
                     onClick={handleWizardGenerate}
                     disabled={wizardLoading}
-                    className="w-full mt-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold disabled:opacity-50"
+                    className="w-full mt-5 py-3 rounded-xl bg-[#7c5cff] hover:bg-[#8b6fff] text-white font-bold disabled:opacity-50"
                   >
                     {wizardLoading
-                      ? '⏳ Projen hazırlanıyor...'
-                      : '🧙 Seçimlerime Göre Site Oluştur'}
+                      ? 'Projen hazırlanıyor...'
+                      : 'Seçimlerime Göre Site Oluştur'}
                   </button>
                 </div>
               )}
 
               {/* İSTATİSTİKLER */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-                {[
-                  { label: 'Toplam Proje', value: projects.length, icon: '📁' },
-                  { label: 'HTML Dosyası', value: totalHtml, icon: '🌐' },
-                  { label: 'CSS Dosyası', value: totalCss, icon: '🎨' },
-                  { label: 'JavaScript', value: totalJs, icon: '⚡' },
-                ].map((stat) => (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
+                {([
+                  { label: 'Toplam Proje', value: projects.length, icon: 'folder' },
+                  { label: 'HTML Dosyası', value: totalHtml, icon: 'code' },
+                  { label: 'CSS Dosyası', value: totalCss, icon: 'sliders' },
+                  { label: 'JavaScript', value: totalJs, icon: 'activity' },
+                ] as { label: string; value: number; icon: IconName }[]).map((stat) => (
                   <div
                     key={stat.label}
-                    className={`p-5 rounded-2xl border ${panelClass}`}
+                    className={`p-4 rounded-xl border ${panelClass}`}
                   >
-                    <div className="flex justify-between items-center">
-                      <span className="text-2xl">{stat.icon}</span>
-                      <span className="text-2xl font-black">{stat.value}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#5f6573]">
+                        <Icon name={stat.icon} className="h-4 w-4" />
+                      </span>
+                      <span className="text-[22px] font-semibold tabular-nums tracking-tight">
+                        {stat.value}
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-400 mt-3">{stat.label}</p>
+                    <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#6f7686]">
+                      {stat.label}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -2380,17 +2423,17 @@ ${codeJs}`)
                     disabled={loading || variationLoading}
                     className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold disabled:opacity-50"
                   >
-                    {loading ? '⏳ Site oluşturuluyor...' : '⚡ Site Oluştur'}
+                    {loading ? 'Site oluşturuluyor...' : 'Site Oluştur'}
                   </button>
 
                   <button
                     onClick={handleGenerateVariations}
                     disabled={variationLoading || loading}
-                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold disabled:opacity-50"
+                    className="flex-1 py-3 rounded-xl bg-[#7c5cff] hover:bg-[#8b6fff] text-white font-bold disabled:opacity-50"
                   >
                     {variationLoading
-                      ? `🎨 Tasarımlar hazırlanıyor (${designVariants.length}/3)...`
-                      : '✨ 3 Farklı Tasarım Oluştur'}
+                      ? `Tasarımlar hazırlanıyor (${designVariants.length}/3)...`
+                      : '3 Farklı Tasarım Oluştur'}
                   </button>
                 </div>
 
@@ -2502,26 +2545,48 @@ ${codeJs}`)
               </div>
 
               {filteredProjects.length === 0 ? (
-                <div className="text-center py-16 rounded-2xl border border-dashed border-gray-500/30">
-                  <div className="text-5xl mb-4">📂</div>
-                  <h3 className="font-bold text-lg">
+                <div className="rounded-xl border border-dashed border-[#242a36] px-6 py-14 text-center">
+                  <span className="mx-auto grid h-10 w-10 place-items-center rounded-lg border border-[#242a36] bg-[#11141b] text-[#6f7686]">
+                    <Icon name="folder" className="h-[18px] w-[18px]" />
+                  </span>
+                  <h3 className="mt-4 text-[14.5px] font-semibold">
                     {projects.length === 0
                       ? 'Henüz projen yok'
                       : 'Aramana uygun proje bulunamadı'}
                   </h3>
-                  <p className="text-gray-400 text-sm mt-2">
-                    Yeni bir proje oluşturarak başlayabilirsin.
+                  <p className="mt-1.5 text-[12.5px] text-[#8b909d]">
+                    {projects.length === 0
+                      ? 'Aşağıdaki fikirlerden birini dene ya da kendi cümleni yaz.'
+                      : 'Arama kelimeni değiştirmeyi dene.'}
                   </p>
+
+                  {projects.length === 0 && (
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                      {[
+                        'Koyu temalı bir fotoğrafçı portfolyosu',
+                        'Kahve dükkânı için tek sayfa site',
+                        'Freelancer için hizmet ve fiyat listesi',
+                      ].map((idea) => (
+                        <button
+                          key={idea}
+                          onClick={() => setPrompt(idea)}
+                          className="rounded-md border border-[#242a36] px-2.5 py-1.5 text-[11.5px] text-[#8b909d] hover:border-[#7c5cff]/40 hover:text-[#c7cad3]"
+                        >
+                          {idea}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {filteredProjects.map((project) => (
                     <div
                       key={project.id}
-                      className={`rounded-2xl border overflow-hidden cursor-pointer transition hover:-translate-y-1 ${
+                      className={`rounded-xl border overflow-hidden cursor-pointer transition-colors ${
                         isLight
-                          ? 'bg-white border-gray-200 hover:shadow-lg'
-                          : 'bg-[#131722] border-[#252b39] hover:border-purple-500'
+                          ? 'bg-white border-gray-200 hover:border-gray-400'
+                          : 'bg-[#0b0d12] border-[#1b1f28] hover:border-[#343b4a]'
                       }`}
                       onClick={() => handleLoadProject(project)}
                     >
@@ -2534,7 +2599,9 @@ ${codeJs}`)
                             loading="lazy"
                           />
                         ) : (
-                          <div className="text-4xl opacity-40">🌐</div>
+                          <div className="text-[#3b4150]">
+                            <Icon name="image" className="h-7 w-7" />
+                          </div>
                         )}
                       </div>
 
@@ -2598,7 +2665,7 @@ ${codeJs}`)
                             onClick={(event) => handleDeleteProject(project.id, event)}
                             className="py-2 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold"
                           >
-                            🗑️ Sil
+                            Sil
                           </button>
                         </div>
                       </div>
@@ -2831,7 +2898,7 @@ ${codeJs}`)
 
               {!codeHtml ? (
                 <div className="rounded-2xl border border-dashed border-gray-500/30 p-10 text-center">
-                  <div className="text-5xl mb-4">⚡</div>
+                  <span className="mx-auto mb-4 grid h-10 w-10 place-items-center rounded-lg border border-[#242a36] bg-[#11141b] text-[#6f7686]"><Icon name="sparkles" className="h-[18px] w-[18px]" /></span>
                   <h2 className="text-xl font-bold">Henüz kod bulunmuyor</h2>
                   <p className="text-gray-400 text-sm mt-2">
                     Dashboard bölümünden bir proje oluşturabilirsin.
@@ -2970,7 +3037,7 @@ ${codeJs}`)
 
                     {/* AI ARAÇLARI */}
                     <div className={`rounded-2xl border p-4 ${panelClass}`}>
-                      <h3 className="font-bold mb-4">🧠 AI Geliştirme Araçları</h3>
+                      <h3 className="font-bold mb-4">AI Geliştirme Araçları</h3>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <button
@@ -2996,7 +3063,7 @@ ${codeJs}`)
                         >
                           {designLoading
                             ? 'Öneriler hazırlanıyor...'
-                            : '✨ AI Tasarım Önerileri'}
+                            : 'AI Tasarım Önerileri'}
                         </button>
                       </div>
 

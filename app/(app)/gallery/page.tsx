@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import Icon from '../../components/Icon'
 
 type Project = {
   id: string
@@ -353,7 +354,7 @@ export default function GalleryPage() {
           </div>
         ) : projects.length === 0 ? (
           <div className="text-center py-24 rounded-2xl border border-white/10 bg-white/[0.03]">
-            <div className="text-5xl mb-4">🎨</div>
+            <span className="mx-auto mb-4 grid h-10 w-10 place-items-center rounded-lg border border-[#242a36] bg-[#11141b] text-[#6f7686]"><Icon name="image" className="h-[18px] w-[18px]" /></span>
 
             <h2 className="text-xl font-bold">
               Henüz vitrin projesi yok

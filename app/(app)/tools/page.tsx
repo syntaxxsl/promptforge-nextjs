@@ -231,10 +231,10 @@ body, p, button {
       <div className="max-w-6xl mx-auto p-5">
         <nav className="flex flex-wrap gap-2 mb-7">
           {[
-            ['templates', '🧩 Şablonlar'],
-            ['palette', '🎨 Renk Paleti'],
-            ['fonts', '🔤 Font Eşleştirici'],
-            ['formatter', '⌨️ Kod Biçimlendirici'],
+            ['templates', 'Şablonlar'],
+            ['palette', 'Renk Paleti'],
+            ['fonts', 'Font Eşleştirici'],
+            ['formatter', 'Kod Biçimlendirici'],
           ].map(([key, label]) => (
             <button
               key={key}
