@@ -191,8 +191,14 @@ function Sidebar({
   onNotifications,
   onAdmin,
   onLogout,
+  collapsed,
+  onToggleCollapse,
+  showToggle,
 }: {
   groups: SidebarGroup[]
+  collapsed: boolean
+  onToggleCollapse: () => void
+  showToggle?: boolean
   isLight: boolean
   email: string
   isAdmin: boolean
@@ -215,43 +221,78 @@ function Sidebar({
           : 'bg-[#0a0c11] border-[#1b1f28] text-white'
       }`}
     >
-      <div className="flex items-center gap-2 px-4 h-16 shrink-0">
+      <div
+        className={`flex shrink-0 items-center ${
+          collapsed ? 'flex-col gap-2 px-2 py-3' : 'h-16 gap-2.5 px-4'
+        }`}
+      >
         <span className="w-8 h-8 rounded-lg bg-[#7c5cff] flex items-center justify-center text-[13px] font-black text-white">
           P
         </span>
-        <span className="text-[15px] font-semibold tracking-tight">
-          PromptForge
-        </span>
-      </div>
-
-      <div className="px-3 pb-3">
+        {!collapsed && (
+          <span className="text-[15px] font-semibold tracking-tight">
+            PromptForge
+          </span>
+        )}
         <button
-          onClick={onNewProject}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#7c5cff] hover:bg-[#8b6fff] text-white text-[13px] font-semibold"
+          onClick={onToggleCollapse}
+          hidden={showToggle === false}
+          title={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+          aria-label={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+          className={`grid h-7 w-7 place-items-center rounded-md text-[#6f7686] hover:bg-white/[0.06] hover:text-white ${
+            collapsed ? 'w-full' : 'ml-auto'
+          }`}
         >
-          <Icon name="plus" className="h-4 w-4" strokeWidth={2} />
-          Yeni Proje
+          <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} className="h-4 w-4" />
         </button>
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 space-y-5 pf-scroll">
+      <div className={collapsed ? 'px-2 pb-2' : 'px-3 pb-3'}>
+        <button
+          onClick={onNewProject}
+          title="Yeni Proje"
+          className={`w-full flex items-center justify-center gap-1.5 rounded-lg bg-[#7c5cff] hover:bg-[#8b6fff] text-white text-[13px] font-semibold py-2 ${
+            collapsed ? 'px-0' : 'px-3'
+          }`}
+        >
+          <Icon name="plus" className="h-4 w-4" strokeWidth={2} />
+          {!collapsed && 'Yeni Proje'}
+        </button>
+      </div>
+
+      <nav
+        className={`flex-1 min-h-0 overflow-y-auto pb-4 space-y-5 pf-scroll ${
+          collapsed ? 'px-2' : 'px-3'
+        }`}
+      >
         {groups.map((group) => (
           <div key={group.title}>
-            <p
-              className={`mt-4 mb-1.5 flex items-center gap-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.16em] ${
-                isLight ? 'text-gray-400' : 'text-[#5f6573]'
-              }`}
-            >
-              <span className="h-px w-2.5 bg-[#7c5cff]/60" />
-              {group.title}
-            </p>
+            {collapsed ? (
+              <div
+                className={`mx-2 my-2 h-px ${
+                  isLight ? 'bg-gray-200' : 'bg-[#1b1f28]'
+                }`}
+              />
+            ) : (
+              <p
+                className={`mt-4 mb-1.5 flex items-center gap-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.16em] ${
+                  isLight ? 'text-gray-400' : 'text-[#5f6573]'
+                }`}
+              >
+                <span className="h-px w-2.5 bg-[#7c5cff]/60" />
+                {group.title}
+              </p>
+            )}
 
             <div className="space-y-1">
               {group.items.map((item) => (
                 <button
                   key={item.label}
                   onClick={item.onClick}
-                  className={`relative w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium ${
+                  title={collapsed ? item.label : undefined}
+                  className={`relative w-full flex items-center gap-2.5 py-[7px] rounded-lg text-[13px] font-medium ${
+                    collapsed ? 'justify-center px-0' : 'px-2.5'
+                  } ${
                     item.active
                       ? isLight
                         ? 'bg-gray-100 text-gray-900'
@@ -270,7 +311,7 @@ function Sidebar({
                       item.active ? 'text-[#a48bff]' : ''
                     }`}
                   />
-                  <span className="truncate">{item.label}</span>
+                  {!collapsed && <span className="truncate">{item.label}</span>}
 
                   {item.badge ? (
                     <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-[#7c5cff] text-white text-[11px] flex items-center justify-center">
@@ -285,11 +326,11 @@ function Sidebar({
       </nav>
 
       <div
-        className={`border-t px-3 pt-3 pb-5 space-y-2 shrink-0 ${
-          isLight ? 'border-gray-200' : 'border-[#1b1f28]'
-        }`}
+        className={`border-t pt-3 pb-5 space-y-2 shrink-0 ${
+          collapsed ? 'px-2' : 'px-3'
+        } ${isLight ? 'border-gray-200' : 'border-[#1b1f28]'}`}
       >
-        {email && (
+        {email && !collapsed && (
           <p
             className={`px-1 truncate text-[11px] leading-4 ${
               isLight ? 'text-gray-500' : 'text-gray-500'
@@ -349,6 +390,7 @@ export default function Home() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [activeView, setActiveView] = useState<'dashboard' | 'editor'>('dashboard')
   const [navOpen, setNavOpen] = useState(false)
+  const [navCollapsed, setNavCollapsed] = useState(false)
   const [error, setError] = useState('')
   const [saveStatus, setSaveStatus] = useState('')
 
@@ -473,6 +515,12 @@ export default function Home() {
     return true
   }
   const unreadCount = notifications.filter((item) => !item.read).length
+
+  useEffect(() => {
+    if (window.localStorage.getItem('pf-nav-collapsed') === '1') {
+      setNavCollapsed(true)
+    }
+  }, [])
 
   const panelClass = isLight
     ? 'bg-white border-gray-200 text-gray-900'
@@ -1934,6 +1982,12 @@ ${codeJs}`)
 
   const sidebarCommon = {
     groups: sidebarGroups,
+    collapsed: navCollapsed,
+    onToggleCollapse: () =>
+      setNavCollapsed((previous) => {
+        window.localStorage.setItem('pf-nav-collapsed', previous ? '0' : '1')
+        return !previous
+      }),
     isLight,
     email: session?.user?.email || '',
     isAdmin,
@@ -1952,10 +2006,18 @@ ${codeJs}`)
   }
 
     return (
-    <main className={`min-h-screen lg:pl-[236px] ${isLight ? 'bg-gray-100 text-gray-900' : 'bg-[#08090d] text-white'}`}>
+    <main
+      className={`min-h-screen ${
+        navCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[236px]'
+      } ${isLight ? 'bg-gray-100 text-gray-900' : 'bg-[#08090d] text-white'}`}
+    >
 
       {/* SOL MENÜ — MASAÜSTÜ */}
-      <aside className="hidden lg:block fixed inset-y-0 left-0 z-40 w-[236px]">
+      <aside
+        className={`hidden lg:block fixed inset-y-0 left-0 z-40 transition-[width] duration-200 ${
+          navCollapsed ? 'w-[68px]' : 'w-[236px]'
+        }`}
+      >
         <Sidebar {...sidebarCommon} />
       </aside>
 
@@ -1968,7 +2030,7 @@ ${codeJs}`)
           />
 
           <div className="absolute inset-y-0 left-0 w-[280px] shadow-2xl pf-slide-in">
-            <Sidebar {...sidebarCommon} />
+            <Sidebar {...sidebarCommon} collapsed={false} showToggle={false} />
           </div>
         </div>
       )}
@@ -2207,7 +2269,7 @@ ${codeJs}`)
         <>
           {/* DASHBOARD */}
           {activeView === 'dashboard' && (
-            <section className="pf-enter max-w-[1400px] mx-auto px-4 py-8">
+            <section className="pf-enter w-full px-4 sm:px-6 py-8">
 
               <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-7">
                 <div>
@@ -2678,7 +2740,7 @@ ${codeJs}`)
 
           {/* EDİTÖR */}
           {activeView === 'editor' && (
-            <section className="pf-enter max-w-[1600px] mx-auto px-4 py-6">
+            <section className="pf-enter w-full px-4 sm:px-6 py-6">
 
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">

@@ -56,8 +56,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   const [navOpen, setNavOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
   const [email, setEmail] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+
+  // Menünün daraltılmış hâli tarayıcıda hatırlanır.
+  useEffect(() => {
+    if (window.localStorage.getItem('pf-nav-collapsed') === '1') {
+      setCollapsed(true)
+    }
+  }, [])
+
+  const toggleCollapsed = () => {
+    setCollapsed((previous) => {
+      window.localStorage.setItem('pf-nav-collapsed', previous ? '0' : '1')
+      return !previous
+    })
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -163,14 +178,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { icon: 'pulse', label: 'Sistem Sağlığı', href: '/health' },
   ]
 
-  const renderItem = (item: NavItem) => {
+  const renderItem = (item: NavItem, isCollapsed: boolean) => {
     const active = isActive(item.href)
 
     return (
       <Link
         key={item.label}
         href={item.href}
-        className={`relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-colors ${
+        title={isCollapsed ? item.label : undefined}
+        className={`relative flex items-center gap-2.5 rounded-lg py-[7px] text-[13px] font-medium transition-colors ${
+          isCollapsed ? 'justify-center px-0' : 'px-2.5'
+        } ${
           active
             ? 'bg-white/[0.055] text-white'
             : 'text-[#8b909d] hover:bg-white/[0.035] hover:text-[#e7e9ee]'
@@ -183,63 +201,97 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           name={item.icon}
           className={`h-[17px] w-[17px] shrink-0 ${active ? 'text-[#a48bff]' : ''}`}
         />
-        <span className="truncate">{item.label}</span>
+        {!isCollapsed && <span className="truncate">{item.label}</span>}
       </Link>
     )
   }
 
-  const groupLabel = (title: string) => (
-    <p className="mt-5 mb-1.5 flex items-center gap-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[#5f6573]">
-      <span className="h-px w-2.5 bg-[#7c5cff]/60" />
-      {title}
-    </p>
-  )
+  const groupLabel = (title: string, isCollapsed: boolean) =>
+    isCollapsed ? (
+      <div className="mx-2 my-2 h-px bg-[#1b1f28]" />
+    ) : (
+      <p className="mt-5 mb-1.5 flex items-center gap-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[#5f6573]">
+        <span className="h-px w-2.5 bg-[#7c5cff]/60" />
+        {title}
+      </p>
+    )
 
-  const sidebar = (
+  const renderSidebar = (isCollapsed: boolean) => (
     <div className="flex h-full flex-col border-r border-[#1b1f28] bg-[#0a0c11] text-[#e7e9ee]">
-      <Link href="/dashboard" className="flex h-16 shrink-0 items-center gap-2.5 px-4">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#7c5cff] text-[13px] font-black text-white">
-          P
-        </span>
-        <span className="text-[15px] font-semibold tracking-tight">
-          PromptForge
-        </span>
-      </Link>
+      <div
+        className={`flex shrink-0 items-center ${
+          isCollapsed ? 'flex-col gap-2 px-2 py-3' : 'h-16 gap-2.5 px-4'
+        }`}
+      >
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#7c5cff] text-[13px] font-black text-white">
+            P
+          </span>
+          {!isCollapsed && (
+            <span className="text-[15px] font-semibold tracking-tight">
+              PromptForge
+            </span>
+          )}
+        </Link>
 
-      <div className="px-3 pb-1">
+        <button
+          onClick={toggleCollapsed}
+          title={isCollapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+          aria-label={isCollapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+          className={`grid h-7 w-7 place-items-center rounded-md text-[#6f7686] hover:bg-white/[0.06] hover:text-white ${
+            isCollapsed ? 'w-full' : 'ml-auto'
+          }`}
+        >
+          <Icon
+            name={isCollapsed ? 'chevronRight' : 'chevronLeft'}
+            className="h-4 w-4"
+          />
+        </button>
+      </div>
+
+      <div className={isCollapsed ? 'px-2 pb-1' : 'px-3 pb-1'}>
         <Link
           href="/dashboard"
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#7c5cff] px-3 py-2 text-[13px] font-semibold text-white hover:bg-[#8b6fff]"
+          title="Yeni Proje"
+          className={`flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#7c5cff] py-2 text-[13px] font-semibold text-white hover:bg-[#8b6fff] ${
+            isCollapsed ? 'px-0' : 'px-3'
+          }`}
         >
           <Icon name="plus" className="h-4 w-4" strokeWidth={2} />
-          Yeni Proje
+          {!isCollapsed && 'Yeni Proje'}
         </Link>
       </div>
 
-      <nav className="pf-scroll min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+      <nav className={`pf-scroll min-h-0 flex-1 overflow-y-auto pb-4 ${isCollapsed ? 'px-2' : 'px-3'}`}>
         {groups.map((group) => (
           <div key={group.title}>
-            {groupLabel(group.title)}
-            <div className="space-y-0.5">{group.items.map(renderItem)}</div>
+            {groupLabel(group.title, isCollapsed)}
+            <div className="space-y-0.5">{group.items.map((item) => renderItem(item, isCollapsed))}</div>
           </div>
         ))}
 
         {isAdmin && (
           <div>
-            {groupLabel('Yönetim')}
-            <div className="space-y-0.5">{adminItems.map(renderItem)}</div>
+            {groupLabel('Yönetim', isCollapsed)}
+            <div className="space-y-0.5">{adminItems.map((item) => renderItem(item, isCollapsed))}</div>
           </div>
         )}
       </nav>
 
-      <div className="shrink-0 border-t border-[#1b1f28] px-3 py-3">
-        <div className="flex items-center gap-2.5 rounded-lg px-1 py-1">
+      <div className={`shrink-0 border-t border-[#1b1f28] py-3 ${isCollapsed ? 'px-2' : 'px-3'}`}>
+        <div
+          className={`flex items-center gap-2.5 rounded-lg px-1 py-1 ${
+            isCollapsed ? 'flex-col gap-1.5' : ''
+          }`}
+        >
           <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#1a1f2a] text-[11px] font-semibold uppercase text-[#a48bff]">
             {(email || '?').slice(0, 1)}
           </span>
-          <p className="min-w-0 flex-1 truncate text-[11.5px] text-[#7c8291]" title={email}>
-            {email || 'Misafir'}
-          </p>
+          {!isCollapsed && (
+            <p className="min-w-0 flex-1 truncate text-[11.5px] text-[#7c8291]" title={email}>
+              {email || 'Misafir'}
+            </p>
+          )}
           <button
             onClick={logout}
             aria-label="Çıkış yap"
@@ -256,8 +308,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#08090d] text-[#e7e9ee]">
       {/* SOL MENÜ — MASAÜSTÜ */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[236px] lg:block">
-        {sidebar}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 hidden transition-[width] duration-200 lg:block ${
+          collapsed ? 'w-[68px]' : 'w-[236px]'
+        }`}
+      >
+        {renderSidebar(collapsed)}
       </aside>
 
       {/* SOL MENÜ — MOBİL ÇEKMECE */}
@@ -269,7 +325,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           />
 
           <div className="pf-slide-in absolute inset-y-0 left-0 w-[272px] shadow-2xl">
-            {sidebar}
+            {renderSidebar(false)}
           </div>
         </div>
       )}
@@ -300,7 +356,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
       </header>
 
-      <main className="lg:pl-[236px]">{children}</main>
+      <main className={collapsed ? 'lg:pl-[68px]' : 'lg:pl-[236px]'}>{children}</main>
     </div>
   )
 }

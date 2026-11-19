@@ -32,6 +32,8 @@ export type IconName =
   | 'plus'
   | 'logout'
   | 'arrowRight'
+  | 'chevronLeft'
+  | 'chevronRight'
 
 const paths: Record<IconName, React.ReactNode> = {
   overview: (
@@ -171,6 +173,8 @@ const paths: Record<IconName, React.ReactNode> = {
     </>
   ),
   arrowRight: <path d="M5 12h13M13 6l6 6-6 6" />,
+  chevronLeft: <path d="M14 6l-6 6 6 6" />,
+  chevronRight: <path d="M10 6l6 6-6 6" />,
 }
 
 export default function Icon({

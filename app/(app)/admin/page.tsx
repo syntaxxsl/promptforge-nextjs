@@ -774,7 +774,7 @@ export default function AdminPanel() {
 
   return (
     <main className="min-h-screen bg-[#090b10] text-white p-5 md:p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full mx-auto">
 
         <header className="flex flex-wrap justify-between items-center gap-4 mb-8">
           <div>

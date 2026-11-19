@@ -252,7 +252,7 @@ export default function HealthPage() {
 
   return (
     <main className="min-h-screen bg-[#090b10] text-white p-5 md:p-8">
-      <div className="max-w-5xl mx-auto">
+      <div className="w-full max-w-[1400px] mx-auto">
         <header className="flex flex-wrap justify-between items-start gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold text-purple-300">Sistem Sağlığı</h1>
