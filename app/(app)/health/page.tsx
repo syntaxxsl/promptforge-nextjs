@@ -257,9 +257,10 @@ export default function HealthPage() {
           <div>
             <h1 className="text-3xl font-bold text-purple-300">Sistem Sağlığı</h1>
             <p className="text-gray-400 mt-2 text-sm max-w-2xl">
-              Site her saat başı kendi kendini tarar: güvenlik, veritabanı ve
-              yapılandırma kontrolleri. Sistem hiçbir şeyi kendi başına
-              değiştirmez, sadece burada rapor eder.
+              Site günde bir kez otomatik taranır; sayfayı açtığında son tarama bir
+              saatten eskiyse kendiliğinden yenilenir. Kontroller güvenlik,
+              veritabanı ve yapılandırma başlıklarını kapsar. Sistem hiçbir şeyi
+              kendi başına değiştirmez, sadece burada rapor eder.
             </p>
           </div>
 
@@ -440,7 +441,7 @@ export default function HealthPage() {
         <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mt-8">
           <h2 className="text-lg font-bold mb-1">Tarama geçmişi</h2>
           <p className="text-xs text-gray-500 mb-4">
-            Son 20 tarama. Otomatik tarama saat başı çalışır.
+            Son 20 tarama. Otomatik tarama günde bir, sayfa açılışında da tazelenir.
           </p>
 
           {runs.length === 0 ? (
