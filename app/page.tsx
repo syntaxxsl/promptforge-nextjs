@@ -70,7 +70,7 @@ function parseCode(raw: string) {
     .trim()
 
   const markerRegex = /---(HTML|CSS|JS)---/gi
-  const matches = [...text.matchAll(markerRegex)]
+  const matches = Array.from(text.matchAll(markerRegex))
 
   if (matches.length) {
     const result = { html: '', css: '', js: '' }
