@@ -14,11 +14,19 @@ const devices = [
 
 export default function ResponsivePage() {
   const router = useRouter()
+
   const [url, setUrl] = useState('https://promptforge-nextjs.vercel.app')
+  const [previewUrl, setPreviewUrl] = useState('https://promptforge-nextjs.vercel.app')
   const [width, setWidth] = useState(375)
   const [customWidth, setCustomWidth] = useState('375')
   const [error, setError] = useState('')
-  const [previewUrl, setPreviewUrl] = useState('https://promptforge-nextjs.vercel.app')
+  const [reloadKey, setReloadKey] = useState(0)
+
+  const changeWidth = (value: number) => {
+    const safeWidth = Math.min(1920, Math.max(280, value))
+    setWidth(safeWidth)
+    setCustomWidth(String(safeWidth))
+  }
 
   const loadWebsite = () => {
     try {
@@ -31,20 +39,16 @@ export default function ResponsivePage() {
 
       setError('')
       setPreviewUrl(parsed.href)
+      setReloadKey(prev => prev + 1)
     } catch {
       setError('Geçerli bir web adresi gir.')
     }
   }
 
-  const changeWidth = (value: number) => {
-    const safeWidth = Math.min(1920, Math.max(280, value))
-    setWidth(safeWidth)
-    setCustomWidth(String(safeWidth))
-  }
-
   return (
     <main className="min-h-screen bg-[#09090f] text-white p-5 md:p-8">
       <div className="max-w-7xl mx-auto">
+
         <button
           onClick={() => router.back()}
           className="text-gray-400 hover:text-white mb-6"
@@ -57,7 +61,7 @@ export default function ResponsivePage() {
         </h1>
 
         <p className="text-gray-400 mb-8">
-          Web siteni farklı ekran boyutlarında görüntüle.
+          Web siteni farklı ekran boyutlarında test et.
         </p>
 
         <section className="bg-[#151520] border border-white/10 rounded-2xl p-5 mb-6">
@@ -88,7 +92,9 @@ export default function ResponsivePage() {
         </section>
 
         <section className="bg-[#151520] border border-white/10 rounded-2xl p-5 mb-6">
-          <h2 className="font-semibold mb-4">Cihaz boyutları</h2>
+          <h2 className="font-semibold mb-4">
+            Cihaz boyutları
+          </h2>
 
           <div className="flex flex-wrap gap-2">
             {devices.map(device => (
@@ -102,7 +108,9 @@ export default function ResponsivePage() {
                 }`}
               >
                 {device.icon} {device.name}
-                <span className="block text-xs mt-1">{device.width}px</span>
+                <span className="block text-xs mt-1">
+                  {device.width}px
+                </span>
               </button>
             ))}
           </div>
@@ -117,13 +125,7 @@ export default function ResponsivePage() {
               min="280"
               max="1920"
               value={customWidth}
-              onChange={e => {
-                setCustomWidth(e.target.value)
-                const value = Number(e.target.value)
-                if (value >= 280 && value <= 1920) {
-                  setWidth(value)
-                }
-              }}
+              onChange={e => setCustomWidth(e.target.value)}
               className="w-28 bg-[#09090f] border border-white/10 rounded-lg p-2 outline-none"
             />
 
@@ -140,10 +142,22 @@ export default function ResponsivePage() {
 
         <section className="bg-[#151520] border border-white/10 rounded-2xl p-4">
           <div className="flex justify-between items-center gap-3 flex-wrap mb-4">
-            <h2 className="font-semibold">Canlı önizleme</h2>
-            <span className="text-sm text-violet-300">
-              {width}px genişlik
-            </span>
+            <h2 className="font-semibold">
+              Canlı önizleme
+            </h2>
+
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-violet-300">
+                {width}px
+              </span>
+
+              <button
+                onClick={() => setReloadKey(prev => prev + 1)}
+                className="text-sm bg-white/10 px-3 py-2 rounded-lg hover:bg-white/20"
+              >
+                ↻ Yenile
+              </button>
+            </div>
           </div>
 
           <div className="bg-[#09090f] rounded-xl p-3 overflow-auto">
@@ -151,16 +165,19 @@ export default function ResponsivePage() {
               className="mx-auto bg-white rounded-lg overflow-hidden"
               style={{
                 width: `${width}px`,
-                maxWidth: '100%',
-                transition: 'width 0.25s ease'
+                minWidth: `${width}px`,
+                maxWidth: 'none'
               }}
             >
               <iframe
-                key={previewUrl}
+                key={reloadKey}
                 src={previewUrl}
                 title="Responsive website preview"
-                className="block w-full border-0"
-                style={{ height: '750px' }}
+                className="block border-0"
+                style={{
+                  width: `${width}px`,
+                  height: '750px'
+                }}
                 sandbox="allow-scripts allow-forms"
                 referrerPolicy="no-referrer"
               />
@@ -168,9 +185,11 @@ export default function ResponsivePage() {
           </div>
 
           <p className="text-xs text-gray-500 mt-4">
-            Not: Bazı siteler güvenlik ayarları nedeniyle iframe içinde açılmayı engeller. Bu durumda önizleme görüntülenemeyebilir.
+            Önizleme seçilen piksel genişliğinde oluşturulur.
+            Bazı siteler güvenlik ayarları nedeniyle iframe içinde açılmayabilir.
           </p>
         </section>
+
       </div>
     </main>
   )
