@@ -25,6 +25,11 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  const [reportProject, setReportProject] = useState<Project | null>(null)
+  const [reportReason, setReportReason] = useState('Uygunsuz içerik')
+  const [reportDetails, setReportDetails] = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+
   useEffect(() => {
     loadGallery()
   }, [])
@@ -77,7 +82,12 @@ export default function GalleryPage() {
           .in('project_id', ids)
 
         setLikedIds((myLikes || []).map(like => like.project_id))
+      } else {
+        setLikedIds([])
       }
+    } else {
+      setLikeCounts({})
+      setLikedIds([])
     }
 
     setLoading(false)
@@ -157,6 +167,59 @@ export default function GalleryPage() {
     }
 
     alert('Proje hesabına kopyalandı!')
+  }
+
+  const openReport = (project: Project) => {
+    if (!userId) {
+      alert('Şikâyet göndermek için giriş yapmalısın.')
+      return
+    }
+
+    if (project.user_id === userId) {
+      alert('Kendi projen için şikâyet oluşturamazsın.')
+      return
+    }
+
+    setReportProject(project)
+    setReportReason('Uygunsuz içerik')
+    setReportDetails('')
+  }
+
+  const submitReport = async () => {
+    if (!userId || !reportProject) {
+      alert('Şikâyet göndermek için giriş yapmalısın.')
+      return
+    }
+
+    if (reportProject.user_id === userId) {
+      alert('Kendi projen için şikâyet oluşturamazsın.')
+      setReportProject(null)
+      return
+    }
+
+    if (reportSubmitting) return
+
+    setReportSubmitting(true)
+
+    const { error } = await supabase
+      .from('reports')
+      .insert({
+        reporter_id: userId,
+        project_id: reportProject.id,
+        reason: reportReason,
+        details: reportDetails.trim() || null
+      })
+
+    setReportSubmitting(false)
+
+    if (error) {
+      alert('Şikâyet gönderilemedi: ' + error.message)
+      return
+    }
+
+    setReportProject(null)
+    setReportDetails('')
+    alert('Şikâyetin başarıyla gönderildi. Teşekkürler!')
   }
 
   const getPreview = (project: Project) => {
@@ -241,7 +304,7 @@ export default function GalleryPage() {
                     {project.prompt || 'Açıklama bulunmuyor.'}
                   </p>
 
-                  <div className="flex items-center justify-between gap-3 mt-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mt-6">
                     <button
                       onClick={() => toggleLike(project.id)}
                       disabled={busyId === project.id}
@@ -263,12 +326,99 @@ export default function GalleryPage() {
                       {busyId === project.id ? 'İşleniyor...' : 'Projeyi Kopyala'}
                     </button>
                   </div>
+
+                  {project.user_id !== userId && (
+                    <button
+                      onClick={() => openReport(project)}
+                      className="w-full mt-3 px-4 py-2 rounded-xl border border-red-500/30 text-red-300 hover:bg-red-500/10 transition font-semibold"
+                    >
+                      ⚑ Şikâyet Et
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
           </div>
         )}
       </div>
+
+      {reportProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111827] p-6 shadow-2xl">
+
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <h2 className="text-xl font-bold">
+                Projeyi Şikâyet Et
+              </h2>
+
+              <button
+                onClick={() => setReportProject(null)}
+                disabled={reportSubmitting}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-400 mb-5">
+              Şikâyet edilen proje: <span className="text-white font-semibold">{reportProject.title}</span>
+            </p>
+
+            <label className="block text-sm font-semibold mb-2">
+              Şikâyet sebebi
+            </label>
+
+            <select
+              value={reportReason}
+              onChange={e => setReportReason(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-[#080b14] px-4 py-3 text-white outline-none focus:border-indigo-500"
+            >
+              <option>Uygunsuz içerik</option>
+              <option>Telif hakkı ihlali</option>
+              <option>Spam veya reklam</option>
+              <option>Yanıltıcı içerik</option>
+              <option>Hakaret veya taciz</option>
+              <option>Diğer</option>
+            </select>
+
+            <label className="block text-sm font-semibold mt-5 mb-2">
+              Açıklama (isteğe bağlı)
+            </label>
+
+            <textarea
+              value={reportDetails}
+              onChange={e => setReportDetails(e.target.value)}
+              maxLength={1000}
+              rows={4}
+              placeholder="Şikâyet sebebini açıklayabilirsin..."
+              className="w-full resize-none rounded-xl border border-white/10 bg-[#080b14] px-4 py-3 text-white outline-none focus:border-indigo-500"
+            />
+
+            <p className="text-xs text-gray-500 text-right mt-1">
+              {reportDetails.length}/1000
+            </p>
+
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setReportProject(null)}
+                disabled={reportSubmitting}
+                className="flex-1 rounded-xl bg-white/10 hover:bg-white/20 py-3 font-bold transition disabled:opacity-50"
+              >
+                Vazgeç
+              </button>
+
+              <button
+                onClick={submitReport}
+                disabled={reportSubmitting}
+                className="flex-1 rounded-xl bg-red-600 hover:bg-red-500 py-3 font-bold transition disabled:opacity-50"
+              >
+                {reportSubmitting ? 'Gönderiliyor...' : 'Şikâyeti Gönder'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </main>
   )
 }
