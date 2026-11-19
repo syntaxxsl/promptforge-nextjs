@@ -29,6 +29,16 @@ type Ticket = {
   replied_at?: string | null
 }
 
+type Feedback = {
+  id: string
+  user_id: string
+  type: string
+  subject: string
+  message: string
+  status: string
+  created_at: string
+}
+
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([])
   const [recentUsers, setRecentUsers] = useState<User[]>([])
@@ -44,8 +54,12 @@ export default function AdminPanel() {
   const [ticketFilter, setTicketFilter] = useState('all')
   const [replies, setReplies] = useState<Record<string, string>>({})
 
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
+  const [feedbackFilter, setFeedbackFilter] = useState('all')
+
   const [loading, setLoading] = useState(true)
   const [ticketLoading, setTicketLoading] = useState(false)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -134,9 +148,42 @@ export default function AdminPanel() {
     }
   }
 
+  const fetchFeedbacks = async () => {
+    setFeedbackLoading(true)
+
+    try {
+      const token = await getToken()
+
+      const response = await fetch('/api/admin/feedback', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Geri bildirimler alınamadı.')
+      }
+
+      setFeedbacks(result.feedback || [])
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Geri bildirimler yüklenemedi.'
+      )
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchUsers()
     fetchTickets()
+    fetchFeedbacks()
   }, [])
 
   const handleAction = async (
@@ -227,15 +274,85 @@ export default function AdminPanel() {
     }
   }
 
+  const updateFeedback = async (
+    feedbackId: string,
+    status: string
+  ) => {
+    setBusy(feedbackId)
+    setMessage('')
+
+    try {
+      const token = await getToken()
+
+      const response = await fetch('/api/admin/feedback', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: feedbackId,
+          status,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || 'Geri bildirim güncellenemedi.'
+        )
+      }
+
+      setMessage('Geri bildirim durumu güncellendi.')
+      await fetchFeedbacks()
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Geri bildirim güncellenemedi.'
+      )
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const filteredTickets = tickets.filter((ticket) => {
     if (ticketFilter === 'all') return true
     return ticket.status === ticketFilter
+  })
+
+  const filteredFeedbacks = feedbacks.filter((feedback) => {
+    if (feedbackFilter === 'all') return true
+
+    if (feedbackFilter === 'suggestion' ||
+        feedbackFilter === 'bug' ||
+        feedbackFilter === 'feature') {
+      return feedback.type === feedbackFilter
+    }
+
+    return feedback.status === feedbackFilter
   })
 
   const getStatusLabel = (status: string) => {
     if (status === 'open') return 'Açık'
     if (status === 'in_progress') return 'İşlemde'
     if (status === 'closed') return 'Kapalı'
+    return status
+  }
+
+  const getFeedbackType = (type: string) => {
+    if (type === 'suggestion') return 'Öneri'
+    if (type === 'bug') return 'Hata Bildirimi'
+    if (type === 'feature') return 'Özellik İsteği'
+    return type
+  }
+
+  const getFeedbackStatus = (status: string) => {
+    if (status === 'pending') return 'Beklemede'
+    if (status === 'reviewing') return 'İnceleniyor'
+    if (status === 'completed') return 'Tamamlandı'
+    if (status === 'rejected') return 'Reddedildi'
     return status
   }
 
@@ -269,6 +386,7 @@ export default function AdminPanel() {
             onClick={() => {
               fetchUsers()
               fetchTickets()
+              fetchFeedbacks()
             }}
             className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl"
           >
@@ -413,7 +531,7 @@ export default function AdminPanel() {
           )}
         </section>
 
-        <section className="bg-[#101827] border border-cyan-500/20 rounded-2xl p-5">
+        <section className="bg-[#101827] border border-cyan-500/20 rounded-2xl p-5 mb-8">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div>
               <h2 className="text-xl font-bold">Destek Talepleri</h2>
@@ -588,6 +706,197 @@ export default function AdminPanel() {
                       </button>
                     </div>
                   </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* GERİ BİLDİRİM YÖNETİMİ */}
+
+        <section className="bg-[#101827] border border-purple-500/20 rounded-2xl p-5">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div>
+              <h2 className="text-xl font-bold">
+                Geri Bildirim Yönetimi
+              </h2>
+              <p className="text-gray-400 text-sm mt-1">
+                Kullanıcı önerilerini, hata bildirimlerini ve özellik isteklerini yönet.
+              </p>
+            </div>
+
+            <button
+              onClick={fetchFeedbacks}
+              disabled={feedbackLoading}
+              className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+            >
+              {feedbackLoading ? 'Yükleniyor...' : 'Yenile'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-gray-400 text-sm">Toplam</p>
+              <p className="text-2xl font-bold mt-2">
+                {feedbacks.length}
+              </p>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-gray-400 text-sm">Bekleyen</p>
+              <p className="text-2xl font-bold text-yellow-400 mt-2">
+                {feedbacks.filter((f) => f.status === 'pending').length}
+              </p>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-gray-400 text-sm">İncelenen</p>
+              <p className="text-2xl font-bold text-cyan-400 mt-2">
+                {feedbacks.filter((f) => f.status === 'reviewing').length}
+              </p>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-gray-400 text-sm">Tamamlanan</p>
+              <p className="text-2xl font-bold text-green-400 mt-2">
+                {feedbacks.filter((f) => f.status === 'completed').length}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-6">
+            {[
+              { value: 'all', label: 'Tümü' },
+              { value: 'pending', label: 'Bekleyen' },
+              { value: 'reviewing', label: 'İnceleniyor' },
+              { value: 'completed', label: 'Tamamlandı' },
+              { value: 'rejected', label: 'Reddedildi' },
+              { value: 'suggestion', label: 'Öneriler' },
+              { value: 'bug', label: 'Hata Bildirimleri' },
+              { value: 'feature', label: 'Özellik İstekleri' },
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setFeedbackFilter(filter.value)}
+                className={`px-3 py-2 rounded-lg text-xs ${
+                  feedbackFilter === filter.value
+                    ? 'bg-purple-500 text-white font-semibold'
+                    : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+
+          {feedbackLoading ? (
+            <p className="text-gray-400 py-6">
+              Geri bildirimler yükleniyor...
+            </p>
+          ) : filteredFeedbacks.length === 0 ? (
+            <p className="text-gray-400 py-6">
+              Bu filtrede geri bildirim bulunmuyor.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {filteredFeedbacks.map((feedback) => (
+                <article
+                  key={feedback.id}
+                  className="bg-[#080e19] border border-white/10 rounded-xl p-4 md:p-5"
+                >
+                  <div className="flex flex-wrap justify-between gap-3 mb-4">
+                    <div>
+                      <span className="text-purple-400 text-xs font-semibold">
+                        {getFeedbackType(feedback.type)}
+                      </span>
+
+                      <h3 className="text-lg font-bold mt-1">
+                        {feedback.subject}
+                      </h3>
+
+                      <p className="text-xs text-gray-500 mt-2 break-all">
+                        Kullanıcı ID: {feedback.user_id}
+                      </p>
+
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatDate(feedback.created_at)}
+                      </p>
+                    </div>
+
+                    <span className="h-fit px-3 py-1 rounded-full text-xs bg-purple-500/10 text-purple-300">
+                      {getFeedbackStatus(feedback.status)}
+                    </span>
+                  </div>
+
+                  <div className="bg-white/5 rounded-lg p-4 mb-5">
+                    <p className="text-xs text-gray-400 mb-2">
+                      Kullanıcının mesajı
+                    </p>
+
+                    <p className="text-gray-200 whitespace-pre-wrap break-words">
+                      {feedback.message}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      disabled={
+                        busy === feedback.id ||
+                        feedback.status === 'reviewing'
+                      }
+                      onClick={() =>
+                        updateFeedback(feedback.id, 'reviewing')
+                      }
+                      className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                    >
+                      İncelemeye Al
+                    </button>
+
+                    <button
+                      disabled={
+                        busy === feedback.id ||
+                        feedback.status === 'completed'
+                      }
+                      onClick={() =>
+                        updateFeedback(feedback.id, 'completed')
+                      }
+                      className="bg-green-600/20 hover:bg-green-600/30 text-green-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                    >
+                      Tamamlandı
+                    </button>
+
+                    <button
+                      disabled={
+                        busy === feedback.id ||
+                        feedback.status === 'rejected'
+                      }
+                      onClick={() =>
+                        updateFeedback(feedback.id, 'rejected')
+                      }
+                      className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                    >
+                      Reddet
+                    </button>
+
+                    <button
+                      disabled={
+                        busy === feedback.id ||
+                        feedback.status === 'pending'
+                      }
+                      onClick={() =>
+                        updateFeedback(feedback.id, 'pending')
+                      }
+                      className="bg-white/10 hover:bg-white/20 text-gray-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                    >
+                      Beklemeye Al
+                    </button>
+                  </div>
+
+                  {busy === feedback.id && (
+                    <p className="text-xs text-gray-400 mt-3">
+                      Güncelleniyor...
+                    </p>
+                  )}
                 </article>
               ))}
             </div>
