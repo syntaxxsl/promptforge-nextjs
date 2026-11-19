@@ -8,11 +8,14 @@ export type AdminAction =
   | 'support.reply'
   | 'report.update'
   | 'feedback.update'
+  | 'user.permissions'
+  | 'security.ipban'
+  | 'security.ipunban'
 
 type LogParams = {
   action: AdminAction
   actorId: string
-  targetType: 'user' | 'support_ticket' | 'report' | 'feedback'
+  targetType: 'user' | 'support_ticket' | 'report' | 'feedback' | 'ip_ban'
   targetId: string
   detail?: Record<string, unknown>
   ip?: string

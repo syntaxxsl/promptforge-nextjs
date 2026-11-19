@@ -3,13 +3,28 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import Icon from '../../components/Icon'
+import {
+  PERMISSION_LIST,
+  normalizePermissions,
+  type PermissionKey,
+} from '../../../lib/permissions'
 
 type User = {
   id: string
   email: string
   role?: string
   approval_status: string
+  permissions?: string[] | null
   created_at?: string
+}
+
+type IpBan = {
+  id: string
+  ip: string
+  reason?: string | null
+  created_at: string
+  expires_at?: string | null
 }
 
 type Stats = {
@@ -135,6 +150,9 @@ const LOG_ACTIONS: Record<string, string> = {
   'support.reply': 'Destek talebi yanıtlandı',
   'report.update': 'Rapor güncellendi',
   'feedback.update': 'Geri bildirim güncellendi',
+  'user.permissions': 'Yetkiler güncellendi',
+  'security.ipban': 'IP adresi engellendi',
+  'security.ipunban': 'IP engeli kaldırıldı',
 }
 
 export default function AdminPanel() {
@@ -176,6 +194,24 @@ export default function AdminPanel() {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [banReason, setBanReason] = useState('')
+
+  // YETKİLER
+  const [me, setMe] = useState<{ role: string; permissions: PermissionKey[] }>({
+    role: '',
+    permissions: [],
+  })
+  const [accessReady, setAccessReady] = useState(false)
+  const [tab, setTab] = useState('overview')
+  const [permUser, setPermUser] = useState<User | null>(null)
+  const [permDraft, setPermDraft] = useState<PermissionKey[]>([])
+  const [permRole, setPermRole] = useState('user')
+  const [permSaving, setPermSaving] = useState(false)
+
+  // GÜVENLİK
+  const [ipBans, setIpBans] = useState<IpBan[]>([])
+  const [ipSetup, setIpSetup] = useState(false)
+  const [ipForm, setIpForm] = useState({ ip: '', reason: '', hours: '24' })
+  const [ipSaving, setIpSaving] = useState(false)
 
   const getToken = async () => {
     const { data, error } = await supabase.auth.getSession()
@@ -407,20 +443,191 @@ export default function AdminPanel() {
     }
   }
 
+  const canAccess = (key: PermissionKey) => {
+    if (me.role === 'admin') return true
+    return me.permissions.includes(key)
+  }
+
+  const tabs = (
+    [
+      { key: 'overview', label: 'Genel Bakış', permission: null },
+      { key: 'users', label: 'Kullanıcılar', permission: 'users' },
+      { key: 'traffic', label: 'Trafik', permission: 'traffic' },
+      { key: 'support', label: 'Destek', permission: 'support' },
+      { key: 'reports', label: 'Raporlar', permission: 'reports' },
+      { key: 'security', label: 'Güvenlik', permission: 'security' },
+      { key: 'logs', label: 'Kayıtlar', permission: 'logs' },
+    ] as { key: string; label: string; permission: PermissionKey | null }[]
+  ).filter((item) => !item.permission || canAccess(item.permission))
+
+  const fetchIpBans = async () => {
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/ip-bans', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'IP listesi alınamadı.')
+
+      setIpBans(result.bans || [])
+      setIpSetup(Boolean(result.needsSetup))
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'IP listesi alınamadı.')
+    }
+  }
+
+  const openPermissions = (user: User) => {
+    setPermUser(user)
+    setPermDraft(normalizePermissions(user.permissions))
+    setPermRole(String(user.role || 'user').toLowerCase())
+  }
+
+  const savePermissions = async () => {
+    if (!permUser) return
+
+    setPermSaving(true)
+    setMessage('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/permissions', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: permUser.id,
+          permissions: permRole === 'admin' ? [] : permDraft,
+          role: permRole,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Yetkiler kaydedilemedi.')
+
+      await Promise.all([fetchUsers(), fetchLogs()])
+      setMessage(result.message || 'Yetkiler güncellendi.')
+      setPermUser(null)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Yetkiler kaydedilemedi.')
+    } finally {
+      setPermSaving(false)
+    }
+  }
+
+  const addIpBan = async () => {
+    setIpSaving(true)
+    setMessage('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/ip-bans', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ip: ipForm.ip,
+          reason: ipForm.reason,
+          hours: Number(ipForm.hours),
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'IP engellenemedi.')
+
+      setIpForm({ ip: '', reason: '', hours: '24' })
+      await Promise.all([fetchIpBans(), fetchLogs()])
+      setMessage(`${result.ban?.ip || 'IP'} engellendi.`)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'IP engellenemedi.')
+    } finally {
+      setIpSaving(false)
+    }
+  }
+
+  const removeIpBan = async (id: string) => {
+    try {
+      const token = await getToken()
+      const response = await fetch(`/api/admin/ip-bans?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}))
+        throw new Error(result.error || 'Engel kaldırılamadı.')
+      }
+
+      await Promise.all([fetchIpBans(), fetchLogs()])
+      setMessage('Engel kaldırıldı.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Engel kaldırılamadı.')
+    }
+  }
+
   useEffect(() => {
-    fetchUsers()
-    fetchTickets()
-    fetchFeedbacks()
-    fetchReports()
-    fetchLogs()
-    fetchTraffic()
+    let interval: number | undefined
 
-    // Canlı trafik her 30 saniyede bir kendini tazeler.
-    const interval = window.setInterval(() => {
-      fetchTraffic()
-    }, 30_000)
+    const boot = async () => {
+      const { data: authData } = await supabase.auth.getUser()
+      const userId = authData.user?.id
 
-    return () => window.clearInterval(interval)
+      let role = ''
+      let permissions: PermissionKey[] = []
+
+      if (userId) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role, permissions')
+          .eq('id', userId)
+          .maybeSingle()
+
+        role = String(profile?.role || '').toLowerCase().trim()
+        permissions = normalizePermissions((profile as any)?.permissions)
+      }
+
+      setMe({ role, permissions })
+      setAccessReady(true)
+
+      const can = (key: PermissionKey) =>
+        role === 'admin' || permissions.includes(key)
+
+      if (can('users') || can('manage_permissions')) {
+        fetchUsers()
+      } else {
+        setLoading(false)
+      }
+
+      if (can('traffic')) {
+        fetchTraffic()
+        // Canlı trafik her 30 saniyede bir kendini tazeler.
+        interval = window.setInterval(() => {
+          fetchTraffic()
+        }, 30_000)
+      }
+
+      if (can('support')) {
+        fetchTickets()
+        fetchFeedbacks()
+      }
+
+      if (can('reports')) fetchReports()
+      if (can('logs')) fetchLogs()
+      if (can('security')) fetchIpBans()
+    }
+
+    boot()
+
+    return () => {
+      if (interval) window.clearInterval(interval)
+    }
   }, [])
 
   const handleAction = async (
@@ -776,30 +983,56 @@ export default function AdminPanel() {
     <main className="min-h-screen bg-[#090b10] text-white p-5 md:p-8">
       <div className="w-full mx-auto">
 
-        <header className="flex flex-wrap justify-between items-center gap-4 mb-8">
+        <header className="flex flex-wrap items-end justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-purple-300">
-              PromptForge Admin
+            <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-gray-500">
+              <span className="h-px w-3 bg-purple-500/60" />
+              Yönetim
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+              Admin Paneli
             </h1>
-            <p className="text-gray-400 mt-2">
-              Yönetim ve sistem kontrol paneli
+            <p className="mt-1 text-[13px] text-gray-400">
+              {me.role === 'admin'
+                ? 'Tüm bölümlere erişimin var.'
+                : 'Sadece yetkili olduğun bölümler görünür.'}
             </p>
           </div>
 
           <button
             onClick={() => {
-              fetchUsers()
-              fetchTickets()
-              fetchFeedbacks()
-              fetchReports()
-              fetchLogs()
-              fetchTraffic()
+              if (canAccess('users')) fetchUsers()
+              if (canAccess('support')) {
+                fetchTickets()
+                fetchFeedbacks()
+              }
+              if (canAccess('reports')) fetchReports()
+              if (canAccess('logs')) fetchLogs()
+              if (canAccess('traffic')) fetchTraffic()
+              if (canAccess('security')) fetchIpBans()
             }}
-            className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-5 py-3 rounded-xl"
+            className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-[13px] font-medium text-gray-200 hover:bg-white/5"
           >
-            ↻ Yenile
+            <Icon name="activity" className="h-4 w-4" />
+            Yenile
           </button>
         </header>
+
+        <nav className="mb-6 flex flex-wrap gap-1 border-b border-white/10 pb-2">
+          {tabs.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setTab(item.key)}
+              className={`rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+                tab === item.key
+                  ? 'bg-white/[0.07] text-white'
+                  : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-200'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
 
         {message && (
           <div className="mb-6 p-4 rounded-xl bg-white/5 border border-white/10 text-yellow-300">
@@ -812,7 +1045,7 @@ export default function AdminPanel() {
           </div>
         )}
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <section className={`${tab === 'overview' ? '' : 'hidden'} grid grid-cols-1 md:grid-cols-3 gap-4 mb-8`}>
           <div className="bg-[#11141d] border border-white/10 rounded-2xl p-6">
             <p className="text-gray-400">Toplam Kullanıcı</p>
             <h2 className="text-3xl font-bold mt-3">
@@ -835,7 +1068,7 @@ export default function AdminPanel() {
           </div>
         </section>
 
-        <section className="bg-[#11141d] border border-purple-500/20 rounded-2xl p-5 mb-8">
+        <section className={`${tab === 'traffic' ? '' : 'hidden'} bg-[#11141d] border border-purple-500/20 rounded-2xl p-5 mb-8`}>
           <div className="flex flex-wrap justify-between items-center gap-3 mb-5">
             <div>
               <h2 className="text-xl font-bold">Canlı Trafik ve Oturumlar</h2>
@@ -1068,7 +1301,7 @@ export default function AdminPanel() {
           )}
         </section>
 
-        <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8">
+        <section className={`${tab === 'overview' ? '' : 'hidden'} bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8`}>
           <h2 className="text-xl font-bold mb-5">
             Son Kayıt Olan Kullanıcılar
           </h2>
@@ -1099,7 +1332,7 @@ export default function AdminPanel() {
           )}
         </section>
 
-        <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8">
+        <section className={`${tab === 'users' ? '' : 'hidden'} bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8`}>
           <h2 className="text-xl font-bold mb-5">
             Kullanıcı Onayları
           </h2>
@@ -1145,7 +1378,7 @@ export default function AdminPanel() {
           )}
         </section>
 
-        <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8">
+        <section className={`${tab === 'users' ? '' : 'hidden'} bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8`}>
           <h2 className="text-xl font-bold mb-5">
             Tüm Kullanıcılar ({allUsers.length})
           </h2>
@@ -1167,7 +1400,14 @@ export default function AdminPanel() {
                   {allUsers.map((user) => (
                     <tr key={user.id} className="border-b border-white/5">
                       <td className="py-4 break-all">{user.email}</td>
-                      <td className="py-4">{user.role || 'user'}</td>
+                      <td className="py-4">
+                        <span className="capitalize">{user.role || 'user'}</span>
+                        {normalizePermissions(user.permissions).length > 0 && (
+                          <span className="ml-2 rounded bg-purple-500/15 px-1.5 py-0.5 text-[10px] text-purple-300">
+                            {normalizePermissions(user.permissions).length} yetki
+                          </span>
+                        )}
+                      </td>
                       <td className="py-4">
                         <span
                           className={`px-3 py-1 rounded-full text-xs ${
@@ -1182,6 +1422,15 @@ export default function AdminPanel() {
                         </span>
                       </td>
                       <td className="py-4 text-right">
+                        {canAccess('manage_permissions') && (
+                          <button
+                            onClick={() => openPermissions(user)}
+                            className="mr-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10"
+                          >
+                            Yetkiler
+                          </button>
+                        )}
+
                         {user.approval_status === 'banned' ? (
                           <button
                             disabled={busy === user.id}
@@ -1213,7 +1462,7 @@ export default function AdminPanel() {
 
         {/* DESTEK TALEPLERİ */}
 
-        <section className="bg-[#11141d] border border-purple-500/20 rounded-2xl p-5 mb-8">
+        <section className={`${tab === 'support' ? '' : 'hidden'} bg-[#11141d] border border-purple-500/20 rounded-2xl p-5 mb-8`}>
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div>
               <h2 className="text-xl font-bold">Destek Talepleri</h2>
@@ -1396,7 +1645,7 @@ export default function AdminPanel() {
 
         {/* GERİ BİLDİRİM YÖNETİMİ */}
 
-        <section className="bg-[#11141d] border border-purple-500/20 rounded-2xl p-5 mb-8">
+        <section className={`${tab === 'support' ? '' : 'hidden'} bg-[#11141d] border border-purple-500/20 rounded-2xl p-5 mb-8`}>
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div>
               <h2 className="text-xl font-bold">
@@ -1585,7 +1834,7 @@ export default function AdminPanel() {
 
         {/* RAPOR YÖNETİMİ */}
 
-        <section className="bg-[#11141d] border border-red-500/20 rounded-2xl p-5 mb-8">
+        <section className={`${tab === 'reports' ? '' : 'hidden'} bg-[#11141d] border border-red-500/20 rounded-2xl p-5 mb-8`}>
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div>
               <h2 className="text-xl font-bold">Rapor Yönetimi</h2>
@@ -1753,7 +2002,103 @@ export default function AdminPanel() {
           )}
         </section>
 
-        <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8">
+                {/* GÜVENLİK */}
+        <section
+          className={`${tab === 'security' ? '' : 'hidden'} bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8`}
+        >
+          <div className="mb-5">
+            <h2 className="text-xl font-bold">IP Engelleme</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Engellenen adresler siteye hiç giremez. Süre seçersen engel kendiliğinden kalkar.
+            </p>
+          </div>
+
+          {ipSetup && (
+            <div className="mb-5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
+              IP engelleme tablosu bulunamadı. Supabase SQL Editor&apos;de
+              <code className="mx-1 rounded bg-black/30 px-1">supabase/admin-security.sql</code>
+              dosyasını çalıştır.
+            </div>
+          )}
+
+          <div className="grid gap-2 sm:grid-cols-[1.2fr_1.6fr_0.8fr_auto] mb-6">
+            <input
+              value={ipForm.ip}
+              onChange={(event) => setIpForm({ ...ipForm, ip: event.target.value })}
+              placeholder="IP adresi (örn. 88.12.34.56)"
+              className="rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm outline-none focus:border-purple-500/60"
+            />
+            <input
+              value={ipForm.reason}
+              onChange={(event) => setIpForm({ ...ipForm, reason: event.target.value })}
+              placeholder="Neden (isteğe bağlı)"
+              className="rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm outline-none focus:border-purple-500/60"
+            />
+            <select
+              value={ipForm.hours}
+              onChange={(event) => setIpForm({ ...ipForm, hours: event.target.value })}
+              className="rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-sm outline-none focus:border-purple-500/60"
+            >
+              <option value="1">1 saat</option>
+              <option value="24">24 saat</option>
+              <option value="168">7 gün</option>
+              <option value="720">30 gün</option>
+              <option value="0">Süresiz</option>
+            </select>
+            <button
+              onClick={addIpBan}
+              disabled={ipSaving || !ipForm.ip.trim()}
+              className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+            >
+              {ipSaving ? 'Ekleniyor...' : 'Engelle'}
+            </button>
+          </div>
+
+          {ipBans.length === 0 ? (
+            <p className="text-sm text-gray-400">Engellenen adres yok.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-white/10 text-gray-400">
+                  <tr>
+                    <th className="py-3">IP</th>
+                    <th className="py-3">Neden</th>
+                    <th className="py-3">Bitiş</th>
+                    <th className="py-3 text-right">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ipBans.map((ban) => {
+                    const expired =
+                      ban.expires_at && Date.parse(ban.expires_at) < Date.now()
+
+                    return (
+                      <tr key={ban.id} className="border-b border-white/5">
+                        <td className="py-3 font-mono text-[13px]">{ban.ip}</td>
+                        <td className="py-3 text-gray-300">{ban.reason || '-'}</td>
+                        <td className="py-3 text-gray-400">
+                          {ban.expires_at
+                            ? `${formatDate(ban.expires_at)}${expired ? ' (doldu)' : ''}`
+                            : 'Süresiz'}
+                        </td>
+                        <td className="py-3 text-right">
+                          <button
+                            onClick={() => removeIpBan(ban.id)}
+                            className="rounded-lg bg-green-600/20 px-3 py-2 text-xs text-green-300 hover:bg-green-600/30"
+                          >
+                            Engeli Kaldır
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+<section className={`${tab === 'logs' ? '' : 'hidden'} bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8`}>
           <div className="flex flex-wrap justify-between items-center gap-3 mb-5">
             <div>
               <h2 className="text-xl font-bold">İşlem Kayıtları</h2>
@@ -1831,6 +2176,112 @@ export default function AdminPanel() {
           )}
         </section>
 
+
+        {permUser && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
+            <div className="max-h-[88vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0f121a] p-5">
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">Yetkiler</h2>
+                  <p className="mt-1 break-all text-[13px] text-gray-400">
+                    {permUser.email}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setPermUser(null)}
+                  aria-label="Kapat"
+                  className="rounded-lg px-2 py-1 text-gray-400 hover:bg-white/5"
+                >
+                  <Icon name="plus" className="h-4 w-4 rotate-45" />
+                </button>
+              </div>
+
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">
+                Rol
+              </p>
+
+              <div className="mb-5 flex gap-2">
+                {[
+                  { value: 'user', label: 'Kullanıcı', hint: 'Sadece verdiğin yetkiler' },
+                  { value: 'admin', label: 'Yönetici', hint: 'Her şeye erişim' },
+                ].map((role) => (
+                  <button
+                    key={role.value}
+                    onClick={() => setPermRole(role.value)}
+                    className={`flex-1 rounded-xl border px-3 py-3 text-left ${
+                      permRole === role.value
+                        ? 'border-purple-500/60 bg-purple-500/10'
+                        : 'border-white/10 hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">{role.label}</span>
+                    <span className="mt-0.5 block text-[11px] text-gray-400">
+                      {role.hint}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">
+                Bölüm yetkileri
+              </p>
+
+              <div className={`space-y-1 ${permRole === 'admin' ? 'opacity-40' : ''}`}>
+                {PERMISSION_LIST.map((permission) => {
+                  const checked =
+                    permRole === 'admin' || permDraft.includes(permission.key)
+
+                  return (
+                    <label
+                      key={permission.key}
+                      className={`flex cursor-pointer items-start gap-3 rounded-lg border border-transparent px-3 py-2.5 hover:bg-white/[0.04] ${
+                        permRole === 'admin' ? 'cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={permRole === 'admin'}
+                        onChange={(event) => {
+                          setPermDraft((previous) =>
+                            event.target.checked
+                              ? [...previous, permission.key]
+                              : previous.filter((key) => key !== permission.key)
+                          )
+                        }}
+                        className="mt-0.5 accent-purple-600"
+                      />
+                      <span>
+                        <span className="block text-sm font-medium">
+                          {permission.label}
+                        </span>
+                        <span className="block text-[11.5px] text-gray-400">
+                          {permission.hint}
+                        </span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  onClick={() => setPermUser(null)}
+                  className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  onClick={savePermissions}
+                  disabled={permSaving}
+                  className="rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-purple-500 disabled:opacity-50"
+                >
+                  {permSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   )

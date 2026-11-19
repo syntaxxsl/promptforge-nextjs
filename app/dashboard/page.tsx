@@ -658,7 +658,7 @@ export default function Home() {
 
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select('role, approval_status')
+        .select('role, approval_status, permissions')
         .eq('id', currentSession.user.id)
         .maybeSingle()
 
@@ -680,7 +680,13 @@ export default function Home() {
       } else {
         const role = String(profile?.role || '').toLowerCase().trim()
         const approval = String(profile?.approval_status || '').toLowerCase().trim()
-        setIsAdmin(role === 'admin' && approval === 'approved')
+        const permissions = Array.isArray((profile as any)?.permissions)
+          ? ((profile as any).permissions as string[])
+          : []
+
+        setIsAdmin(
+          approval === 'approved' && (role === 'admin' || permissions.length > 0)
+        )
       }
 
       await fetchProjects(currentSession.user.id)

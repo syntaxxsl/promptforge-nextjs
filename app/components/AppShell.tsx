@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import Icon, { type IconName } from './Icon'
+import { normalizePermissions } from '../../lib/permissions'
 
 type NavItem = {
   icon: IconName
@@ -91,15 +92,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('role')
+        .select('role, permissions')
         .eq('id', data.user.id)
         .maybeSingle()
 
       if (cancelled) return
 
-      setIsAdmin(
-        String(profile?.role || '').toLowerCase().trim() === 'admin'
-      )
+      const role = String(profile?.role || '').toLowerCase().trim()
+      const permissions = normalizePermissions((profile as any)?.permissions)
+
+      setIsAdmin(role === 'admin' || permissions.length > 0)
     }
 
     load()
