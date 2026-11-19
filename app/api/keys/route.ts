@@ -127,9 +127,13 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Oturum bulunamadı.' }, { status: 401 })
   }
 
+  const deleteLimit = rateLimit(`keys-delete:${userId}`, 30, 60_000)
+
+  if (!deleteLimit.ok) return tooMany(deleteLimit.retryAfter)
+
   const id = request.nextUrl.searchParams.get('id')
 
-  if (!id) {
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
     return NextResponse.json({ error: 'Anahtar ID gerekli.' }, { status: 400 })
   }
 

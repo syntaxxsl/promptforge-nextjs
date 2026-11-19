@@ -31,6 +31,13 @@ export default function AuthPage() {
 
         if (userError) throw userError
 
+        if (userData.approval_status === 'banned') {
+          await supabase.auth.signOut()
+          throw new Error(
+            'Hesabınız askıya alınmış. Destek ekibiyle iletişime geçebilirsiniz.'
+          )
+        }
+
         if (userData.approval_status !== 'approved') {
           await supabase.auth.signOut()
           throw new Error('Hesabınız henüz admin tarafından onaylanmadı. Lütfen bekleyin.')
@@ -45,7 +52,7 @@ export default function AuthPage() {
         setIsLogin(true)
       }
     } catch (error: any) {
-      setMessage('Hata: ' + error.message)
+      setMessage(error.message)
     } finally {
       setLoading(false)
     }

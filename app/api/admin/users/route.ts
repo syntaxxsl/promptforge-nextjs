@@ -155,14 +155,56 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { userId, action } = body
 
-    if (!userId || !['approve', 'reject'].includes(action)) {
+    const reason =
+      typeof body.reason === 'string' ? body.reason.trim().slice(0, 300) : ''
+
+    const allowed: Record<string, string> = {
+      approve: 'approved',
+      reject: 'rejected',
+      ban: 'banned',
+      unban: 'approved',
+    }
+
+    if (typeof userId !== 'string' || !userId || !allowed[action]) {
       return NextResponse.json(
         { error: 'Geçersiz işlem.' },
         { status: 400 }
       )
     }
 
-    const newStatus = action === 'approve' ? 'approved' : 'rejected'
+    // Yönetici kendi hesabını kilitleyemez.
+    if (userId === auth.user.id) {
+      return NextResponse.json(
+        { error: 'Kendi hesabında bu işlemi yapamazsın.' },
+        { status: 400 }
+      )
+    }
+
+    const { data: target, error: targetError } = await adminClient
+      .from('users')
+      .select('id, role, approval_status')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (targetError || !target) {
+      return NextResponse.json(
+        { error: 'Kullanıcı bulunamadı.' },
+        { status: 404 }
+      )
+    }
+
+    // Başka bir yönetici askıya alınamaz; önce rolü düşürülmeli.
+    if (
+      action === 'ban' &&
+      String(target.role || '').toLowerCase().trim() === 'admin'
+    ) {
+      return NextResponse.json(
+        { error: 'Yönetici hesapları askıya alınamaz.' },
+        { status: 400 }
+      )
+    }
+
+    const newStatus = allowed[action]
 
     const { data, error } = await adminClient
       .from('users')
@@ -178,18 +220,34 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    const actionName =
+      action === 'approve'
+        ? 'user.approve'
+        : action === 'reject'
+        ? 'user.reject'
+        : action === 'ban'
+        ? 'user.ban'
+        : 'user.unban'
+
     await logAdminActivity(adminClient, {
-      action: action === 'approve' ? 'user.approve' : 'user.reject',
+      action: actionName,
       actorId: auth.user.id,
       targetType: 'user',
       targetId: userId,
-      detail: { status: newStatus },
+      detail: { status: newStatus, reason },
       ip: clientIp(request),
     })
 
+    const messages: Record<string, string> = {
+      approve: 'Kullanıcı onaylandı.',
+      reject: 'Kullanıcı reddedildi.',
+      ban: 'Kullanıcının erişimi askıya alındı.',
+      unban: 'Kullanıcının erişimi yeniden açıldı.',
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Kullanıcı durumu güncellendi.',
+      message: messages[action],
       user: data,
     })
   } catch {
