@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
+  const [resetLoading, setResetLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -43,6 +44,17 @@ export default function AuthPage() {
           throw new Error('Hesabınız henüz admin tarafından onaylanmadı. Lütfen bekleyin.')
         }
 
+        if (authData.session?.access_token) {
+          fetch('/api/presence', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${authData.session.access_token}`,
+            },
+            body: JSON.stringify({ event: 'login', path: '/dashboard' }),
+          }).catch(() => {})
+        }
+
         router.push('/dashboard')
       } else {
         // Kayıt Ol
@@ -55,6 +67,30 @@ export default function AuthPage() {
       setMessage(error.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setMessage('Önce e-posta adresini yaz.')
+      return
+    }
+
+    setResetLoading(true)
+    setMessage('')
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (error) throw error
+
+      setMessage('Sıfırlama bağlantısı e-postana gönderildi. Gelen kutunu kontrol et.')
+    } catch (error: any) {
+      setMessage(error.message)
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -97,10 +133,21 @@ export default function AuthPage() {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full py-3 mt-2 bg-[#a855f7] text-white font-bold rounded-lg hover:bg-cyan-300 transition disabled:opacity-50"
+            className="w-full py-3 mt-2 bg-[#a855f7] text-white font-bold rounded-lg hover:bg-purple-400 transition disabled:opacity-50"
           >
             {loading ? 'İşleniyor...' : (isLogin ? 'GİRİŞ YAP' : 'KAYIT OL')}
           </button>
+
+          {isLogin && (
+            <button
+              type="button"
+              onClick={handlePasswordReset}
+              disabled={resetLoading}
+              className="text-xs text-gray-400 hover:text-[#a855f7] transition disabled:opacity-50"
+            >
+              {resetLoading ? 'Gönderiliyor...' : 'Şifremi unuttum'}
+            </button>
+          )}
         </form>
 
         <div className="mt-6 text-center">

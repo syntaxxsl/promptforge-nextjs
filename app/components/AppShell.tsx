@@ -96,7 +96,56 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setNavOpen(false)
   }, [pathname])
 
+  // Sunucuya "buradayım" sinyali: canlı aktiflik ve sayfa görüntüleme sayacı.
+  useEffect(() => {
+    const ping = async (event: 'view' | 'ping' | 'logout') => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const token = data.session?.access_token
+
+        if (!token) return
+
+        await fetch('/api/presence', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ event, path: pathname }),
+          keepalive: event === 'logout',
+        })
+      } catch {
+        // Takip hatası kullanıcıyı etkilemez, sessizce geçilir.
+      }
+    }
+
+    ping('view')
+
+    const interval = window.setInterval(() => ping('ping'), 60_000)
+
+    return () => window.clearInterval(interval)
+  }, [pathname])
+
   const logout = async () => {
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+
+      if (token) {
+        fetch('/api/presence', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ event: 'logout', path: pathname }),
+          keepalive: true,
+        }).catch(() => {})
+      }
+    } catch {
+      // Çıkışı engelleme.
+    }
+
     await supabase.auth.signOut()
     router.replace('/auth')
   }

@@ -1,0 +1,19 @@
+# Bağımlılıklar
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js çıktısı
+.next/
+out/
+build/
+
+# Ortam değişkenleri
+.env
+.env*.local
+
+# Sistem / editör
+.DS_Store
+*.log
+next-env.d.ts
+tsconfig.tsbuildinfo

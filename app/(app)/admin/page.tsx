@@ -60,6 +60,73 @@ type AdminLog = {
   created_at: string
 }
 
+type PresenceRow = {
+  user_id: string
+  email?: string | null
+  ip?: string | null
+  user_agent?: string | null
+  last_path?: string | null
+  first_seen: string
+  last_seen: string
+  view_count: number
+  login_count: number
+}
+
+type TrafficEvent = {
+  id: string
+  user_id?: string | null
+  email?: string | null
+  kind: string
+  path?: string | null
+  ip?: string | null
+  created_at: string
+}
+
+type IpStat = {
+  ip: string
+  count: number
+  logins: number
+  users: number
+  lastSeen: string
+}
+
+type Traffic = {
+  summary: {
+    activeNow: number
+    loginsToday: number
+    viewsToday: number
+    uniqueIpsToday: number
+    trackedUsers: number
+    events7d: number
+  }
+  presence: PresenceRow[]
+  ipStats: IpStat[]
+  events: TrafficEvent[]
+}
+
+const TRAFFIC_SQL = `-- Supabase > SQL Editor'de bir kez çalıştır
+create table if not exists public.user_presence (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  email text, ip text, user_agent text, last_path text,
+  first_seen timestamptz not null default now(),
+  last_seen timestamptz not null default now(),
+  view_count bigint not null default 0,
+  login_count bigint not null default 0
+);
+create index if not exists user_presence_last_seen_idx on public.user_presence (last_seen desc);
+alter table public.user_presence enable row level security;
+
+create table if not exists public.site_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users (id) on delete set null,
+  email text, kind text not null, path text, ip text, user_agent text,
+  created_at timestamptz not null default now()
+);
+create index if not exists site_events_created_idx on public.site_events (created_at desc);
+create index if not exists site_events_ip_idx on public.site_events (ip, created_at desc);
+create index if not exists site_events_user_idx on public.site_events (user_id, created_at desc);
+alter table public.site_events enable row level security;`
+
 const LOG_ACTIONS: Record<string, string> = {
   'user.approve': 'Kullanıcı onaylandı',
   'user.reject': 'Kullanıcı reddedildi',
@@ -94,6 +161,12 @@ export default function AdminPanel() {
   const [logs, setLogs] = useState<AdminLog[]>([])
   const [logLoading, setLogLoading] = useState(false)
   const [logFilter, setLogFilter] = useState('all')
+
+  const [traffic, setTraffic] = useState<Traffic | null>(null)
+  const [trafficLoading, setTrafficLoading] = useState(false)
+  const [trafficSetup, setTrafficSetup] = useState(false)
+  const [trafficError, setTrafficError] = useState('')
+  const [sqlCopied, setSqlCopied] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [ticketLoading, setTicketLoading] = useState(false)
@@ -285,12 +358,69 @@ export default function AdminPanel() {
     }
   }
 
+  const fetchTraffic = async () => {
+    setTrafficLoading(true)
+
+    try {
+      const token = await getToken()
+
+      const response = await fetch('/api/admin/traffic', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Trafik verisi alınamadı.')
+      }
+
+      if (result.needsSetup) {
+        setTrafficSetup(true)
+        setTraffic(null)
+        setTrafficError(result.error || '')
+        return
+      }
+
+      setTrafficSetup(false)
+      setTrafficError('')
+      setTraffic(result)
+    } catch (error) {
+      setTrafficError(
+        error instanceof Error ? error.message : 'Trafik verisi yüklenemedi.'
+      )
+    } finally {
+      setTrafficLoading(false)
+    }
+  }
+
+  const copyTrafficSql = async () => {
+    try {
+      await navigator.clipboard.writeText(TRAFFIC_SQL)
+      setSqlCopied(true)
+      window.setTimeout(() => setSqlCopied(false), 2500)
+    } catch {
+      setTrafficError('Kopyalanamadı. supabase/traffic.sql dosyasını kullan.')
+    }
+  }
+
   useEffect(() => {
     fetchUsers()
     fetchTickets()
     fetchFeedbacks()
     fetchReports()
     fetchLogs()
+    fetchTraffic()
+
+    // Canlı trafik her 30 saniyede bir kendini tazeler.
+    const interval = window.setInterval(() => {
+      fetchTraffic()
+    }, 30_000)
+
+    return () => window.clearInterval(interval)
   }, [])
 
   const handleAction = async (
@@ -607,6 +737,33 @@ export default function AdminPanel() {
     return ''
   }
 
+  const relativeTime = (iso: string) => {
+    const diff = Date.now() - Date.parse(iso)
+
+    if (!Number.isFinite(diff)) return '-'
+
+    const mins = Math.floor(diff / 60_000)
+
+    if (mins < 1) return 'şimdi'
+    if (mins < 60) return `${mins} dk önce`
+
+    const hours = Math.floor(mins / 60)
+
+    if (hours < 24) return `${hours} saat önce`
+
+    return `${Math.floor(hours / 24)} gün önce`
+  }
+
+  const isOnline = (iso: string) =>
+    Date.now() - Date.parse(iso) < 5 * 60 * 1000
+
+  const trafficKindLabel = (kind: string) => {
+    if (kind === 'login') return 'Giriş'
+    if (kind === 'logout') return 'Çıkış'
+    if (kind === 'view') return 'Sayfa'
+    return kind
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#090b10] text-white flex items-center justify-center">
@@ -636,6 +793,7 @@ export default function AdminPanel() {
               fetchFeedbacks()
               fetchReports()
               fetchLogs()
+              fetchTraffic()
             }}
             className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-5 py-3 rounded-xl"
           >
@@ -675,6 +833,239 @@ export default function AdminPanel() {
               {stats.totalProjects}
             </h2>
           </div>
+        </section>
+
+        <section className="bg-[#11141d] border border-purple-500/20 rounded-2xl p-5 mb-8">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-5">
+            <div>
+              <h2 className="text-xl font-bold">Canlı Trafik ve Oturumlar</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Kim, hangi IP’den, kaç istek attı, en son ne zaman girdi ve
+                şu an sitede mi? (son 7 gün · 30 saniyede bir yenilenir)
+              </p>
+            </div>
+
+            <button
+              onClick={() => fetchTraffic()}
+              disabled={trafficLoading}
+              className="bg-white/5 hover:bg-white/10 text-gray-200 text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-40"
+            >
+              {trafficLoading ? 'Yükleniyor...' : '↻ Trafiği Yenile'}
+            </button>
+          </div>
+
+          {trafficSetup ? (
+            <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-xl p-4">
+              <p className="text-yellow-300 font-semibold mb-2">
+                Kurulum tamamlanmadı
+              </p>
+              <p className="text-sm text-gray-300 mb-3">
+                Canlı trafik için iki tablo gerekiyor. Supabase → SQL
+                Editor’de aşağıdaki SQL’i çalıştır, sonra bu sayfayı yenile.
+                (Aynı içerik repoda: <code className="text-purple-300">supabase/traffic.sql</code>)
+              </p>
+              <button
+                onClick={copyTrafficSql}
+                className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-lg"
+              >
+                {sqlCopied ? 'Kopyalandı ✓' : 'SQL’i kopyala'}
+              </button>
+              {trafficError && (
+                <p className="text-xs text-gray-500 mt-3 break-all">
+                  {trafficError}
+                </p>
+              )}
+            </div>
+          ) : !traffic ? (
+            <p className="text-gray-400 py-4">
+              {trafficError || 'Trafik verisi yükleniyor...'}
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                {[
+                  {
+                    label: 'Şu an sitede',
+                    value: traffic.summary.activeNow,
+                    tone: 'text-green-400',
+                  },
+                  {
+                    label: 'Bugün giriş',
+                    value: traffic.summary.loginsToday,
+                    tone: 'text-purple-300',
+                  },
+                  {
+                    label: 'Bugün sayfa',
+                    value: traffic.summary.viewsToday,
+                    tone: 'text-gray-100',
+                  },
+                  {
+                    label: 'Bugün tekil IP',
+                    value: traffic.summary.uniqueIpsToday,
+                    tone: 'text-yellow-300',
+                  },
+                ].map((card) => (
+                  <div
+                    key={card.label}
+                    className="bg-[#090b10] border border-white/10 rounded-xl p-4"
+                  >
+                    <p className="text-[11px] uppercase tracking-wide text-gray-500">
+                      {card.label}
+                    </p>
+                    <p className={`text-2xl font-bold mt-2 ${card.tone}`}>
+                      {card.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <h3 className="text-sm font-bold text-gray-300 mb-3">
+                Kullanıcılar ({traffic.presence.length})
+              </h3>
+
+              {traffic.presence.length === 0 ? (
+                <p className="text-gray-400 text-sm mb-6">
+                  Henüz kayıtlı oturum yok. Kullanıcılar siteye girdikçe burada
+                  görünecek.
+                </p>
+              ) : (
+                <div className="overflow-x-auto mb-6">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-gray-400 border-b border-white/10">
+                      <tr>
+                        <th className="py-3">Kullanıcı</th>
+                        <th className="py-3">Durum</th>
+                        <th className="py-3">IP</th>
+                        <th className="py-3">Sayfa</th>
+                        <th className="py-3">Giriş</th>
+                        <th className="py-3">Son görülme</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {traffic.presence.map((row) => (
+                        <tr
+                          key={row.user_id}
+                          className="border-b border-white/5"
+                        >
+                          <td className="py-3 break-all">
+                            {row.email || row.user_id.slice(0, 8)}
+                          </td>
+                          <td className="py-3">
+                            {isOnline(row.last_seen) ? (
+                              <span className="inline-flex items-center gap-2 text-green-400 text-xs font-semibold">
+                                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                                Sitede
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-500">
+                                Çevrimdışı
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 text-gray-300 text-xs break-all">
+                            {row.ip || '-'}
+                          </td>
+                          <td className="py-3 text-gray-300">
+                            {row.view_count}
+                          </td>
+                          <td className="py-3 text-gray-300">
+                            {row.login_count}
+                          </td>
+                          <td className="py-3 text-gray-400 text-xs">
+                            {relativeTime(row.last_seen)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <h3 className="text-sm font-bold text-gray-300 mb-3">
+                IP’ye göre istekler (son 7 gün)
+              </h3>
+
+              {traffic.ipStats.length === 0 ? (
+                <p className="text-gray-400 text-sm mb-6">
+                  Henüz istek kaydı yok.
+                </p>
+              ) : (
+                <div className="overflow-x-auto mb-6">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-gray-400 border-b border-white/10">
+                      <tr>
+                        <th className="py-3">IP</th>
+                        <th className="py-3">İstek</th>
+                        <th className="py-3">Giriş</th>
+                        <th className="py-3">Kullanıcı</th>
+                        <th className="py-3">Son istek</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {traffic.ipStats.map((row) => (
+                        <tr key={row.ip} className="border-b border-white/5">
+                          <td className="py-3 text-gray-200 text-xs break-all">
+                            {row.ip}
+                          </td>
+                          <td className="py-3 font-semibold text-purple-300">
+                            {row.count}
+                          </td>
+                          <td className="py-3 text-gray-300">{row.logins}</td>
+                          <td className="py-3 text-gray-300">{row.users}</td>
+                          <td className="py-3 text-gray-400 text-xs">
+                            {relativeTime(row.lastSeen)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <h3 className="text-sm font-bold text-gray-300 mb-3">
+                Son olaylar
+              </h3>
+
+              {traffic.events.length === 0 ? (
+                <p className="text-gray-400 text-sm">Henüz olay yok.</p>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto pf-scroll">
+                  {traffic.events.map((event) => (
+                    <div
+                      key={event.id}
+                      className="flex flex-wrap items-center gap-2 bg-[#090b10] border border-white/10 rounded-lg px-3 py-2 text-xs"
+                    >
+                      <span
+                        className={`px-2 py-0.5 rounded-full font-semibold ${
+                          event.kind === 'login'
+                            ? 'bg-green-500/15 text-green-300'
+                            : event.kind === 'logout'
+                            ? 'bg-red-500/15 text-red-300'
+                            : 'bg-purple-500/15 text-purple-300'
+                        }`}
+                      >
+                        {trafficKindLabel(event.kind)}
+                      </span>
+                      <span className="text-gray-200 break-all">
+                        {event.email || 'Bilinmeyen kullanıcı'}
+                      </span>
+                      <span className="text-gray-500 break-all">
+                        {event.ip || '-'}
+                      </span>
+                      {event.path && (
+                        <span className="text-gray-500 break-all">
+                          {event.path}
+                        </span>
+                      )}
+                      <span className="ml-auto text-gray-500">
+                        {relativeTime(event.created_at)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </section>
 
         <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8">
