@@ -3,6 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 export type AdminAction =
   | 'user.approve'
   | 'user.reject'
+  | 'user.ban'
+  | 'user.unban'
   | 'support.reply'
   | 'report.update'
   | 'feedback.update'
