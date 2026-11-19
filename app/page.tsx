@@ -260,6 +260,48 @@ export default function Home() {
 
   const isLight = theme === 'light'
   const userId = session?.user?.id
+    // PROJE SOHBET GEÇMİŞİ
+  const loadProjectChat = async (projectId: string) => {
+    if (!userId) return
+
+    const { data, error } = await supabase
+      .from('project_chat_messages')
+      .select('role, content')
+      .eq('project_id', projectId)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Sohbet geçmişi yüklenemedi:', error.message)
+      setError('Sohbet geçmişi yüklenemedi.')
+      return
+    }
+
+    setChatMessages((data || []) as ChatMessage[])
+  }
+
+  const saveProjectChatMessage = async (
+    projectId: string,
+    message: ChatMessage
+  ) => {
+    if (!userId) return false
+
+    const { error } = await supabase
+      .from('project_chat_messages')
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        role: message.role,
+        content: message.content,
+      })
+
+    if (error) {
+      console.error('Sohbet kaydedilemedi:', error.message)
+      return false
+    }
+
+    return true
+  }
   const unreadCount = notifications.filter((item) => !item.read).length
 
   const panelClass = isLight
