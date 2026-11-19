@@ -100,14 +100,14 @@ export default function GitHubPage() {
   }
 
   useEffect(() => {
-    loadData()
-
     const params = new URLSearchParams(window.location.search)
 
     if (params.get('github') === 'connected') {
       setMessage('GitHub hesabın başarıyla bağlandı.')
       window.history.replaceState({}, '', '/github')
     }
+
+    loadData()
   }, [])
 
   async function createRepo() {
@@ -161,11 +161,9 @@ export default function GitHubPage() {
       return
     }
 
-    if (
-      !window.confirm(
-        `${project.title} projesi ${selectedRepo} deposuna aktarılsın mı? Aynı isimli dosyalar güncellenebilir.`
-      )
-    ) {
+    if (!window.confirm(
+      `${project.title} projesi ${selectedRepo} deposuna aktarılsın mı? Aynı isimli dosyalar güncellenebilir.`
+    )) {
       return
     }
 
@@ -193,10 +191,12 @@ export default function GitHubPage() {
       }
 
       setMessage(
-        `Aktarım başarılı! Dosyalar: ${data.uploaded.join(', ')}`
+        `Aktarım başarılı! Dosyalar: ${(data.uploaded || []).join(', ')}`
       )
 
-      window.open(data.repository, '_blank', 'noopener,noreferrer')
+      if (data.repository) {
+        window.open(data.repository, '_blank', 'noopener,noreferrer')
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Aktarım başarısız.'
@@ -233,7 +233,9 @@ export default function GitHubPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
-        <p className="text-gray-400">GitHub bilgileri yükleniyor...</p>
+        <p className="text-gray-400">
+          GitHub bilgileri yükleniyor...
+        </p>
       </main>
     )
   }
@@ -246,7 +248,9 @@ export default function GitHubPage() {
           <p className="text-sm text-blue-400 mb-2">
             PROMPTFORGE INTEGRATIONS
           </p>
-          <h1 className="text-3xl font-bold">GitHub Integration</h1>
+          <h1 className="text-3xl font-bold">
+            GitHub Integration
+          </h1>
           <p className="text-gray-400 mt-2">
             Projelerini GitHub depolarına aktar ve yönet.
           </p>
@@ -378,6 +382,7 @@ export default function GitHubPage() {
                     </option>
                   ))}
                 </select>
+
                 {projects.length === 0 && (
                   <p className="text-sm text-yellow-400 mt-2">
                     Henüz kayıtlı projen bulunamadı.
@@ -408,7 +413,9 @@ export default function GitHubPage() {
                 disabled={exporting || !projects.length || !repos.length}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 disabled:opacity-50 rounded-xl p-4 font-semibold"
               >
-                {exporting ? 'GitHub'a aktarılıyor...' : 'Projeyi GitHub’a aktar'}
+                {exporting
+                  ? "GitHub'a aktarılıyor..."
+                  : "Projeyi GitHub'a aktar"}
               </button>
             </section>
 
@@ -447,6 +454,7 @@ export default function GitHubPage() {
                     </a>
                   </div>
                 ))}
+
                 {repos.length === 0 && (
                   <p className="text-gray-500">
                     Henüz depo bulunamadı.
