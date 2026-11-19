@@ -1124,8 +1124,10 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
   }
 
   // PAYLAŞIM BAĞLANTISI
-  const handleShareProject = async () => {
-    if (!currentProjectId || !session?.user?.id) {
+  const handleShareProject = async (targetProjectId?: string) => {
+    const projectId = targetProjectId || currentProjectId
+
+    if (!projectId || !session?.user?.id) {
       alert('Önce projeyi kaydetmelisin.')
       return
     }
@@ -1136,14 +1138,16 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       const { data: existing, error: fetchError } = await supabase
         .from('projects')
         .select('share_token')
-        .eq('id', currentProjectId)
+        .eq('id', projectId)
         .eq('user_id', session.user.id)
+        .is('deleted_at', null)
         .maybeSingle()
 
       if (fetchError) throw fetchError
+      if (!existing) throw new Error('Proje bulunamadı.')
 
       const token =
-        existing?.share_token ||
+        existing.share_token ||
         (typeof crypto !== 'undefined' && crypto.randomUUID
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
@@ -1154,19 +1158,22 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
           share_token: token,
           is_public: true,
         })
-        .eq('id', currentProjectId)
+        .eq('id', projectId)
         .eq('user_id', session.user.id)
 
       if (error) throw error
 
       const link = `${window.location.origin}/share/${token}`
-      setShareLink(link)
+
+      if (projectId === currentProjectId) {
+        setShareLink(link)
+      }
 
       try {
         await navigator.clipboard.writeText(link)
         alert('Paylaşım bağlantısı kopyalandı!')
       } catch {
-        alert('Bağlantı oluşturuldu. Aşağıdaki alandan kopyalayabilirsin.')
+        alert(`Paylaşım bağlantısı oluşturuldu:\n${link}`)
       }
 
       await fetchProjects(session.user.id)
@@ -2174,10 +2181,10 @@ ${variant.html}
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleLoadProject(project)
-                              setTimeout(handleShareProject, 100)
+                              handleShareProject(project.id)
                             }}
-                            className="py-2 rounded-lg bg-purple-500/10 text-purple-400 text-xs font-bold"
+                            disabled={shareLoading}
+                            className="py-2 rounded-lg bg-purple-500/10 text-purple-400 text-xs font-bold disabled:opacity-50"
                           >
                             🔗 Paylaş
                           </button>
