@@ -39,6 +39,16 @@ type Feedback = {
   created_at: string
 }
 
+type Report = {
+  id: string
+  reporter_id: string
+  project_id: string
+  reason: string
+  details?: string | null
+  status: string
+  created_at: string
+}
+
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([])
   const [recentUsers, setRecentUsers] = useState<User[]>([])
@@ -57,9 +67,14 @@ export default function AdminPanel() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [feedbackFilter, setFeedbackFilter] = useState('all')
 
+  const [reports, setReports] = useState<Report[]>([])
+  const [reportFilter, setReportFilter] = useState('all')
+
   const [loading, setLoading] = useState(true)
   const [ticketLoading, setTicketLoading] = useState(false)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [reportLoading, setReportLoading] = useState(false)
+
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -180,10 +195,43 @@ export default function AdminPanel() {
     }
   }
 
+  const fetchReports = async () => {
+    setReportLoading(true)
+
+    try {
+      const token = await getToken()
+
+      const response = await fetch('/api/admin/reports', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Raporlar alınamadı.')
+      }
+
+      setReports(result.reports || [])
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Raporlar yüklenemedi.'
+      )
+    } finally {
+      setReportLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchUsers()
     fetchTickets()
     fetchFeedbacks()
+    fetchReports()
   }, [])
 
   const handleAction = async (
@@ -317,6 +365,47 @@ export default function AdminPanel() {
     }
   }
 
+  const updateReport = async (
+    reportId: string,
+    status: string
+  ) => {
+    setBusy(reportId)
+    setMessage('')
+
+    try {
+      const token = await getToken()
+
+      const response = await fetch('/api/admin/reports', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: reportId,
+          status,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Rapor güncellenemedi.')
+      }
+
+      setMessage('Rapor durumu güncellendi.')
+      await fetchReports()
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Rapor güncellenemedi.'
+      )
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const filteredTickets = tickets.filter((ticket) => {
     if (ticketFilter === 'all') return true
     return ticket.status === ticketFilter
@@ -325,13 +414,20 @@ export default function AdminPanel() {
   const filteredFeedbacks = feedbacks.filter((feedback) => {
     if (feedbackFilter === 'all') return true
 
-    if (feedbackFilter === 'suggestion' ||
-        feedbackFilter === 'bug' ||
-        feedbackFilter === 'feature') {
+    if (
+      feedbackFilter === 'suggestion' ||
+      feedbackFilter === 'bug' ||
+      feedbackFilter === 'feature'
+    ) {
       return feedback.type === feedbackFilter
     }
 
     return feedback.status === feedbackFilter
+  })
+
+  const filteredReports = reports.filter((report) => {
+    if (reportFilter === 'all') return true
+    return report.status === reportFilter
   })
 
   const getStatusLabel = (status: string) => {
@@ -352,6 +448,14 @@ export default function AdminPanel() {
     if (status === 'pending') return 'Beklemede'
     if (status === 'reviewing') return 'İnceleniyor'
     if (status === 'completed') return 'Tamamlandı'
+    if (status === 'rejected') return 'Reddedildi'
+    return status
+  }
+
+  const getReportStatus = (status: string) => {
+    if (status === 'pending') return 'Beklemede'
+    if (status === 'reviewing') return 'İnceleniyor'
+    if (status === 'resolved') return 'Çözüldü'
     if (status === 'rejected') return 'Reddedildi'
     return status
   }
@@ -387,6 +491,7 @@ export default function AdminPanel() {
               fetchUsers()
               fetchTickets()
               fetchFeedbacks()
+              fetchReports()
             }}
             className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl"
           >
@@ -530,6 +635,8 @@ export default function AdminPanel() {
             </div>
           )}
         </section>
+
+        {/* DESTEK TALEPLERİ */}
 
         <section className="bg-[#101827] border border-cyan-500/20 rounded-2xl p-5 mb-8">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
@@ -714,7 +821,7 @@ export default function AdminPanel() {
 
         {/* GERİ BİLDİRİM YÖNETİMİ */}
 
-        <section className="bg-[#101827] border border-purple-500/20 rounded-2xl p-5">
+        <section className="bg-[#101827] border border-purple-500/20 rounded-2xl p-5 mb-8">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div>
               <h2 className="text-xl font-bold">
@@ -737,9 +844,7 @@ export default function AdminPanel() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <div className="bg-white/5 rounded-xl p-4">
               <p className="text-gray-400 text-sm">Toplam</p>
-              <p className="text-2xl font-bold mt-2">
-                {feedbacks.length}
-              </p>
+              <p className="text-2xl font-bold mt-2">{feedbacks.length}</p>
             </div>
 
             <div className="bg-white/5 rounded-xl p-4">
@@ -893,6 +998,176 @@ export default function AdminPanel() {
                   </div>
 
                   {busy === feedback.id && (
+                    <p className="text-xs text-gray-400 mt-3">
+                      Güncelleniyor...
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* RAPOR YÖNETİMİ */}
+
+        <section className="bg-[#101827] border border-red-500/20 rounded-2xl p-5 mb-8">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div>
+              <h2 className="text-xl font-bold">Rapor Yönetimi</h2>
+              <p className="text-gray-400 text-sm mt-1">
+                Kullanıcıların bildirdiği projeleri incele.
+              </p>
+            </div>
+
+            <button
+              onClick={fetchReports}
+              disabled={reportLoading}
+              className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+            >
+              {reportLoading ? 'Yükleniyor...' : 'Raporları Yenile'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-gray-400 text-sm">Toplam</p>
+              <p className="text-2xl font-bold mt-2">{reports.length}</p>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-gray-400 text-sm">Bekleyen</p>
+              <p className="text-2xl font-bold text-yellow-400 mt-2">
+                {reports.filter((r) => r.status === 'pending').length}
+              </p>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-gray-400 text-sm">İncelenen</p>
+              <p className="text-2xl font-bold text-cyan-400 mt-2">
+                {reports.filter((r) => r.status === 'reviewing').length}
+              </p>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-gray-400 text-sm">Sonuçlanan</p>
+              <p className="text-2xl font-bold text-green-400 mt-2">
+                {reports.filter((r) => r.status === 'resolved').length}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-6">
+            {[
+              { value: 'all', label: 'Tümü' },
+              { value: 'pending', label: 'Bekleyen' },
+              { value: 'reviewing', label: 'İnceleniyor' },
+              { value: 'resolved', label: 'Çözüldü' },
+              { value: 'rejected', label: 'Reddedildi' },
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setReportFilter(filter.value)}
+                className={`px-3 py-2 rounded-lg text-xs ${
+                  reportFilter === filter.value
+                    ? 'bg-red-500 text-white font-semibold'
+                    : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+
+          {reportLoading ? (
+            <p className="text-gray-400 py-6">Raporlar yükleniyor...</p>
+          ) : filteredReports.length === 0 ? (
+            <p className="text-gray-400 py-6">
+              Bu kategoride rapor bulunmuyor.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {filteredReports.map((report) => (
+                <article
+                  key={report.id}
+                  className="bg-[#080e19] border border-white/10 rounded-xl p-4 md:p-5"
+                >
+                  <div className="flex flex-wrap justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="font-bold">
+                        Rapor nedeni: {report.reason}
+                      </h3>
+
+                      <p className="text-xs text-gray-500 mt-2 break-all">
+                        Proje ID: {report.project_id}
+                      </p>
+
+                      <p className="text-xs text-gray-500 mt-1 break-all">
+                        Bildiren kullanıcı: {report.reporter_id}
+                      </p>
+
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatDate(report.created_at)}
+                      </p>
+                    </div>
+
+                    <span className="text-xs h-fit px-3 py-1 rounded-full bg-red-500/10 text-red-300">
+                      {getReportStatus(report.status)}
+                    </span>
+                  </div>
+
+                  {report.details && (
+                    <div className="bg-white/5 rounded-lg p-4 mb-4">
+                      <p className="text-xs text-gray-400 mb-2">
+                        Açıklama
+                      </p>
+                      <p className="whitespace-pre-wrap break-words">
+                        {report.details}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      disabled={
+                        busy === report.id ||
+                        report.status === 'reviewing'
+                      }
+                      onClick={() =>
+                        updateReport(report.id, 'reviewing')
+                      }
+                      className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                    >
+                      İncelemeye Al
+                    </button>
+
+                    <button
+                      disabled={
+                        busy === report.id ||
+                        report.status === 'resolved'
+                      }
+                      onClick={() =>
+                        updateReport(report.id, 'resolved')
+                      }
+                      className="bg-green-600/20 hover:bg-green-600/30 text-green-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                    >
+                      Çözüldü
+                    </button>
+
+                    <button
+                      disabled={
+                        busy === report.id ||
+                        report.status === 'rejected'
+                      }
+                      onClick={() =>
+                        updateReport(report.id, 'rejected')
+                      }
+                      className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                    >
+                      Reddet
+                    </button>
+                  </div>
+
+                  {busy === report.id && (
                     <p className="text-xs text-gray-400 mt-3">
                       Güncelleniyor...
                     </p>
