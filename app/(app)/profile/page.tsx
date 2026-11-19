@@ -78,14 +78,14 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#080b14] text-white flex items-center justify-center">
+      <main className="min-h-screen bg-[#090b10] text-white flex items-center justify-center">
         Profil yükleniyor...
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#080b14] text-white p-5 sm:p-8">
+    <main className="min-h-screen bg-[#090b10] text-white p-5 sm:p-8">
       <div className="max-w-3xl mx-auto">
 
         <button
@@ -102,9 +102,9 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-6 mb-6">
+        <section className="bg-[#11141d] border border-gray-800 rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl font-bold">
+            <div className="w-16 h-16 rounded-2xl bg-purple-600 flex items-center justify-center text-2xl font-bold">
               {(username || email || 'U').charAt(0).toUpperCase()}
             </div>
 
@@ -117,12 +117,12 @@ export default function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4 mt-7">
-            <div className="bg-[#080b14] rounded-xl p-4">
+            <div className="bg-[#090b10] rounded-xl p-4">
               <p className="text-gray-400 text-sm">Oluşturulan Projeler</p>
               <p className="text-2xl font-bold mt-1">{projectCount}</p>
             </div>
 
-            <div className="bg-[#080b14] rounded-xl p-4">
+            <div className="bg-[#090b10] rounded-xl p-4">
               <p className="text-gray-400 text-sm">Katılım Tarihi</p>
               <p className="text-lg font-semibold mt-2">
                 {new Date(createdAt).toLocaleDateString('tr-TR')}
@@ -131,7 +131,7 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-6">
+        <section className="bg-[#11141d] border border-gray-800 rounded-2xl p-6">
           <h2 className="text-xl font-semibold mb-6">
             Profili Düzenle
           </h2>
@@ -148,7 +148,7 @@ export default function ProfilePage() {
                 onChange={(e) => setUsername(e.target.value)}
                 maxLength={30}
                 placeholder="Kullanıcı adını gir"
-                className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 outline-none focus:border-blue-500"
+                className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 outline-none focus:border-purple-500"
               />
             </div>
 
@@ -163,7 +163,7 @@ export default function ProfilePage() {
                 maxLength={250}
                 rows={4}
                 placeholder="Kendinden kısaca bahset..."
-                className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 outline-none resize-none focus:border-blue-500"
+                className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 outline-none resize-none focus:border-purple-500"
               />
 
               <p className="text-xs text-gray-500 text-right mt-1">
@@ -182,7 +182,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl p-4 font-semibold transition"
+              className="w-full bg-purple-600 hover:bg-purple-600 disabled:opacity-50 rounded-xl p-4 font-semibold transition"
             >
               {saving ? 'Kaydediliyor...' : 'Profili Kaydet'}
             </button>

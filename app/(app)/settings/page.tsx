@@ -36,8 +36,8 @@ export default function SettingsPage() {
     setMessage('')
     setError('')
 
-    if (password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır.')
+    if (password.length < 8) {
+      setError('Şifre en az 8 karakter olmalıdır.')
       return
     }
 
@@ -76,7 +76,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080b14] text-white p-5 sm:p-8">
+    <main className="min-h-screen bg-[#090b10] text-white p-5 sm:p-8">
       <div className="max-w-3xl mx-auto">
 
         <button
@@ -95,7 +95,7 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-6 mb-6">
+        <section className="bg-[#11141d] border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-semibold mb-5">
             Hesap Bilgileri
           </h2>
@@ -108,11 +108,11 @@ export default function SettingsPage() {
             type="email"
             value={email}
             readOnly
-            className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 text-gray-300 outline-none"
+            className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 text-gray-300 outline-none"
           />
         </section>
 
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-6 mb-6">
+        <section className="bg-[#11141d] border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-semibold mb-2">
             Şifre Değiştir
           </h2>
@@ -133,9 +133,9 @@ export default function SettingsPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Yeni şifren"
-                className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 outline-none focus:border-blue-500"
+                className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 outline-none focus:border-purple-500"
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
 
@@ -149,9 +149,9 @@ export default function SettingsPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Yeni şifreni tekrar gir"
-                className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 outline-none focus:border-blue-500"
+                className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 outline-none focus:border-purple-500"
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
 
@@ -166,7 +166,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl p-4 font-semibold transition"
+              className="w-full bg-purple-600 hover:bg-purple-600 disabled:opacity-50 rounded-xl p-4 font-semibold transition"
             >
               {loading ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
             </button>
@@ -174,7 +174,7 @@ export default function SettingsPage() {
           </form>
         </section>
 
-        <section className="bg-[#111827] border border-red-900/40 rounded-2xl p-6">
+        <section className="bg-[#11141d] border border-red-900/40 rounded-2xl p-6">
           <h2 className="text-xl font-semibold mb-2">
             Oturum İşlemleri
           </h2>

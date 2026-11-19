@@ -226,12 +226,12 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
   ]
 
   return (
-    <main className="min-h-screen bg-[#050505] text-white">
+    <main className="min-h-screen bg-[#090b10] text-white">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
 
-        <header className="mb-10 flex items-center justify-between rounded-2xl border border-white/10 bg-[#101010] px-5 py-4">
+        <header className="mb-10 flex items-center justify-between rounded-2xl border border-white/10 bg-[#11141d] px-5 py-4">
           <Link href="/dashboard" className="text-lg font-bold">
-            <span className="bg-gradient-to-r from-purple-500 to-blue-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
               PromptForge
             </span>
           </Link>
@@ -250,7 +250,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
           </div>
 
           <h1 className="mb-4 text-3xl font-bold sm:text-5xl">
-            Tasarımını <span className="bg-gradient-to-r from-purple-500 to-blue-400 bg-clip-text text-transparent">Analiz Et.</span>
+            Tasarımını <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Analiz Et.</span>
           </h1>
 
           <p className="mx-auto max-w-2xl text-sm leading-7 text-gray-400 sm:text-base">
@@ -261,7 +261,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
 
         <div className="grid gap-6 lg:grid-cols-2">
 
-          <section className="rounded-2xl border border-white/10 bg-[#101010] p-5 sm:p-7">
+          <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5 sm:p-7">
             <div className="mb-6">
               <h2 className="font-semibold">01. Kodlarını Ekle</h2>
               <p className="mt-2 text-sm text-gray-500">
@@ -279,7 +279,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
                 rows={8}
                 maxLength={15000}
                 placeholder="HTML kodunu buraya yapıştır..."
-                className="w-full resize-y rounded-xl border border-white/10 bg-[#080808] p-4 font-mono text-xs leading-6 text-green-300 outline-none transition focus:border-purple-500"
+                className="w-full resize-y rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-xs leading-6 text-green-300 outline-none transition focus:border-purple-500"
               />
               <p className="mt-1 text-right text-xs text-gray-600">
                 {html.length}/15000
@@ -296,7 +296,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
                 rows={8}
                 maxLength={15000}
                 placeholder="CSS kodunu buraya yapıştır..."
-                className="w-full resize-y rounded-xl border border-white/10 bg-[#080808] p-4 font-mono text-xs leading-6 text-blue-300 outline-none transition focus:border-purple-500"
+                className="w-full resize-y rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-xs leading-6 text-purple-300 outline-none transition focus:border-purple-500"
               />
               <p className="mt-1 text-right text-xs text-gray-600">
                 {css.length}/15000
@@ -313,7 +313,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
                 rows={7}
                 maxLength={10000}
                 placeholder="JavaScript kodunu buraya yapıştır..."
-                className="w-full resize-y rounded-xl border border-white/10 bg-[#080808] p-4 font-mono text-xs leading-6 text-yellow-300 outline-none transition focus:border-purple-500"
+                className="w-full resize-y rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-xs leading-6 text-yellow-300 outline-none transition focus:border-purple-500"
               />
               <p className="mt-1 text-right text-xs text-gray-600">
                 {js.length}/10000
@@ -329,7 +329,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
             <button
               onClick={analyze}
               disabled={loading || (!html.trim() && !css.trim() && !js.trim())}
-              className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-4 font-semibold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+              className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-4 font-semibold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? '✦ Kodların İnceleniyor...' : '✦ AI ile Tasarımı Analiz Et'}
             </button>
@@ -339,7 +339,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
             </p>
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-[#101010] p-5 sm:p-7">
+          <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5 sm:p-7">
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h2 className="font-semibold">02. Analiz Raporu</h2>
@@ -347,7 +347,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
                   AI tarafından oluşturulan değerlendirme
                 </p>
               </div>
-              <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs text-blue-300">
+              <span className="rounded-full bg-purple-600/10 px-3 py-1 text-xs text-purple-300">
                 DESIGN REPORT
               </span>
             </div>
@@ -376,7 +376,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
 
             {result && (
               <>
-                <div className="mb-6 rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-blue-500/10 p-5">
+                <div className="mb-6 rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-pink-500/10 p-5">
                   <p className="text-sm text-gray-400">Genel Tasarım Puanı</p>
                   <div className="mt-2 flex items-end gap-2">
                     <span className="text-5xl font-bold">
@@ -386,7 +386,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
                   </div>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-700"
+                      className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-700"
                       style={{ width: `${result.score}%` }}
                     />
                   </div>
@@ -438,7 +438,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
                           </div>
                           <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-white/10">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500"
+                              className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
                               style={{ width: `${item.score}%` }}
                             />
                           </div>
@@ -488,8 +488,8 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
                           <p className="mb-3 text-sm leading-6 text-gray-400">
                             {item.description}
                           </p>
-                          <div className="rounded-lg bg-blue-500/5 p-3">
-                            <p className="mb-1 text-xs font-semibold text-blue-300">
+                          <div className="rounded-lg bg-purple-600/5 p-3">
+                            <p className="mb-1 text-xs font-semibold text-purple-300">
                               Çözüm Önerisi
                             </p>
                             <p className="text-sm leading-6 text-gray-400">
@@ -510,9 +510,9 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
                       result.recommendations.map((item, index) => (
                         <div
                           key={index}
-                          className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4"
+                          className="flex gap-3 rounded-xl border border-purple-500/20 bg-purple-600/5 p-4"
                         >
-                          <span className="text-blue-400">✦</span>
+                          <span className="text-purple-300">✦</span>
                           <p className="text-sm leading-6 text-gray-300">
                             {item}
                           </p>

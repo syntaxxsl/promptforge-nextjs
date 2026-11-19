@@ -109,9 +109,9 @@ export default function SupportPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#09090f] text-white p-5 sm:p-8">
+    <main className="min-h-screen bg-[#090b10] text-white p-5 sm:p-8">
       <div className="max-w-5xl mx-auto">
-        <p className="text-violet-400 text-sm font-bold mb-2">
+        <p className="text-purple-300 text-sm font-bold mb-2">
           PROMPTFORGE SUPPORT
         </p>
 
@@ -124,7 +124,7 @@ export default function SupportPage() {
         </p>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          <section className="bg-[#15151f] border border-gray-800 rounded-2xl p-5">
+          <section className="bg-[#161b26] border border-gray-800 rounded-2xl p-5">
             <h2 className="text-xl font-bold mb-5">
               Yeni Destek Talebi
             </h2>
@@ -139,7 +139,7 @@ export default function SupportPage() {
                   onChange={e => setSubject(e.target.value)}
                   maxLength={120}
                   placeholder="Sorununun konusu"
-                  className="w-full mt-2 bg-[#09090f] border border-gray-700 rounded-xl p-3 outline-none focus:border-violet-500"
+                  className="w-full mt-2 bg-[#090b10] border border-gray-700 rounded-xl p-3 outline-none focus:border-purple-500"
                 />
               </div>
 
@@ -153,7 +153,7 @@ export default function SupportPage() {
                   maxLength={5000}
                   rows={7}
                   placeholder="Sorununu detaylı şekilde açıkla..."
-                  className="w-full mt-2 bg-[#09090f] border border-gray-700 rounded-xl p-3 outline-none focus:border-violet-500 resize-y"
+                  className="w-full mt-2 bg-[#090b10] border border-gray-700 rounded-xl p-3 outline-none focus:border-purple-500 resize-y"
                 />
               </div>
 
@@ -172,14 +172,14 @@ export default function SupportPage() {
               <button
                 type="submit"
                 disabled={sending}
-                className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-xl p-3 font-semibold"
+                className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-xl p-3 font-semibold"
               >
                 {sending ? 'Gönderiliyor...' : 'Destek Talebi Oluştur'}
               </button>
             </form>
           </section>
 
-          <section className="bg-[#15151f] border border-gray-800 rounded-2xl p-5">
+          <section className="bg-[#161b26] border border-gray-800 rounded-2xl p-5">
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-xl font-bold">
                 Taleplerim
@@ -187,7 +187,7 @@ export default function SupportPage() {
 
               <button
                 onClick={loadTickets}
-                className="text-violet-400 text-sm"
+                className="text-purple-300 text-sm"
               >
                 Yenile
               </button>
@@ -204,14 +204,14 @@ export default function SupportPage() {
                 {tickets.map(ticket => (
                   <article
                     key={ticket.id}
-                    className="bg-[#09090f] border border-gray-800 rounded-xl p-4"
+                    className="bg-[#090b10] border border-gray-800 rounded-xl p-4"
                   >
                     <div className="flex justify-between gap-3">
                       <h3 className="font-semibold break-words">
                         {ticket.subject}
                       </h3>
 
-                      <span className="text-xs text-violet-400 whitespace-nowrap">
+                      <span className="text-xs text-purple-300 whitespace-nowrap">
                         {statusLabel(ticket.status)}
                       </span>
                     </div>
@@ -227,8 +227,8 @@ export default function SupportPage() {
                     </div>
 
                     {ticket.admin_reply ? (
-                      <div className="mt-4 bg-violet-500/10 border border-violet-500/20 rounded-xl p-4">
-                        <p className="text-sm font-semibold text-violet-300 mb-2">
+                      <div className="mt-4 bg-purple-600/10 border border-purple-500/20 rounded-xl p-4">
+                        <p className="text-sm font-semibold text-purple-300 mb-2">
                           PromptForge Destek Ekibi
                         </p>
 

@@ -302,7 +302,7 @@ export default function GalleryPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080b14] text-white px-5 py-8">
+    <main className="min-h-screen bg-[#090b10] text-white px-5 py-8">
       <div className="max-w-7xl mx-auto">
 
         <div className="flex flex-wrap items-center justify-between gap-4 mb-10">
@@ -327,7 +327,7 @@ export default function GalleryPage() {
 
             <Link
               href="/dashboard"
-              className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition font-bold"
+              className="px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 transition font-bold"
             >
               Ana Sayfa
             </Link>
@@ -346,7 +346,7 @@ export default function GalleryPage() {
 
             <button
               onClick={loadGallery}
-              className="mt-5 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold"
+              className="mt-5 px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold"
             >
               Tekrar Dene
             </button>
@@ -368,7 +368,7 @@ export default function GalleryPage() {
             {projects.map(project => (
               <article
                 key={project.id}
-                className="overflow-hidden rounded-2xl border border-white/10 bg-[#111827] hover:border-indigo-500/50 transition"
+                className="overflow-hidden rounded-2xl border border-white/10 bg-[#11141d] hover:border-purple-500/50 transition"
               >
                 <div className="h-56 bg-white overflow-hidden">
                   <iframe
@@ -405,7 +405,7 @@ export default function GalleryPage() {
                     <button
                       onClick={() => copyProject(project)}
                       disabled={busyId === project.id || busyId !== null}
-                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold transition disabled:opacity-50"
+                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold transition disabled:opacity-50"
                     >
                       {busyId === project.id ? 'İşleniyor...' : 'Projeyi Kopyala'}
                     </button>
@@ -435,7 +435,7 @@ export default function GalleryPage() {
             }
           }}
         >
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111827] p-6 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#11141d] p-6 shadow-2xl">
 
             <div className="flex items-center justify-between gap-4 mb-5">
               <h2 className="text-xl font-bold">
@@ -467,7 +467,7 @@ export default function GalleryPage() {
               value={reportReason}
               onChange={e => setReportReason(e.target.value)}
               disabled={reportSubmitting}
-              className="w-full rounded-xl border border-white/10 bg-[#080b14] px-4 py-3 text-white outline-none focus:border-indigo-500 disabled:opacity-50"
+              className="w-full rounded-xl border border-white/10 bg-[#090b10] px-4 py-3 text-white outline-none focus:border-purple-500 disabled:opacity-50"
             >
               {REPORT_REASONS.map(reason => (
                 <option key={reason} value={reason}>
@@ -487,7 +487,7 @@ export default function GalleryPage() {
               maxLength={1000}
               rows={4}
               placeholder="Şikâyet sebebini açıklayabilirsin..."
-              className="w-full resize-none rounded-xl border border-white/10 bg-[#080b14] px-4 py-3 text-white outline-none focus:border-indigo-500 disabled:opacity-50"
+              className="w-full resize-none rounded-xl border border-white/10 bg-[#090b10] px-4 py-3 text-white outline-none focus:border-purple-500 disabled:opacity-50"
             />
 
             <p className="text-xs text-gray-500 text-right mt-1">

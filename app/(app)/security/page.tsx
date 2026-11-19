@@ -45,8 +45,8 @@ export default function SecurityPage() {
     setMessage('')
     setError('')
 
-    if (password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır.')
+    if (password.length < 8) {
+      setError('Şifre en az 8 karakter olmalıdır.')
       return
     }
 
@@ -88,14 +88,14 @@ export default function SecurityPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#080b14] text-white flex items-center justify-center">
+      <main className="min-h-screen bg-[#090b10] text-white flex items-center justify-center">
         Güvenlik bilgileri yükleniyor...
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#080b14] text-white p-5 sm:p-8">
+    <main className="min-h-screen bg-[#090b10] text-white p-5 sm:p-8">
       <div className="max-w-4xl mx-auto">
 
         <button
@@ -114,7 +114,7 @@ export default function SecurityPage() {
           </p>
         </div>
 
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-6 mb-6">
+        <section className="bg-[#11141d] border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-semibold mb-5">
             Hesap Güvenliği
           </h2>
@@ -164,7 +164,7 @@ export default function SecurityPage() {
           </div>
         </section>
 
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-6 mb-6">
+        <section className="bg-[#11141d] border border-gray-800 rounded-2xl p-6 mb-6">
           <h2 className="text-xl font-semibold mb-2">
             Şifre Güvenliği
           </h2>
@@ -180,9 +180,9 @@ export default function SecurityPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Yeni şifre"
-              minLength={6}
+              minLength={8}
               required
-              className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 outline-none focus:border-blue-500"
+              className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 outline-none focus:border-purple-500"
             />
 
             <input
@@ -190,15 +190,15 @@ export default function SecurityPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Yeni şifre tekrar"
-              minLength={6}
+              minLength={8}
               required
-              className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 outline-none focus:border-blue-500"
+              className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 outline-none focus:border-purple-500"
             />
 
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl p-4 font-semibold"
+              className="w-full bg-purple-600 hover:bg-purple-600 disabled:opacity-50 rounded-xl p-4 font-semibold"
             >
               {saving ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
             </button>
@@ -214,7 +214,7 @@ export default function SecurityPage() {
           <p className="text-green-400 text-sm mb-4">{message}</p>
         )}
 
-        <section className="bg-[#111827] border border-red-900/40 rounded-2xl p-6">
+        <section className="bg-[#11141d] border border-red-900/40 rounded-2xl p-6">
           <h2 className="text-xl font-semibold mb-2">
             Oturum Güvenliği
           </h2>

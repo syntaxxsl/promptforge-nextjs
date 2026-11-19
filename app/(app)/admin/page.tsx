@@ -49,6 +49,27 @@ type Report = {
   created_at: string
 }
 
+type AdminLog = {
+  id: string
+  actor_id: string
+  action: string
+  target_type: string
+  target_id: string
+  detail?: Record<string, any> | null
+  ip?: string | null
+  created_at: string
+}
+
+const LOG_ACTIONS: Record<string, string> = {
+  'user.approve': 'Kullanıcı onaylandı',
+  'user.reject': 'Kullanıcı reddedildi',
+  'user.ban': 'Kullanıcı askıya alındı',
+  'user.unban': 'Askı kaldırıldı',
+  'support.reply': 'Destek talebi yanıtlandı',
+  'report.update': 'Rapor güncellendi',
+  'feedback.update': 'Geri bildirim güncellendi',
+}
+
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([])
   const [recentUsers, setRecentUsers] = useState<User[]>([])
@@ -69,6 +90,10 @@ export default function AdminPanel() {
 
   const [reports, setReports] = useState<Report[]>([])
   const [reportFilter, setReportFilter] = useState('all')
+
+  const [logs, setLogs] = useState<AdminLog[]>([])
+  const [logLoading, setLogLoading] = useState(false)
+  const [logFilter, setLogFilter] = useState('all')
 
   const [loading, setLoading] = useState(true)
   const [ticketLoading, setTicketLoading] = useState(false)
@@ -228,11 +253,44 @@ export default function AdminPanel() {
     }
   }
 
+  const fetchLogs = async () => {
+    setLogLoading(true)
+
+    try {
+      const token = await getToken()
+
+      const response = await fetch('/api/admin/activity', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'İşlem kayıtları alınamadı.')
+      }
+
+      setLogs(result.logs || [])
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'İşlem kayıtları yüklenemedi.'
+      )
+    } finally {
+      setLogLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchUsers()
     fetchTickets()
     fetchFeedbacks()
     fetchReports()
+    fetchLogs()
   }, [])
 
   const handleAction = async (
@@ -531,21 +589,39 @@ export default function AdminPanel() {
     return new Date(date).toLocaleString('tr-TR')
   }
 
+  const logLabel = (action: string) => LOG_ACTIONS[action] || action
+
+  const filteredLogs =
+    logFilter === 'all'
+      ? logs
+      : logs.filter((log) => log.action === logFilter)
+
+  const logReason = (log: AdminLog) => {
+    const detail = log.detail || {}
+    const reason = typeof detail.reason === 'string' ? detail.reason.trim() : ''
+    const status = typeof detail.status === 'string' ? detail.status : ''
+
+    if (reason) return `Neden: ${reason}`
+    if (status) return `Yeni durum: ${status}`
+
+    return ''
+  }
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#05070d] text-white flex items-center justify-center">
-        <p className="text-cyan-400">Dashboard yükleniyor...</p>
+      <main className="min-h-screen bg-[#090b10] text-white flex items-center justify-center">
+        <p className="text-purple-300">Dashboard yükleniyor...</p>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#05070d] text-white p-5 md:p-8">
+    <main className="min-h-screen bg-[#090b10] text-white p-5 md:p-8">
       <div className="max-w-7xl mx-auto">
 
         <header className="flex flex-wrap justify-between items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-cyan-400">
+            <h1 className="text-3xl font-bold text-purple-300">
               PromptForge Admin
             </h1>
             <p className="text-gray-400 mt-2">
@@ -559,8 +635,9 @@ export default function AdminPanel() {
               fetchTickets()
               fetchFeedbacks()
               fetchReports()
+              fetchLogs()
             }}
-            className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-3 rounded-xl"
+            className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-5 py-3 rounded-xl"
           >
             ↻ Yenile
           </button>
@@ -578,29 +655,29 @@ export default function AdminPanel() {
         )}
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#101827] border border-white/10 rounded-2xl p-6">
+          <div className="bg-[#11141d] border border-white/10 rounded-2xl p-6">
             <p className="text-gray-400">Toplam Kullanıcı</p>
             <h2 className="text-3xl font-bold mt-3">
               {stats.totalUsers}
             </h2>
           </div>
 
-          <div className="bg-[#101827] border border-white/10 rounded-2xl p-6">
+          <div className="bg-[#11141d] border border-white/10 rounded-2xl p-6">
             <p className="text-gray-400">Bekleyen Kullanıcı</p>
             <h2 className="text-3xl font-bold text-yellow-400 mt-3">
               {stats.pendingUsers}
             </h2>
           </div>
 
-          <div className="bg-[#101827] border border-white/10 rounded-2xl p-6">
+          <div className="bg-[#11141d] border border-white/10 rounded-2xl p-6">
             <p className="text-gray-400">Toplam Proje</p>
-            <h2 className="text-3xl font-bold text-cyan-400 mt-3">
+            <h2 className="text-3xl font-bold text-purple-300 mt-3">
               {stats.totalProjects}
             </h2>
           </div>
         </section>
 
-        <section className="bg-[#101827] border border-white/10 rounded-2xl p-5 mb-8">
+        <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8">
           <h2 className="text-xl font-bold mb-5">
             Son Kayıt Olan Kullanıcılar
           </h2>
@@ -631,7 +708,7 @@ export default function AdminPanel() {
           )}
         </section>
 
-        <section className="bg-[#101827] border border-white/10 rounded-2xl p-5 mb-8">
+        <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8">
           <h2 className="text-xl font-bold mb-5">
             Kullanıcı Onayları
           </h2>
@@ -677,7 +754,7 @@ export default function AdminPanel() {
           )}
         </section>
 
-        <section className="bg-[#101827] border border-white/10 rounded-2xl p-5 mb-8">
+        <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8">
           <h2 className="text-xl font-bold mb-5">
             Tüm Kullanıcılar ({allUsers.length})
           </h2>
@@ -745,7 +822,7 @@ export default function AdminPanel() {
 
         {/* DESTEK TALEPLERİ */}
 
-        <section className="bg-[#101827] border border-cyan-500/20 rounded-2xl p-5 mb-8">
+        <section className="bg-[#11141d] border border-purple-500/20 rounded-2xl p-5 mb-8">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div>
               <h2 className="text-xl font-bold">Destek Talepleri</h2>
@@ -775,7 +852,7 @@ export default function AdminPanel() {
                 onClick={() => setTicketFilter(filter.value)}
                 className={`px-4 py-2 rounded-lg text-sm ${
                   ticketFilter === filter.value
-                    ? 'bg-cyan-500 text-black font-semibold'
+                    ? 'bg-purple-600 text-white font-semibold'
                     : 'bg-white/5 text-gray-300 hover:bg-white/10'
                 }`}
               >
@@ -795,7 +872,7 @@ export default function AdminPanel() {
               {filteredTickets.map((ticket) => (
                 <article
                   key={ticket.id}
-                  className="bg-[#080e19] border border-white/10 rounded-xl p-4 md:p-5"
+                  className="bg-[#090b10] border border-white/10 rounded-xl p-4 md:p-5"
                 >
                   <div className="flex flex-wrap justify-between gap-3 mb-4">
                     <div>
@@ -814,7 +891,7 @@ export default function AdminPanel() {
                       ticket.status === 'open'
                         ? 'bg-yellow-500/15 text-yellow-400'
                         : ticket.status === 'in_progress'
-                        ? 'bg-cyan-500/15 text-cyan-400'
+                        ? 'bg-purple-600/15 text-purple-300'
                         : 'bg-green-500/15 text-green-400'
                     }`}>
                       {getStatusLabel(ticket.status)}
@@ -831,8 +908,8 @@ export default function AdminPanel() {
                   </div>
 
                   {ticket.admin_reply && (
-                    <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-4 mb-4">
-                      <p className="text-xs text-cyan-400 mb-2">
+                    <div className="bg-purple-600/10 border border-purple-500/20 rounded-lg p-4 mb-4">
+                      <p className="text-xs text-purple-300 mb-2">
                         Verilen cevap
                       </p>
                       <p className="text-gray-200 whitespace-pre-wrap break-words">
@@ -862,7 +939,7 @@ export default function AdminPanel() {
                       rows={3}
                       maxLength={5000}
                       placeholder="Kullanıcıya göndermek istediğin cevabı yaz..."
-                      className="w-full bg-[#101827] border border-white/10 rounded-xl p-3 outline-none focus:border-cyan-500 resize-y"
+                      className="w-full bg-[#11141d] border border-white/10 rounded-xl p-3 outline-none focus:border-purple-500 resize-y"
                     />
 
                     <div className="flex flex-wrap justify-between items-center gap-3">
@@ -886,7 +963,7 @@ export default function AdminPanel() {
                               status: 'in_progress',
                             })
                           }
-                          className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 px-3 py-2 rounded-lg text-xs disabled:opacity-50"
+                          className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 px-3 py-2 rounded-lg text-xs disabled:opacity-50"
                         >
                           İşleme al
                         </button>
@@ -914,7 +991,7 @@ export default function AdminPanel() {
                             adminReply: replies[ticket.id].trim(),
                           })
                         }
-                        className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-5 py-2 rounded-lg text-sm disabled:opacity-50"
+                        className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-5 py-2 rounded-lg text-sm disabled:opacity-50"
                       >
                         {busy === ticket.id ? 'Gönderiliyor...' : 'Cevabı Gönder'}
                       </button>
@@ -928,7 +1005,7 @@ export default function AdminPanel() {
 
         {/* GERİ BİLDİRİM YÖNETİMİ */}
 
-        <section className="bg-[#101827] border border-purple-500/20 rounded-2xl p-5 mb-8">
+        <section className="bg-[#11141d] border border-purple-500/20 rounded-2xl p-5 mb-8">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div>
               <h2 className="text-xl font-bold">
@@ -963,7 +1040,7 @@ export default function AdminPanel() {
 
             <div className="bg-white/5 rounded-xl p-4">
               <p className="text-gray-400 text-sm">İncelenen</p>
-              <p className="text-2xl font-bold text-cyan-400 mt-2">
+              <p className="text-2xl font-bold text-purple-300 mt-2">
                 {feedbacks.filter((f) => f.status === 'reviewing').length}
               </p>
             </div>
@@ -1014,7 +1091,7 @@ export default function AdminPanel() {
               {filteredFeedbacks.map((feedback) => (
                 <article
                   key={feedback.id}
-                  className="bg-[#080e19] border border-white/10 rounded-xl p-4 md:p-5"
+                  className="bg-[#090b10] border border-white/10 rounded-xl p-4 md:p-5"
                 >
                   <div className="flex flex-wrap justify-between gap-3 mb-4">
                     <div>
@@ -1059,7 +1136,7 @@ export default function AdminPanel() {
                       onClick={() =>
                         updateFeedback(feedback.id, 'reviewing')
                       }
-                      className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                      className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
                     >
                       İncelemeye Al
                     </button>
@@ -1117,7 +1194,7 @@ export default function AdminPanel() {
 
         {/* RAPOR YÖNETİMİ */}
 
-        <section className="bg-[#101827] border border-red-500/20 rounded-2xl p-5 mb-8">
+        <section className="bg-[#11141d] border border-red-500/20 rounded-2xl p-5 mb-8">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div>
               <h2 className="text-xl font-bold">Rapor Yönetimi</h2>
@@ -1150,7 +1227,7 @@ export default function AdminPanel() {
 
             <div className="bg-white/5 rounded-xl p-4">
               <p className="text-gray-400 text-sm">İncelenen</p>
-              <p className="text-2xl font-bold text-cyan-400 mt-2">
+              <p className="text-2xl font-bold text-purple-300 mt-2">
                 {reports.filter((r) => r.status === 'reviewing').length}
               </p>
             </div>
@@ -1196,7 +1273,7 @@ export default function AdminPanel() {
               {filteredReports.map((report) => (
                 <article
                   key={report.id}
-                  className="bg-[#080e19] border border-white/10 rounded-xl p-4 md:p-5"
+                  className="bg-[#090b10] border border-white/10 rounded-xl p-4 md:p-5"
                 >
                   <div className="flex flex-wrap justify-between gap-3 mb-4">
                     <div>
@@ -1242,7 +1319,7 @@ export default function AdminPanel() {
                       onClick={() =>
                         updateReport(report.id, 'reviewing')
                       }
-                      className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                      className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
                     >
                       İncelemeye Al
                     </button>
@@ -1277,6 +1354,84 @@ export default function AdminPanel() {
                   {busy === report.id && (
                     <p className="text-xs text-gray-400 mt-3">
                       Güncelleniyor...
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-5">
+            <div>
+              <h2 className="text-xl font-bold">İşlem Kayıtları</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Yönetici işlemlerinin denetim kaydı (en son 200 kayıt).
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'all', label: 'Tümü' },
+                { value: 'user.ban', label: 'Askıya alınan' },
+                { value: 'user.unban', label: 'Askı kaldırılan' },
+                { value: 'user.approve', label: 'Onaylanan' },
+                { value: 'user.reject', label: 'Reddedilen' },
+                { value: 'support.reply', label: 'Destek' },
+                { value: 'report.update', label: 'Rapor' },
+                { value: 'feedback.update', label: 'Geri bildirim' },
+              ].map((filter) => (
+                <button
+                  key={filter.value}
+                  onClick={() => setLogFilter(filter.value)}
+                  className={`px-3 py-2 rounded-lg text-xs ${
+                    logFilter === filter.value
+                      ? 'bg-purple-600 text-white font-semibold'
+                      : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {logLoading ? (
+            <p className="text-gray-400 py-6">Kayıtlar yükleniyor...</p>
+          ) : filteredLogs.length === 0 ? (
+            <p className="text-gray-400 py-6">
+              Bu kategoride işlem kaydı bulunmuyor.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {filteredLogs.map((log) => (
+                <article
+                  key={log.id}
+                  className="bg-[#090b10] border border-white/10 rounded-xl p-4"
+                >
+                  <div className="flex flex-wrap justify-between gap-2 mb-2">
+                    <p className="font-semibold text-purple-300">
+                      {logLabel(log.action)}
+                    </p>
+
+                    <p className="text-xs text-gray-500">
+                      {formatDate(log.created_at)}
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-gray-500 break-all">
+                    Hedef: {log.target_type} / {log.target_id}
+                  </p>
+
+                  <p className="text-xs text-gray-600 break-all mt-1">
+                    Yönetici: {log.actor_id}
+                    {log.ip ? ` · IP: ${log.ip}` : ''}
+                  </p>
+
+                  {logReason(log) && (
+                    <p className="text-sm text-gray-300 mt-2 bg-white/5 rounded-lg px-3 py-2">
+                      {logReason(log)}
                     </p>
                   )}
                 </article>

@@ -112,7 +112,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080b14] text-white p-5 sm:p-8">
+    <main className="min-h-screen bg-[#090b10] text-white p-5 sm:p-8">
       <div className="max-w-4xl mx-auto">
 
         <button
@@ -131,7 +131,7 @@ export default function FeedbackPage() {
           </p>
         </div>
 
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-6 mb-8">
+        <section className="bg-[#11141d] border border-gray-800 rounded-2xl p-6 mb-8">
           <h2 className="text-xl font-semibold mb-6">
             Yeni Geri Bildirim
           </h2>
@@ -146,7 +146,7 @@ export default function FeedbackPage() {
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 outline-none focus:border-blue-500"
+                className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 outline-none focus:border-purple-500"
               >
                 <option value="suggestion">Öneri</option>
                 <option value="bug">Hata Bildirimi</option>
@@ -165,7 +165,7 @@ export default function FeedbackPage() {
                 maxLength={100}
                 required
                 placeholder="Geri bildiriminin başlığı"
-                className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 outline-none focus:border-blue-500"
+                className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 outline-none focus:border-purple-500"
               />
             </div>
 
@@ -181,7 +181,7 @@ export default function FeedbackPage() {
                 rows={5}
                 required
                 placeholder="Detayları buraya yaz..."
-                className="w-full bg-[#080b14] border border-gray-700 rounded-xl p-4 outline-none resize-none focus:border-blue-500"
+                className="w-full bg-[#090b10] border border-gray-700 rounded-xl p-4 outline-none resize-none focus:border-purple-500"
               />
 
               <p className="text-xs text-gray-500 text-right mt-1">
@@ -200,7 +200,7 @@ export default function FeedbackPage() {
             <button
               type="submit"
               disabled={sending}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl p-4 font-semibold transition"
+              className="w-full bg-purple-600 hover:bg-purple-600 disabled:opacity-50 rounded-xl p-4 font-semibold transition"
             >
               {sending ? 'Gönderiliyor...' : 'Geri Bildirim Gönder'}
             </button>
@@ -208,7 +208,7 @@ export default function FeedbackPage() {
           </form>
         </section>
 
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-6">
+        <section className="bg-[#11141d] border border-gray-800 rounded-2xl p-6">
           <h2 className="text-xl font-semibold mb-6">
             Gönderdiğim Bildirimler
           </h2>
@@ -226,11 +226,11 @@ export default function FeedbackPage() {
               {feedbacks.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-[#080b14] border border-gray-800 rounded-xl p-5"
+                  className="bg-[#090b10] border border-gray-800 rounded-xl p-5"
                 >
                   <div className="flex flex-wrap justify-between gap-3">
                     <div>
-                      <span className="text-blue-400 text-xs">
+                      <span className="text-purple-300 text-xs">
                         {getTypeName(item.type)}
                       </span>
 

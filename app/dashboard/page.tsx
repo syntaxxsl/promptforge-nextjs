@@ -274,10 +274,21 @@ function Sidebar({
       </nav>
 
       <div
-        className={`border-t p-3 space-y-2 ${
+        className={`border-t px-3 pt-3 pb-5 space-y-2 shrink-0 ${
           isLight ? 'border-gray-200' : 'border-[#1e2431]'
         }`}
       >
+        {email && (
+          <p
+            className={`px-1 truncate text-[11px] leading-4 ${
+              isLight ? 'text-gray-500' : 'text-gray-500'
+            }`}
+            title={email}
+          >
+            {email}
+          </p>
+        )}
+
         <div className="flex items-center gap-2">
           <button
             onClick={onToggleTheme}
@@ -302,17 +313,6 @@ function Sidebar({
             )}
           </button>
 
-          {isAdmin && (
-            <button
-              onClick={onAdmin}
-              title="Admin paneli"
-              aria-label="Admin paneli"
-              className={`w-9 h-9 rounded-lg flex items-center justify-center ${softButton}`}
-            >
-              🛠️
-            </button>
-          )}
-
           <button
             onClick={onLogout}
             className={`ml-auto px-3 h-9 rounded-lg text-xs font-bold ${softButton}`}
@@ -321,16 +321,6 @@ function Sidebar({
           </button>
         </div>
 
-        {email && (
-          <p
-            className={`truncate text-[11px] ${
-              isLight ? 'text-gray-400' : 'text-gray-500'
-            }`}
-            title={email}
-          >
-            {email}
-          </p>
-        )}
       </div>
     </div>
   )
@@ -1883,6 +1873,7 @@ ${codeJs}`)
         { icon: '🛒', label: 'Pazaryeri', onClick: () => goTo('/marketplace') },
         { icon: '🧰', label: 'Araçlar', onClick: () => goTo('/tools') },
         { icon: '👁️', label: 'Vision', onClick: () => goTo('/vision') },
+        { icon: '🧠', label: 'Critic', onClick: () => goTo('/critic') },
       ],
     },
     {
@@ -1891,9 +1882,24 @@ ${codeJs}`)
         { icon: '⚙️', label: 'Ayarlar', onClick: () => goTo('/settings') },
         { icon: '🎧', label: 'Destek', onClick: () => goTo('/support') },
         { icon: '🛡️', label: 'Güvenlik', onClick: () => goTo('/security') },
+        { icon: '🕘', label: 'Aktivite', onClick: () => goTo('/activity') },
         { icon: '💬', label: 'Geri Bildirim', onClick: () => goTo('/feedback') },
       ],
     },
+    ...(isAdmin
+      ? [
+          {
+            title: 'Yönetim',
+            items: [
+              {
+                icon: '🛠️',
+                label: 'Admin Paneli',
+                onClick: () => goTo('/admin'),
+              },
+            ],
+          },
+        ]
+      : []),
   ]
 
   const sidebarCommon = {

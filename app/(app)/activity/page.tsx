@@ -63,7 +63,7 @@ export default function ActivityPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080b14] text-white p-5 sm:p-8">
+    <main className="min-h-screen bg-[#090b10] text-white p-5 sm:p-8">
       <div className="max-w-4xl mx-auto">
 
         <button
@@ -83,7 +83,7 @@ export default function ActivityPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-[#111827] border border-gray-800 rounded-2xl p-5">
+          <div className="bg-[#11141d] border border-gray-800 rounded-2xl p-5">
             <p className="text-gray-400 text-sm">
               Toplam Proje
             </p>
@@ -92,7 +92,7 @@ export default function ActivityPage() {
             </p>
           </div>
 
-          <div className="bg-[#111827] border border-gray-800 rounded-2xl p-5">
+          <div className="bg-[#11141d] border border-gray-800 rounded-2xl p-5">
             <p className="text-gray-400 text-sm">
               Son Aktivite
             </p>
@@ -107,7 +107,7 @@ export default function ActivityPage() {
           </div>
         </div>
 
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-6">
+        <section className="bg-[#11141d] border border-gray-800 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold">
               Proje Geçmişi
@@ -141,9 +141,9 @@ export default function ActivityPage() {
               {projects.map((project) => (
                 <div
                   key={project.id}
-                  className="bg-[#080b14] border border-gray-800 rounded-xl p-4 flex gap-4"
+                  className="bg-[#090b10] border border-gray-800 rounded-xl p-4 flex gap-4"
                 >
-                  <div className="w-11 h-11 shrink-0 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl">
+                  <div className="w-11 h-11 shrink-0 rounded-xl bg-purple-600/10 flex items-center justify-center text-xl">
                     📄
                   </div>
 
@@ -163,7 +163,7 @@ export default function ActivityPage() {
                     )}
 
                     {project.status && (
-                      <span className="inline-block mt-3 text-xs bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full">
+                      <span className="inline-block mt-3 text-xs bg-purple-600/10 text-purple-300 px-3 py-1 rounded-full">
                         {project.status}
                       </span>
                     )}

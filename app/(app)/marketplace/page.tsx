@@ -255,12 +255,12 @@ export default function MarketplacePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050505] text-white">
+    <main className="min-h-screen bg-[#090b10] text-white">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
 
-        <header className="mb-10 flex items-center justify-between rounded-2xl border border-white/10 bg-[#101010] px-5 py-4">
+        <header className="mb-10 flex items-center justify-between rounded-2xl border border-white/10 bg-[#11141d] px-5 py-4">
           <Link href="/dashboard" className="text-xl font-bold">
-            <span className="bg-gradient-to-r from-purple-500 to-blue-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
               PromptForge
             </span>
           </Link>
@@ -279,7 +279,7 @@ export default function MarketplacePage() {
           </span>
 
           <h1 className="mt-5 text-3xl font-bold sm:text-5xl">
-            Prompt <span className="bg-gradient-to-r from-purple-500 to-blue-400 bg-clip-text text-transparent">Marketplace</span>
+            Prompt <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Marketplace</span>
           </h1>
 
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-gray-400">
@@ -292,7 +292,7 @@ export default function MarketplacePage() {
               setShowForm(!showForm)
               setError('')
             }}
-            className="mt-6 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 text-sm font-semibold transition hover:brightness-110"
+            className="mt-6 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-6 py-3 text-sm font-semibold transition hover:brightness-110"
           >
             {showForm ? 'Formu Kapat' : '+ Prompt Paylaş'}
           </button>
@@ -317,7 +317,7 @@ export default function MarketplacePage() {
         )}
 
         {showForm && (
-          <section className="mb-8 rounded-2xl border border-purple-500/20 bg-[#101010] p-5 sm:p-7">
+          <section className="mb-8 rounded-2xl border border-purple-500/20 bg-[#11141d] p-5 sm:p-7">
             <h2 className="mb-5 text-lg font-semibold">
               Yeni Prompt Paylaş
             </h2>
@@ -332,7 +332,7 @@ export default function MarketplacePage() {
                   onChange={e => setTitle(e.target.value)}
                   maxLength={80}
                   placeholder="Örn: Profesyonel Logo Tasarımı"
-                  className="w-full rounded-xl border border-white/10 bg-[#080808] p-3 text-sm outline-none focus:border-purple-500"
+                  className="w-full rounded-xl border border-white/10 bg-[#090b10] p-3 text-sm outline-none focus:border-purple-500"
                 />
               </div>
 
@@ -343,7 +343,7 @@ export default function MarketplacePage() {
                 <select
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-[#080808] p-3 text-sm outline-none focus:border-purple-500"
+                  className="w-full rounded-xl border border-white/10 bg-[#090b10] p-3 text-sm outline-none focus:border-purple-500"
                 >
                   {categories.filter(c => c !== 'Tümü').map(item => (
                     <option key={item} value={item}>
@@ -364,7 +364,7 @@ export default function MarketplacePage() {
                 maxLength={300}
                 rows={2}
                 placeholder="Prompt ne işe yarıyor?"
-                className="w-full rounded-xl border border-white/10 bg-[#080808] p-3 text-sm outline-none focus:border-purple-500"
+                className="w-full rounded-xl border border-white/10 bg-[#090b10] p-3 text-sm outline-none focus:border-purple-500"
               />
             </div>
 
@@ -378,7 +378,7 @@ export default function MarketplacePage() {
                 maxLength={10000}
                 rows={7}
                 placeholder="Promptunu buraya yaz..."
-                className="w-full rounded-xl border border-white/10 bg-[#080808] p-4 font-mono text-sm leading-6 outline-none focus:border-purple-500"
+                className="w-full rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-sm leading-6 outline-none focus:border-purple-500"
               />
               <p className="mt-1 text-right text-xs text-gray-600">
                 {promptText.length}/10000
@@ -395,12 +395,12 @@ export default function MarketplacePage() {
           </section>
         )}
 
-        <section className="mb-7 rounded-2xl border border-white/10 bg-[#101010] p-4 sm:p-5">
+        <section className="mb-7 rounded-2xl border border-white/10 bg-[#11141d] p-4 sm:p-5">
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Prompt ara..."
-            className="mb-4 w-full rounded-xl border border-white/10 bg-[#080808] p-3 text-sm outline-none focus:border-purple-500"
+            className="mb-4 w-full rounded-xl border border-white/10 bg-[#090b10] p-3 text-sm outline-none focus:border-purple-500"
           />
 
           <div className="flex flex-wrap gap-2">
@@ -432,7 +432,7 @@ export default function MarketplacePage() {
             Promptlar yükleniyor...
           </div>
         ) : filteredPrompts.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-[#101010] py-20 text-center">
+          <div className="rounded-2xl border border-white/10 bg-[#11141d] py-20 text-center">
             <div className="mb-4 text-5xl text-gray-700">✧</div>
             <h3 className="font-medium">Henüz prompt bulunamadı</h3>
             <p className="mt-2 text-sm text-gray-500">
@@ -444,7 +444,7 @@ export default function MarketplacePage() {
             {filteredPrompts.map(item => (
               <article
                 key={item.id}
-                className="flex flex-col rounded-2xl border border-white/10 bg-[#101010] p-5 transition hover:-translate-y-1 hover:border-purple-500/30"
+                className="flex flex-col rounded-2xl border border-white/10 bg-[#11141d] p-5 transition hover:-translate-y-1 hover:border-purple-500/30"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs text-purple-300">
@@ -464,7 +464,7 @@ export default function MarketplacePage() {
                   {item.description || 'Açıklama eklenmemiş.'}
                 </p>
 
-                <div className="mb-4 flex-1 rounded-xl border border-white/5 bg-[#080808] p-4">
+                <div className="mb-4 flex-1 rounded-xl border border-white/5 bg-[#090b10] p-4">
                   <p className="whitespace-pre-wrap break-words text-xs leading-6 text-gray-400">
                     {item.prompt.length > 350
                       ? item.prompt.slice(0, 350) + '...'

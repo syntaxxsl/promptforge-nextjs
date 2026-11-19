@@ -314,7 +314,7 @@ ${project.html_code ?? ''}
 
               <div>
                 <h3 className="mb-2 font-semibold">CSS</h3>
-                <pre className="max-h-60 overflow-auto rounded-xl bg-black/40 p-4 text-xs text-blue-300">
+                <pre className="max-h-60 overflow-auto rounded-xl bg-black/40 p-4 text-xs text-purple-300">
                   {selectedProject.css_code || 'Kod bulunmuyor.'}
                 </pre>
               </div>

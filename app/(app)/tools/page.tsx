@@ -30,7 +30,7 @@ const templates: Template[] = [
 </section>`,
     css: `* { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; background: #090d18; color: white; }
-.hero { min-height: 85vh; padding: 30px 8%; background: linear-gradient(135deg, #111827, #312e81); }
+.hero { min-height: 85vh; padding: 30px 8%; background: linear-gradient(135deg, #11141d, #312e81); }
 nav { display: flex; justify-content: space-between; }
 nav a { color: white; text-decoration: none; }
 .content { max-width: 650px; margin: 130px auto; }
@@ -66,7 +66,7 @@ h1 { font-size: clamp(48px, 9vw, 90px); margin: 20px 0; }
 </main>`,
     css: `* { box-sizing: border-box; }
 body { margin: 0; background: #080b12; color: #f8fafc; font-family: Arial, sans-serif; }
-.top { display: flex; justify-content: space-between; padding: 28px 8%; border-bottom: 1px solid #252b39; }
+.top { display: flex; justify-content: space-between; padding: 28px 8%; border-bottom: 1px solid #222939; }
 .top a { color: #c4b5fd; text-decoration: none; }
 .hero { text-align: center; padding: 110px 20px; }
 .tag { color: #a78bfa; letter-spacing: 3px; font-size: 12px; }
@@ -75,7 +75,7 @@ h1 em { color: #a78bfa; font-style: normal; }
 .hero p { color: #94a3b8; }
 button { margin-top: 25px; padding: 15px 30px; border: 0; border-radius: 9px; background: #7c3aed; color: white; cursor: pointer; }
 .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; padding: 30px 8% 80px; }
-article { padding: 25px; border: 1px solid #293044; border-radius: 15px; background: #111827; }
+article { padding: 25px; border: 1px solid #293044; border-radius: 15px; background: #11141d; }
 article h2 { color: #a78bfa; }
 article p { color: #94a3b8; }
 `,
@@ -116,7 +116,7 @@ button { padding: 14px 25px; border: 0; border-radius: 9px; background: #6d28d9;
 
 const palettes = [
   ['#0f172a', '#1e293b', '#7c3aed', '#c4b5fd', '#f8fafc'],
-  ['#111827', '#374151', '#06b6d4', '#67e8f9', '#f9fafb'],
+  ['#11141d', '#374151', '#06b6d4', '#67e8f9', '#f9fafb'],
   ['#18181b', '#3f3f46', '#e11d48', '#fda4af', '#fff1f2'],
   ['#052e16', '#166534', '#22c55e', '#bbf7d0', '#f0fdf4'],
   ['#172554', '#1d4ed8', '#60a5fa', '#bfdbfe', '#eff6ff'],
@@ -239,7 +239,7 @@ body, p, button {
             <button
               key={key}
               onClick={() => { setActive(key); setMessage('') }}
-              className={`px-4 py-3 rounded-xl text-sm font-bold ${active === key ? 'bg-purple-600 text-white' : 'bg-[#171b27] text-gray-300 hover:bg-[#252b39]'}`}
+              className={`px-4 py-3 rounded-xl text-sm font-bold ${active === key ? 'bg-purple-600 text-white' : 'bg-[#161b26] text-gray-300 hover:bg-[#222939]'}`}
             >
               {label}
             </button>
@@ -258,7 +258,7 @@ body, p, button {
             <p className="text-sm text-gray-400 mb-5">Bir tasarım seç ve HTML, CSS veya JavaScript kodunu ayrı ayrı kopyala.</p>
             <div className="grid md:grid-cols-3 gap-4">
               {templates.map((template) => (
-                <article key={template.name} className="rounded-2xl border border-white/10 bg-[#131722] p-5">
+                <article key={template.name} className="rounded-2xl border border-white/10 bg-[#11141d] p-5">
                   <div className="h-28 rounded-xl bg-gradient-to-br from-purple-900 to-slate-900 flex items-center justify-center text-4xl mb-4">✦</div>
                   <h3 className="font-bold">{template.name}</h3>
                   <p className="text-sm text-gray-400 mt-2 min-h-10">{template.description}</p>
@@ -270,7 +270,7 @@ body, p, button {
             </div>
 
             {selectedTemplate && (
-              <div className="mt-6 rounded-2xl border border-purple-500/30 bg-[#131722] p-5">
+              <div className="mt-6 rounded-2xl border border-purple-500/30 bg-[#11141d] p-5">
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <h3 className="text-lg font-bold">{selectedTemplate.name}</h3>
                   <button onClick={() => setSelectedTemplate(null)} className="text-gray-400">✕</button>
@@ -283,7 +283,7 @@ body, p, button {
                         Kodu Kopyala
                       </button>
                     </div>
-                    <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-[#090d16] p-3 text-xs text-green-300">{selectedTemplate[type]}</pre>
+                    <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-[#090b10] p-3 text-xs text-green-300">{selectedTemplate[type]}</pre>
                   </div>
                 ))}
               </div>
@@ -292,7 +292,7 @@ body, p, button {
         )}
 
         {active === 'palette' && (
-          <section className="rounded-2xl border border-white/10 bg-[#131722] p-5">
+          <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5">
             <h2 className="text-xl font-bold">Renk Paleti Oluşturucu</h2>
             <p className="text-sm text-gray-400 mt-2 mb-6">Yeni bir palet üret veya renk kodlarını tek tek kopyala.</p>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -315,19 +315,19 @@ body, p, button {
         )}
 
         {active === 'fonts' && (
-          <section className="rounded-2xl border border-white/10 bg-[#131722] p-5">
+          <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5">
             <h2 className="text-xl font-bold">Font Eşleştirici</h2>
             <p className="text-sm text-gray-400 mt-2 mb-5">Başlık ve paragraf yazıları için hazır font kombinasyonları.</p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {fontPairs.map((pair, index) => (
-                <button key={pair.title} onClick={() => setSelectedFont(index)} className={`rounded-xl border p-4 text-left ${selectedFont === index ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-[#090d16]'}`}>
+                <button key={pair.title} onClick={() => setSelectedFont(index)} className={`rounded-xl border p-4 text-left ${selectedFont === index ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-[#090b10]'}`}>
                   <p className="text-xs text-purple-300">{pair.title}</p>
                   <p className="text-2xl font-bold mt-3">{pair.heading}</p>
                   <p className="text-sm text-gray-400 mt-2">{pair.body} — Örnek paragraf yazısı.</p>
                 </button>
               ))}
             </div>
-            <div className="mt-6 rounded-xl bg-[#090d16] p-4">
+            <div className="mt-6 rounded-xl bg-[#090b10] p-4">
               <p className="font-bold mb-2">Seçili kombinasyon</p>
               <p className="text-sm text-gray-400 mb-4">Başlık: {font.heading} / Metin: {font.body}</p>
               <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-green-300">{fontCode}</pre>
@@ -339,7 +339,7 @@ body, p, button {
         )}
 
         {active === 'formatter' && (
-          <section className="rounded-2xl border border-white/10 bg-[#131722] p-5">
+          <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5">
             <h2 className="text-xl font-bold">Kod Biçimlendirici</h2>
             <p className="text-sm text-gray-400 mt-2 mb-5">Kodunu yapıştır, dilini seç ve temel girinti düzenlemesini uygula.</p>
             <div className="flex flex-wrap gap-2 mb-4">
@@ -350,7 +350,7 @@ body, p, button {
               ))}
             </div>
             <label className="block text-sm font-bold mb-2">Düzenlenecek kod</label>
-            <textarea value={formatCode} onChange={(e) => setFormatCode(e.target.value)} spellCheck={false} placeholder="Kodunu buraya yapıştır..." className="min-h-64 w-full rounded-xl border border-white/10 bg-[#090d16] p-4 font-mono text-sm text-green-300 outline-none" />
+            <textarea value={formatCode} onChange={(e) => setFormatCode(e.target.value)} spellCheck={false} placeholder="Kodunu buraya yapıştır..." className="min-h-64 w-full rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-sm text-green-300 outline-none" />
             <div className="flex flex-wrap gap-3 mt-4">
               <button onClick={() => setFormatResult(formatBasic(formatCode, formatType))} className="rounded-lg bg-purple-600 px-5 py-3 font-bold">
                 ✨ Biçimlendir
@@ -365,7 +365,7 @@ body, p, button {
             {formatResult && (
               <div className="mt-6">
                 <p className="font-bold mb-2">Düzenlenmiş sonuç</p>
-                <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-[#090d16] p-4 text-xs text-green-300">{formatResult}</pre>
+                <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-[#090b10] p-4 text-xs text-green-300">{formatResult}</pre>
                 <p className="text-xs text-amber-300 mt-3">Not: Bu temel bir biçimlendiricidir; karmaşık JavaScript kodlarında tam bir Prettier alternatifi değildir.</p>
               </div>
             )}

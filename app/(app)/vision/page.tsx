@@ -230,12 +230,12 @@ JavaScript kodu
   }
 
   return (
-    <main className="min-h-screen bg-[#050505] text-white">
+    <main className="min-h-screen bg-[#090b10] text-white">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
 
-        <header className="mb-10 flex items-center justify-between rounded-2xl border border-white/10 bg-[#101010] px-5 py-4">
+        <header className="mb-10 flex items-center justify-between rounded-2xl border border-white/10 bg-[#11141d] px-5 py-4">
           <Link href="/dashboard" className="text-lg font-bold">
-            <span className="bg-gradient-to-r from-purple-500 to-blue-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
               PromptForge
             </span>
           </Link>
@@ -255,7 +255,7 @@ JavaScript kodu
           </div>
 
           <h1 className="mb-4 text-3xl font-bold sm:text-5xl">
-            Görselini <span className="bg-gradient-to-r from-purple-500 to-blue-400 bg-clip-text text-transparent">Koda Dönüştür.</span>
+            Görselini <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Koda Dönüştür.</span>
           </h1>
 
           <p className="mx-auto max-w-2xl text-sm leading-7 text-gray-400 sm:text-base">
@@ -267,13 +267,13 @@ JavaScript kodu
 
         <div className="grid gap-6 lg:grid-cols-2">
 
-          <section className="rounded-2xl border border-white/10 bg-[#101010] p-5 sm:p-7">
+          <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5 sm:p-7">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-semibold">01. Tasarım Görseli</h2>
               <span className="text-xs text-gray-500">PNG / JPG / WEBP</span>
             </div>
 
-            <label className="flex min-h-64 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-purple-500/40 bg-[#080808] p-4 text-center transition hover:border-blue-400">
+            <label className="flex min-h-64 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-purple-500/40 bg-[#090b10] p-4 text-center transition hover:border-purple-500">
               {imageUrl ? (
                 <img
                   src={imageUrl}
@@ -329,7 +329,7 @@ JavaScript kodu
                 maxLength={1000}
                 rows={4}
                 placeholder="Örn: Tasarımı daha modern yap, mobil menü ekle, butonlara animasyon ekle..."
-                className="w-full resize-y rounded-xl border border-white/10 bg-[#080808] p-4 text-sm outline-none transition focus:border-purple-500"
+                className="w-full resize-y rounded-xl border border-white/10 bg-[#090b10] p-4 text-sm outline-none transition focus:border-purple-500"
               />
 
               <p className="mt-2 text-right text-xs text-gray-600">
@@ -340,14 +340,14 @@ JavaScript kodu
             <button
               onClick={generateCode}
               disabled={!file || loading}
-              className="mt-5 w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-4 font-semibold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-5 w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-4 font-semibold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? '✦ Tasarım Analiz Ediliyor...' : '✦ AI ile Kod Oluştur'}
             </button>
 
             {loading && (
               <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-purple-500 to-blue-500" />
+                <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
               </div>
             )}
 
@@ -358,10 +358,10 @@ JavaScript kodu
             )}
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-[#101010] p-5 sm:p-7">
+          <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5 sm:p-7">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-semibold">02. Kod ve Önizleme</h2>
-              <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs text-blue-300">
+              <span className="rounded-full bg-purple-600/10 px-3 py-1 text-xs text-purple-300">
                 LIVE PREVIEW
               </span>
             </div>
@@ -387,7 +387,7 @@ JavaScript kodu
               ))}
             </div>
 
-            <div className="min-h-[420px] overflow-hidden rounded-xl border border-white/10 bg-[#080808]">
+            <div className="min-h-[420px] overflow-hidden rounded-xl border border-white/10 bg-[#090b10]">
               {activeTab === 'preview' ? (
                 result.html || result.css ? (
                   <iframe
@@ -439,7 +439,7 @@ JavaScript kodu
           ].map(([number, title, description]) => (
             <div
               key={number}
-              className="rounded-2xl border border-white/10 bg-[#101010] p-5"
+              className="rounded-2xl border border-white/10 bg-[#11141d] p-5"
             >
               <span className="text-sm text-purple-400">{number}</span>
               <h3 className="mt-3 font-semibold">{title}</h3>

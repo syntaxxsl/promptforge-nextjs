@@ -12,6 +12,24 @@ const securityHeaders = [
     value: 'max-age=63072000; includeSubDomains; preload',
   },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  {
+    key: 'Content-Security-Policy',
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' blob:",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      "frame-src 'self' blob: data:",
+      "worker-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+      'upgrade-insecure-requests',
+    ].join('; '),
+  },
 ]
 
 const nextConfig = {
