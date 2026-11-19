@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -87,6 +88,17 @@ export default function Home() {
   // 3 TASARIM VARYASYONU
   const [variationLoading, setVariationLoading] = useState(false)
   const [designVariants, setDesignVariants] = useState<DesignVariant[]>([])
+
+  // CODE WIZARD
+  const [showWizard, setShowWizard] = useState(false)
+  const [wizardLoading, setWizardLoading] = useState(false)
+  const [wizardType, setWizardType] = useState('Kurumsal Web Sitesi')
+  const [wizardStyle, setWizardStyle] = useState('Modern')
+  const [wizardFeatures, setWizardFeatures] = useState<string[]>([
+    'Mobil uyumluluk',
+    'Animasyonlar',
+  ])
+  const [wizardDescription, setWizardDescription] = useState('')
 
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [projectTitle, setProjectTitle] = useState('Yeni Proje')
@@ -366,6 +378,82 @@ FİKİR: ${prompt}`
       setError('Hata: ' + (err.message || 'Bilinmeyen hata'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  // CODE WIZARD İLE PROJE OLUŞTURMA
+  const handleWizardGenerate = async () => {
+    if (!wizardDescription.trim()) {
+      alert('Lütfen oluşturmak istediğin siteyi kısaca açıkla.')
+      return
+    }
+
+    setWizardLoading(true)
+    setError('')
+
+    try {
+      const aiPrompt = `Sen uzman bir UI/UX tasarımcısı ve kıdemli front-end geliştiricisin.
+
+KULLANICI PROJE BİLGİLERİ:
+Proje türü: ${wizardType}
+Tasarım stili: ${wizardStyle}
+İstenen özellikler: ${wizardFeatures.join(', ') || 'Temel web sitesi özellikleri'}
+Ek açıklama: ${wizardDescription}
+
+GÖREV:
+Bu bilgilere göre eksiksiz, profesyonel ve çalışan bir web sitesi oluştur.
+
+KURALLAR:
+- HTML, CSS ve JavaScript kodlarını ayrı ayrı üret.
+- Tasarım tamamen responsive olsun.
+- Mobil, tablet ve masaüstünde düzgün görünsün.
+- Butonlar ve etkileşimler çalışsın.
+- Modern ve profesyonel bir kullanıcı arayüzü oluştur.
+- Gereksiz açıklama yazma.
+- Kodları kısaltma.
+- Harici kütüphane gerektirmeyen çözümleri tercih et.
+- HTML içine CSS veya JavaScript yerleştirme.
+
+ÇIKTI FORMATI:
+---HTML---
+HTML kodu
+---CSS---
+CSS kodu
+---JS---
+JavaScript kodu`
+
+      // @ts-ignore
+      const response = await puter.ai.chat(aiPrompt, {
+        model: 'gpt-4o-mini',
+      })
+
+      const parsed = parseCode(cleanAIResponse(getAIText(response)))
+
+      if (!parsed.html.trim()) {
+        throw new Error('AI geçerli HTML kodu döndürmedi.')
+      }
+
+      setPrompt(`${wizardType}: ${wizardDescription}`)
+      setProjectTitle(wizardType)
+      setCodeHtml(parsed.html)
+      setCodeCss(parsed.css)
+      setCodeJs(parsed.js)
+      setCurrentProjectId(null)
+      setActiveTab('html')
+      setActiveView('editor')
+      setShowWizard(false)
+      setDesignVariants([])
+      setReviewResult('')
+      setDesignSuggestions('')
+
+      addNotification(
+        'Code Wizard tamamlandı',
+        'Seçtiğin özelliklere göre web siten oluşturuldu.'
+      )
+    } catch (err: any) {
+      setError('Code Wizard hatası: ' + (err.message || 'Bilinmeyen hata'))
+    } finally {
+      setWizardLoading(false)
     }
   }
 
@@ -1021,7 +1109,8 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
   const totalJs = projects.filter((p) => Boolean(p.js_code)).length
 
   const isLight = theme === 'light'
-    return (
+
+  return (
     <main className={`min-h-screen ${
       isLight
         ? 'bg-gray-100 text-gray-900'
@@ -1035,7 +1124,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
           ? 'bg-white border-gray-200'
           : 'bg-[#10131b] border-[#252a36]'
       }`}>
-        <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={() => setActiveView('dashboard')}
             className="flex items-center gap-2"
@@ -1048,7 +1137,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
             </span>
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <button
               onClick={() => setTheme(isLight ? 'dark' : 'light')}
               className={`p-2 rounded-lg ${
@@ -1187,13 +1276,177 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                   </p>
                 </div>
 
-                <button
-                  onClick={startNewProject}
-                  className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition"
-                >
-                  + Yeni Proje Oluştur
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setShowWizard(!showWizard)}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold"
+                  >
+                    🧙 Code Wizard
+                  </button>
+
+                  <button
+                    onClick={startNewProject}
+                    className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition"
+                  >
+                    + Yeni Proje Oluştur
+                  </button>
+                </div>
               </div>
+
+              {/* CODE WIZARD */}
+              {showWizard && (
+                <div className={`rounded-2xl border p-5 md:p-7 mb-8 ${
+                  isLight
+                    ? 'bg-white border-gray-200'
+                    : 'bg-[#131722] border-purple-500/30'
+                }`}>
+                  <div className="flex items-center justify-between gap-3 mb-5">
+                    <div>
+                      <h2 className="text-xl font-black">
+                        🧙 Code Wizard
+                      </h2>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Birkaç seçim yap, AI senin için projeyi oluştursun.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setShowWizard(false)}
+                      className="px-3 py-2 rounded-lg bg-gray-500/10 text-gray-400"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold mb-2">
+                        Proje türü
+                      </label>
+                      <select
+                        value={wizardType}
+                        onChange={(e) => setWizardType(e.target.value)}
+                        className={`w-full p-3 rounded-xl border outline-none ${
+                          isLight
+                            ? 'bg-gray-50 border-gray-200'
+                            : 'bg-[#090d16] border-[#303747] text-white'
+                        }`}
+                      >
+                        <option>Kurumsal Web Sitesi</option>
+                        <option>Portfolyo Sitesi</option>
+                        <option>E-Ticaret Sitesi</option>
+                        <option>Blog Sitesi</option>
+                        <option>Haber Sitesi</option>
+                        <option>Oyun Sitesi</option>
+                        <option>Teknoloji Sitesi</option>
+                        <option>Landing Page</option>
+                        <option>Dashboard</option>
+                        <option>Sosyal Medya Platformu</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold mb-2">
+                        Tasarım stili
+                      </label>
+                      <select
+                        value={wizardStyle}
+                        onChange={(e) => setWizardStyle(e.target.value)}
+                        className={`w-full p-3 rounded-xl border outline-none ${
+                          isLight
+                            ? 'bg-gray-50 border-gray-200'
+                            : 'bg-[#090d16] border-[#303747] text-white'
+                        }`}
+                      >
+                        <option>Modern</option>
+                        <option>Minimal</option>
+                        <option>Dark Premium</option>
+                        <option>Glassmorphism</option>
+                        <option>Kurumsal</option>
+                        <option>Renkli ve Yaratıcı</option>
+                        <option>Fütüristik</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <label className="block text-sm font-bold mb-3">
+                      İstediğin özellikler
+                    </label>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {[
+                        'Mobil uyumluluk',
+                        'Animasyonlar',
+                        'Giriş ve kayıt ekranı',
+                        'İletişim formu',
+                        'Arama özelliği',
+                        'Filtreleme',
+                        'Yönetim paneli',
+                        'Ürün kartları',
+                        'Sepet sistemi',
+                        'Yorum alanı',
+                        'Açılır menü',
+                        'Koyu ve açık tema',
+                      ].map((feature) => (
+                        <label
+                          key={feature}
+                          className={`flex items-center gap-2 p-3 rounded-lg border text-sm cursor-pointer ${
+                            wizardFeatures.includes(feature)
+                              ? 'border-purple-500 bg-purple-500/10'
+                              : isLight
+                                ? 'border-gray-200 bg-gray-50'
+                                : 'border-[#303747] bg-[#090d16]'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={wizardFeatures.includes(feature)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setWizardFeatures((prev) => [...prev, feature])
+                              } else {
+                                setWizardFeatures((prev) =>
+                                  prev.filter((item) => item !== feature)
+                                )
+                              }
+                            }}
+                            className="accent-purple-600"
+                          />
+                          <span>{feature}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <label className="block text-sm font-bold mb-2">
+                      Projeni açıkla
+                    </label>
+                    <textarea
+                      value={wizardDescription}
+                      onChange={(e) => setWizardDescription(e.target.value)}
+                      placeholder="Örneğin: Teknoloji ürünleri satan, ana sayfasında ürün kartları ve kampanya alanı bulunan profesyonel bir site istiyorum..."
+                      rows={4}
+                      className={`w-full p-4 rounded-xl border outline-none resize-y ${
+                        isLight
+                          ? 'bg-gray-50 border-gray-200 text-gray-900'
+                          : 'bg-[#090d16] border-[#303747] text-white'
+                      }`}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleWizardGenerate}
+                    disabled={wizardLoading}
+                    className="w-full mt-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold disabled:opacity-50"
+                  >
+                    {wizardLoading
+                      ? '⏳ Projen hazırlanıyor...'
+                      : '🧙 Seçimlerime Göre Site Oluştur'}
+                  </button>
+                </div>
+              )}
 
               {/* İSTATİSTİKLER */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
@@ -1775,4 +2028,4 @@ ${variant.html}
       )}
     </main>
   )
-                }
+}
