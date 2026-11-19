@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -49,9 +50,7 @@ function getAIText(response: any): string {
   if (typeof content === 'string') return content
 
   if (Array.isArray(content)) {
-    return content
-      .map((item: any) => item.text || '')
-      .join('\n')
+    return content.map((item: any) => item.text || '').join('\n')
   }
 
   return response?.text || String(response)
@@ -90,7 +89,6 @@ export default function Home() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
 
-  // AI geliştirici araçları
   const [reviewLoading, setReviewLoading] = useState(false)
   const [fixLoading, setFixLoading] = useState(false)
   const [reviewResult, setReviewResult] = useState('')
@@ -104,7 +102,6 @@ export default function Home() {
     'desktop' | 'tablet' | 'mobile'
   >('desktop')
 
-  // Dashboard
   const [activeView, setActiveView] = useState<'dashboard' | 'editor'>('dashboard')
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [showNotifications, setShowNotifications] = useState(false)
@@ -112,7 +109,6 @@ export default function Home() {
 
   const router = useRouter()
 
-  // Tema ve bildirimleri yükle
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem('promptforge-theme')
@@ -184,7 +180,6 @@ export default function Home() {
     setNotifications([])
   }
 
-  // Projeleri kullanıcıya özel getir
   const fetchProjects = async (userId?: string) => {
     const activeUserId = userId || session?.user?.id
 
@@ -204,7 +199,6 @@ export default function Home() {
     if (data) setProjects(data)
   }
 
-  // Oturum ve admin kontrolü
   useEffect(() => {
     let active = true
 
@@ -303,7 +297,6 @@ export default function Home() {
     setActiveView('editor')
   }
 
-  // AI site oluşturma
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       alert('Lütfen bir site fikri yazın.')
@@ -363,7 +356,6 @@ FİKİR: ${prompt}`
     }
   }
 
-  // Sohbet ile kod değiştirme
   const handleRevise = async () => {
     if (!chatInput.trim()) return
 
@@ -434,7 +426,6 @@ ${changeRequest}`
     }
   }
 
-  // AI kod analizi
   const handleCodeReview = async () => {
     if (!codeHtml.trim()) {
       alert('Önce bir proje oluşturmalısın.')
@@ -491,7 +482,6 @@ ${currentCode}`
     }
   }
 
-  // Otomatik hata düzeltme
   const handleAutoFix = async () => {
     if (!codeHtml.trim()) {
       alert('Önce bir proje oluşturmalısın.')
@@ -569,7 +559,6 @@ ${currentCode}`
     }
   }
 
-  // AI tasarım önerileri
   const handleDesignSuggestions = async () => {
     if (!codeHtml.trim()) {
       alert('Önce bir proje oluşturmalısın.')
@@ -629,7 +618,6 @@ ${codeJs}`
     }
   }
 
-  // ZIP indirme
   const handleDownloadZip = async () => {
     if (!codeHtml.trim()) {
       alert('Önce bir proje oluşturmalısın.')
@@ -691,7 +679,47 @@ ${codeHtml}
     }
   }
 
-  // Proje kaydetme
+  // GERÇEK EKRAN GÖRÜNTÜSÜ OLUŞTURMA
+  const generateThumbnail = async (projectId: string) => {
+    if (!session?.access_token) {
+      throw new Error('Oturum bilgisi bulunamadı.')
+    }
+
+    const htmlDocument = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>${codeCss}</style>
+</head>
+<body>
+${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/gi, '')}
+<script>${codeJs}<\/script>
+</body>
+</html>`
+
+    const response = await fetch('/api/thumbnail', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        projectId,
+        html: htmlDocument,
+      }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Görsel oluşturulamadı.')
+    }
+
+    return result.thumbnail_url
+  }
+
+  // PROJE KAYDETME
   const handleSaveProject = async () => {
     if (!codeHtml || !session?.user?.id) return
 
@@ -707,49 +735,62 @@ ${codeHtml}
       updated_at: new Date().toISOString(),
     }
 
-    if (currentProjectId) {
-      const { error } = await supabase
-        .from('projects')
-        .update(projectData)
-        .eq('id', currentProjectId)
-        .eq('user_id', session.user.id)
+    let savedProjectId = currentProjectId
 
-      if (error) {
-        console.error('PROJECT UPDATE ERROR:', error.message)
-        setSaveStatus('Kayıt hatası!')
+    try {
+      if (savedProjectId) {
+        const { error } = await supabase
+          .from('projects')
+          .update(projectData)
+          .eq('id', savedProjectId)
+          .eq('user_id', session.user.id)
+
+        if (error) throw error
       } else {
-        setSaveStatus('Güncellendi!')
-        addNotification(
-          'Proje güncellendi',
-          `${projectTitle} başarıyla kaydedildi.`
-        )
+        const { data, error } = await supabase
+          .from('projects')
+          .insert(projectData)
+          .select('id')
+          .single()
+
+        if (error) throw error
+
+        savedProjectId = data.id
+        setCurrentProjectId(data.id)
       }
-    } else {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert(projectData)
-        .select()
 
-      if (error) {
-        console.error('PROJECT INSERT ERROR:', error.message)
-        setSaveStatus('Kayıt hatası!')
-      } else {
-        if (data?.[0]) setCurrentProjectId(data[0].id)
+      setSaveStatus('Ekran görüntüsü hazırlanıyor...')
 
-        setSaveStatus('Kaydedildi!')
+      try {
+        await generateThumbnail(savedProjectId!)
+
+        setSaveStatus('Kaydedildi! Görsel hazır.')
+
+        addNotification(
+          'Proje vitrini güncellendi',
+          'Projenin gerçek ekran görüntüsü oluşturuldu.'
+        )
+      } catch (thumbnailError: any) {
+        console.error('THUMBNAIL ERROR:', thumbnailError)
+
+        setSaveStatus('Kaydedildi! Görsel alınamadı.')
 
         addNotification(
           'Proje kaydedildi',
-          `${projectTitle} projelerine eklendi.`
+          'Ekran görüntüsü oluşturulamadı. Daha sonra tekrar deneyebilirsin.'
         )
       }
+
+      await fetchProjects(session.user.id)
+
+    } catch (error: any) {
+      console.error('PROJECT SAVE ERROR:', error)
+      setSaveStatus('Kayıt hatası!')
     }
 
-    await fetchProjects(session.user.id)
-    setTimeout(() => setSaveStatus(''), 2000)
+    setTimeout(() => setSaveStatus(''), 3500)
   }
 
-  // Proje yükleme
   const handleLoadProject = (project: any) => {
     if (project.user_id !== session?.user?.id) {
       alert('Bu projeye erişim iznin yok.')
@@ -768,7 +809,6 @@ ${codeHtml}
     setActiveView('editor')
   }
 
-  // Proje silme
   const handleDeleteProject = async (id: string, e: any) => {
     e.stopPropagation()
 
@@ -801,7 +841,6 @@ ${codeHtml}
     }
   }
 
-  // Kod kopyalama
   const handleCopy = () => {
     const textToCopy =
       activeTab === 'html'
@@ -1295,9 +1334,20 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                         : 'bg-[#12141a] border-[#252936]'
                     }`}
                   >
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="text-2xl">🌐</div>
+                    <div className="w-full h-44 rounded-xl overflow-hidden bg-[#080a10] border border-[#2a2e3b] flex items-center justify-center">
+                      {project.thumbnail_url ? (
+                        <img
+                          src={project.thumbnail_url}
+                          alt={`${project.title} proje önizlemesi`}
+                          className="w-full h-full object-cover object-top"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="text-4xl opacity-40">🌐</div>
+                      )}
+                    </div>
 
+                    <div className="flex justify-end mt-3">
                       <span className="text-[10px] opacity-50">
                         {project.updated_at
                           ? new Date(project.updated_at).toLocaleDateString('tr')
@@ -1305,7 +1355,7 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                       </span>
                     </div>
 
-                    <h3 className="font-bold mt-4 truncate">
+                    <h3 className="font-bold mt-2 truncate">
                       {project.title || 'İsimsiz Proje'}
                     </h3>
 
@@ -1439,7 +1489,6 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                       </button>
                     </div>
 
-                    {/* KOD ANALİZ RAPORU */}
                     {reviewResult && (
                       <div className="mt-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
                         <div className="flex justify-between items-center mb-2">
@@ -1461,7 +1510,6 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
                       </div>
                     )}
 
-                    {/* TASARIM ÖNERİLERİ */}
                     {designSuggestions && (
                       <div className="mt-3 rounded-lg border border-purple-500/30 bg-purple-500/10 p-3">
                         <div className="flex justify-between items-center mb-2">
@@ -1637,4 +1685,4 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
       )}
     </div>
   )
-    }
+}
