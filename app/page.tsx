@@ -1573,9 +1573,11 @@ ${codeHtml.replace(/<html[^>]*>|<\/html>|<head>.*?<\/head>|<body[^>]*>|<\/body>/
               className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
             >
               📁 Projelerim
+              
               <button
-  onClick={() => router.push('/gallery')}
-  className="px-4 py-2 rounded-lg hover:bg-white/10 transition"
+
+              onClick={() => router.push('/gallery')}
+                className="px-4 py-2 rounded-lg hover:bg-white/10 transition"
 >
   Galeri
 </button>
