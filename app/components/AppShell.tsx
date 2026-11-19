@@ -213,17 +213,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               Yönetim
             </p>
 
-            <Link
-              href="/admin"
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                pathname === '/admin'
-                  ? 'bg-purple-600/15 text-purple-400 ring-1 ring-purple-500/30'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <span className="text-base w-5 text-center shrink-0">🛠️</span>
-              <span className="truncate">Admin Paneli</span>
-            </Link>
+            <div className="space-y-1">
+              <Link
+                href="/admin"
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  pathname === '/admin'
+                    ? 'bg-purple-600/15 text-purple-400 ring-1 ring-purple-500/30'
+                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span className="text-base w-5 text-center shrink-0">🛠️</span>
+                <span className="truncate">Admin Paneli</span>
+              </Link>
+
+              <Link
+                href="/health"
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  pathname === '/health'
+                    ? 'bg-purple-600/15 text-purple-400 ring-1 ring-purple-500/30'
+                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span className="text-base w-5 text-center shrink-0">🩺</span>
+                <span className="truncate">Sistem Sağlığı</span>
+              </Link>
+            </div>
           </div>
         )}
       </nav>
