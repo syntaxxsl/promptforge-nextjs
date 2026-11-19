@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { adminClient, checkAdminAccess } from '../../../../lib/admin-auth'
 import { createClient } from '@supabase/supabase-js'
 import { clientIp, isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
 import { logAdminActivity } from '../../../../lib/activity'
@@ -8,48 +9,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!
 
-async function checkAdmin(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
+const checkAdmin = (request: NextRequest) =>
+  checkAdminAccess(request, 'support')
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return { error: 'Yetkilendirme gerekli.', status: 401 }
-  }
-
-  const token = authHeader.replace('Bearer ', '')
-
-  const authClient = createClient(
-    supabaseUrl,
-    supabaseAnonKey
-  )
-
-  const { data: authData, error: authError } =
-    await authClient.auth.getUser(token)
-
-  if (authError || !authData.user) {
-    return { error: 'Geçersiz oturum.', status: 401 }
-  }
-
-  const adminClient = createClient(
-    supabaseUrl,
-    supabaseSecretKey
-  )
-
-  const { data: userData, error: userError } = await adminClient
-    .from('users')
-    .select('role, approval_status')
-    .eq('id', authData.user.id)
-    .single()
-
-  if (
-    userError ||
-    userData?.role !== 'admin' ||
-    userData?.approval_status !== 'approved'
-  ) {
-    return { error: 'Bu işlem için yetkiniz yok.', status: 403 }
-  }
-
-  return { adminClient, user: authData.user }
-}
 
 export async function GET(request: NextRequest) {
   const limit = rateLimit(`admin-feedback-get:${clientIp(request)}`, 60, 60_000)
@@ -59,14 +21,9 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await checkAdmin(request)
 
-    if ('error' in auth) {
-      return NextResponse.json(
-        { error: auth.error },
-        { status: auth.status }
-      )
-    }
+    if ('response' in auth) return auth.response
 
-    const { data, error } = await auth.adminClient
+    const { data, error } = await adminClient
       .from('feedback')
       .select('*')
       .order('created_at', { ascending: false })
@@ -99,12 +56,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const auth = await checkAdmin(request)
 
-    if ('error' in auth) {
-      return NextResponse.json(
-        { error: auth.error },
-        { status: auth.status }
-      )
-    }
+    if ('response' in auth) return auth.response
 
     const body = await request.json()
     const { id, status } = body
@@ -123,7 +75,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const { data, error } = await auth.adminClient
+    const { data, error } = await adminClient
       .from('feedback')
       .update({ status })
       .eq('id', id)
@@ -137,7 +89,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    await logAdminActivity(auth.adminClient, {
+    await logAdminActivity(adminClient, {
       action: 'feedback.update',
       actorId: auth.user.id,
       targetType: 'feedback',

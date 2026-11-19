@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { checkAdminAccess } from '../../../../lib/admin-auth'
 import { createClient } from '@supabase/supabase-js'
 import { clientIp, isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
 import { logAdminActivity } from '../../../../lib/activity'
@@ -17,57 +18,9 @@ const adminClient = createClient(supabaseUrl, supabaseSecretKey, {
   },
 })
 
-async function checkAdmin(request: NextRequest) {
-  const authorization = request.headers.get('authorization')
+const checkAdmin = (request: NextRequest) =>
+  checkAdminAccess(request, 'support')
 
-  if (!authorization?.startsWith('Bearer ')) {
-    return {
-      ok: false as const,
-      response: NextResponse.json(
-        { error: 'Oturum bulunamadı.' },
-        { status: 401 }
-      ),
-    }
-  }
-
-  const token = authorization.slice(7)
-
-  const {
-    data: { user },
-    error: authError,
-  } = await authClient.auth.getUser(token)
-
-  if (authError || !user) {
-    return {
-      ok: false as const,
-      response: NextResponse.json(
-        { error: 'Geçersiz oturum.' },
-        { status: 401 }
-      ),
-    }
-  }
-
-  const { data: profile } = await adminClient
-    .from('users')
-    .select('role, approval_status')
-    .eq('id', user.id)
-    .single()
-
-  const role = String(profile?.role || '').toLowerCase().trim()
-  const approval = String(profile?.approval_status || '').toLowerCase().trim()
-
-  if (role !== 'admin' || approval !== 'approved') {
-    return {
-      ok: false as const,
-      response: NextResponse.json(
-        { error: 'Admin yetkisi gerekli.' },
-        { status: 403 }
-      ),
-    }
-  }
-
-  return { ok: true as const, user }
-}
 
 export async function GET(request: NextRequest) {
   const limit = rateLimit(`admin-support-get:${clientIp(request)}`, 60, 60_000)
@@ -76,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   const auth = await checkAdmin(request)
 
-  if (!auth.ok) return auth.response
+  if ('response' in auth) return auth.response
 
   const { data, error } = await adminClient
     .from('support_tickets')
@@ -107,7 +60,7 @@ export async function PATCH(request: NextRequest) {
 
   const auth = await checkAdmin(request)
 
-  if (!auth.ok) return auth.response
+  if ('response' in auth) return auth.response
 
   try {
     const body = await request.json()

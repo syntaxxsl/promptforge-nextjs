@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkAdminAccess } from '../../../../lib/admin-auth'
 import { createClient } from '@supabase/supabase-js'
 import { clientIp, rateLimit, tooMany } from '../../../../lib/security'
 
@@ -14,45 +15,9 @@ const adminClient = createClient(supabaseUrl, supabaseSecretKey, {
 const ACTIVE_WINDOW_MS = 5 * 60 * 1000
 const LOOKBACK_DAYS = 7
 
-async function checkAdmin(request: NextRequest) {
-  const authorization = request.headers.get('authorization')
+const checkAdmin = (request: NextRequest) =>
+  checkAdminAccess(request, 'traffic')
 
-  if (!authorization?.startsWith('Bearer ')) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: 'Oturum bulunamadı.' }, { status: 401 }),
-    }
-  }
-
-  const { data: { user }, error } = await authClient.auth.getUser(
-    authorization.slice(7)
-  )
-
-  if (error || !user) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: 'Geçersiz oturum.' }, { status: 401 }),
-    }
-  }
-
-  const { data: profile } = await adminClient
-    .from('users')
-    .select('role, approval_status')
-    .eq('id', user.id)
-    .single()
-
-  const role = String(profile?.role || '').toLowerCase().trim()
-  const approval = String(profile?.approval_status || '').toLowerCase().trim()
-
-  if (role !== 'admin' || approval !== 'approved') {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: 'Admin yetkisi gerekli.' }, { status: 403 }),
-    }
-  }
-
-  return { ok: true as const, user }
-}
 
 type EventRow = {
   id: string
@@ -71,7 +36,7 @@ export async function GET(request: NextRequest) {
 
   const auth = await checkAdmin(request)
 
-  if (!auth.ok) return auth.response
+  if ('response' in auth) return auth.response
 
   const since = new Date(
     Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000

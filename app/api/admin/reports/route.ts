@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { checkAdminAccess } from '../../../../lib/admin-auth'
 import { createClient } from '@supabase/supabase-js'
 import { clientIp, isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
 import { logAdminActivity } from '../../../../lib/activity'
@@ -10,31 +11,9 @@ const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!
 
 const adminClient = createClient(supabaseUrl, supabaseSecretKey)
 
-async function checkAdmin(request: NextRequest) {
-  const token = request.headers.get('authorization')?.replace('Bearer ', '')
+const checkAdmin = (request: NextRequest) =>
+  checkAdminAccess(request, 'reports')
 
-  if (!token) return null
-
-  const authClient = createClient(supabaseUrl, supabaseAnonKey)
-
-  const { data: { user }, error } = await authClient.auth.getUser(token)
-
-  if (error || !user) return null
-
-  const { data: profile } = await adminClient
-    .from('users')
-    .select('role, approval_status')
-    .eq('id', user.id)
-    .single()
-
-  if (
-    !profile ||
-    profile.role !== 'admin' ||
-    profile.approval_status !== 'approved'
-  ) return null
-
-  return user
-}
 
 export async function GET(request: NextRequest) {
   const limit = rateLimit(`admin-reports-get:${clientIp(request)}`, 60, 60_000)
@@ -43,9 +22,7 @@ export async function GET(request: NextRequest) {
 
   const admin = await checkAdmin(request)
 
-  if (!admin) {
-    return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 403 })
-  }
+  if ('response' in admin) return admin.response
 
   const { data, error } = await adminClient
     .from('reports')
@@ -70,9 +47,7 @@ export async function PATCH(request: NextRequest) {
 
   const admin = await checkAdmin(request)
 
-  if (!admin) {
-    return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 403 })
-  }
+  if ('response' in admin) return admin.response
 
   const { id, status } = await request.json()
 
@@ -93,7 +68,7 @@ export async function PATCH(request: NextRequest) {
 
   await logAdminActivity(adminClient, {
     action: 'report.update',
-    actorId: admin.id,
+    actorId: admin.user.id,
     targetType: 'report',
     targetId: String(id),
     detail: { status },

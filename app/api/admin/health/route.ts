@@ -58,7 +58,7 @@ async function checkAdmin(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const auth = await checkAdmin(request)
 
-  if (!auth.ok) return auth.response
+  if ('response' in auth) return auth.response
 
   const { data, error } = await adminClient
     .from('system_health_runs')
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
   const auth = await checkAdmin(request)
 
-  if (!auth.ok) return auth.response
+  if ('response' in auth) return auth.response
 
   const origin = request.nextUrl.origin
   const result = await runAndSaveHealth({
