@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 
@@ -17,12 +17,22 @@ type Project = {
   thumbnail_url: string | null
 }
 
+const REPORT_REASONS = [
+  'Uygunsuz içerik',
+  'Telif hakkı ihlali',
+  'Spam veya reklam',
+  'Yanıltıcı içerik',
+  'Hakaret veya taciz',
+  'Diğer'
+]
+
 export default function GalleryPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const [likedIds, setLikedIds] = useState<string[]>([])
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const [reportProject, setReportProject] = useState<Project | null>(null)
@@ -30,41 +40,53 @@ export default function GalleryPage() {
   const [reportDetails, setReportDetails] = useState('')
   const [reportSubmitting, setReportSubmitting] = useState(false)
 
-  useEffect(() => {
-    loadGallery()
-  }, [])
-
-  const loadGallery = async () => {
+  const loadGallery = useCallback(async () => {
     setLoading(true)
+    setLoadError('')
 
-    const { data: authData } = await supabase.auth.getUser()
-    const currentUserId = authData.user?.id || null
-    setUserId(currentUserId)
+    try {
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser()
 
-    const { data, error } = await supabase
-      .from('projects')
-      .select('id, title, prompt, html_code, css_code, js_code, user_id, updated_at, thumbnail_url')
-      .eq('showcase_status', 'approved')
-      .is('deleted_at', null)
-      .order('updated_at', { ascending: false })
+      if (authError) {
+        throw authError
+      }
 
-    if (error) {
-      console.error('Galeri yüklenemedi:', error.message)
-      setProjects([])
-      setLoading(false)
-      return
-    }
+      const currentUserId = authData.user?.id || null
+      setUserId(currentUserId)
 
-    const projectList = (data || []) as Project[]
-    setProjects(projectList)
+      const { data, error } = await supabase
+        .from('projects')
+        .select(
+          'id, title, prompt, html_code, css_code, js_code, user_id, updated_at, thumbnail_url'
+        )
+        .eq('showcase_status', 'approved')
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false })
 
-    if (projectList.length > 0) {
+      if (error) {
+        throw error
+      }
+
+      const projectList = (data || []) as Project[]
+      setProjects(projectList)
+
+      if (projectList.length === 0) {
+        setLikeCounts({})
+        setLikedIds([])
+        return
+      }
+
       const ids = projectList.map(project => project.id)
 
-      const { data: likes } = await supabase
+      const { data: likes, error: likesError } = await supabase
         .from('project_likes')
         .select('project_id')
         .in('project_id', ids)
+
+      if (likesError) {
+        console.error('Beğeniler yüklenemedi:', likesError.message)
+      }
 
       const counts: Record<string, number> = {}
 
@@ -75,23 +97,35 @@ export default function GalleryPage() {
       setLikeCounts(counts)
 
       if (currentUserId) {
-        const { data: myLikes } = await supabase
+        const { data: myLikes, error: myLikesError } = await supabase
           .from('project_likes')
           .select('project_id')
           .eq('user_id', currentUserId)
           .in('project_id', ids)
 
-        setLikedIds((myLikes || []).map(like => like.project_id))
+        if (myLikesError) {
+          console.error('Kullanıcı beğenileri yüklenemedi:', myLikesError.message)
+          setLikedIds([])
+        } else {
+          setLikedIds((myLikes || []).map(like => like.project_id))
+        }
       } else {
         setLikedIds([])
       }
-    } else {
+    } catch (error) {
+      console.error('Galeri yüklenemedi:', error)
+      setLoadError('Galeri yüklenirken bir hata oluştu. Lütfen tekrar dene.')
+      setProjects([])
       setLikeCounts({})
       setLikedIds([])
+    } finally {
+      setLoading(false)
     }
+  }, [])
 
-    setLoading(false)
-  }
+  useEffect(() => {
+    loadGallery()
+  }, [loadGallery])
 
   const toggleLike = async (projectId: string) => {
     if (!userId) {
@@ -100,44 +134,50 @@ export default function GalleryPage() {
     }
 
     if (busyId) return
+
     setBusyId(projectId)
 
-    if (likedIds.includes(projectId)) {
-      const { error } = await supabase
-        .from('project_likes')
-        .delete()
-        .eq('project_id', projectId)
-        .eq('user_id', userId)
+    try {
+      if (likedIds.includes(projectId)) {
+        const { error } = await supabase
+          .from('project_likes')
+          .delete()
+          .eq('project_id', projectId)
+          .eq('user_id', userId)
 
-      if (!error) {
+        if (error) throw error
+
         setLikedIds(prev => prev.filter(id => id !== projectId))
+
         setLikeCounts(prev => ({
           ...prev,
           [projectId]: Math.max(0, (prev[projectId] || 0) - 1)
         }))
       } else {
-        alert('Beğeni kaldırılamadı: ' + error.message)
-      }
-    } else {
-      const { error } = await supabase
-        .from('project_likes')
-        .insert({
-          project_id: projectId,
-          user_id: userId
-        })
+        const { error } = await supabase
+          .from('project_likes')
+          .insert({
+            project_id: projectId,
+            user_id: userId
+          })
 
-      if (!error) {
-        setLikedIds(prev => [...prev, projectId])
+        if (error) throw error
+
+        setLikedIds(prev =>
+          prev.includes(projectId) ? prev : [...prev, projectId]
+        )
+
         setLikeCounts(prev => ({
           ...prev,
           [projectId]: (prev[projectId] || 0) + 1
         }))
-      } else {
-        alert('Beğeni eklenemedi: ' + error.message)
       }
+    } catch (error: any) {
+      console.error('Beğeni işlemi başarısız:', error)
+      alert('Beğeni işlemi gerçekleştirilemedi: ' + (error?.message || 'Bilinmeyen hata'))
+    } finally {
+      setBusyId(null)
     }
-
-    setBusyId(null)
   }
 
   const copyProject = async (project: Project) => {
@@ -146,27 +186,31 @@ export default function GalleryPage() {
       return
     }
 
+    if (busyId) return
+
     setBusyId(project.id)
 
-    const { error } = await supabase
-      .from('projects')
-      .insert({
-        title: `${project.title} (Kopya)`,
-        prompt: project.prompt,
-        html_code: project.html_code,
-        css_code: project.css_code,
-        js_code: project.js_code,
-        user_id: userId
-      })
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .insert({
+          title: `${project.title} (Kopya)`,
+          prompt: project.prompt,
+          html_code: project.html_code,
+          css_code: project.css_code,
+          js_code: project.js_code,
+          user_id: userId
+        })
 
-    setBusyId(null)
+      if (error) throw error
 
-    if (error) {
-      alert('Proje kopyalanamadı: ' + error.message)
-      return
+      alert('Proje hesabına kopyalandı!')
+    } catch (error: any) {
+      console.error('Proje kopyalanamadı:', error)
+      alert('Proje kopyalanamadı: ' + (error?.message || 'Bilinmeyen hata'))
+    } finally {
+      setBusyId(null)
     }
-
-    alert('Proje hesabına kopyalandı!')
   }
 
   const openReport = (project: Project) => {
@@ -197,29 +241,43 @@ export default function GalleryPage() {
       return
     }
 
+    if (!REPORT_REASONS.includes(reportReason)) {
+      alert('Lütfen geçerli bir şikâyet sebebi seç.')
+      return
+    }
+
+    if (reportDetails.length > 1000) {
+      alert('Açıklama en fazla 1000 karakter olabilir.')
+      return
+    }
+
     if (reportSubmitting) return
 
     setReportSubmitting(true)
 
-    const { error } = await supabase
-      .from('reports')
-      .insert({
-        reporter_id: userId,
-        project_id: reportProject.id,
-        reason: reportReason,
-        details: reportDetails.trim() || null
-      })
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .insert({
+          reporter_id: userId,
+          project_id: reportProject.id,
+          reason: reportReason,
+          details: reportDetails.trim() || null
+        })
 
-    setReportSubmitting(false)
+      if (error) throw error
 
-    if (error) {
-      alert('Şikâyet gönderilemedi: ' + error.message)
-      return
+      setReportProject(null)
+      setReportDetails('')
+      setReportReason('Uygunsuz içerik')
+
+      alert('Şikâyetin başarıyla gönderildi. Teşekkürler!')
+    } catch (error: any) {
+      console.error('Şikâyet gönderilemedi:', error)
+      alert('Şikâyet gönderilemedi: ' + (error?.message || 'Bilinmeyen hata'))
+    } finally {
+      setReportSubmitting(false)
     }
-
-    setReportProject(null)
-    setReportDetails('')
-    alert('Şikâyetin başarıyla gönderildi. Teşekkürler!')
   }
 
   const getPreview = (project: Project) => {
@@ -252,29 +310,55 @@ export default function GalleryPage() {
             <h1 className="text-3xl md:text-4xl font-black">
               Topluluk Galerisi
             </h1>
+
             <p className="text-gray-400 mt-2">
               Topluluğun oluşturduğu projeleri keşfet.
             </p>
           </div>
 
-          <Link
-            href="/"
-            className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition font-bold"
-          >
-            Ana Sayfa
-          </Link>
+          <div className="flex gap-3">
+            <button
+              onClick={loadGallery}
+              disabled={loading}
+              className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition font-bold disabled:opacity-50"
+            >
+              {loading ? 'Yükleniyor...' : '↻ Yenile'}
+            </button>
+
+            <Link
+              href="/"
+              className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition font-bold"
+            >
+              Ana Sayfa
+            </Link>
+          </div>
         </div>
 
         {loading ? (
           <div className="text-center py-24 text-gray-400">
             Galeri yükleniyor...
           </div>
+        ) : loadError ? (
+          <div className="text-center py-24 rounded-2xl border border-red-500/20 bg-red-500/5">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-bold">Galeri yüklenemedi</h2>
+            <p className="text-gray-400 mt-2">{loadError}</p>
+
+            <button
+              onClick={loadGallery}
+              className="mt-5 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold"
+            >
+              Tekrar Dene
+            </button>
+          </div>
         ) : projects.length === 0 ? (
           <div className="text-center py-24 rounded-2xl border border-white/10 bg-white/[0.03]">
             <div className="text-5xl mb-4">🎨</div>
+
             <h2 className="text-xl font-bold">
               Henüz vitrin projesi yok
             </h2>
+
             <p className="text-gray-400 mt-2">
               Admin onayından geçen projeler burada görünecek.
             </p>
@@ -307,8 +391,8 @@ export default function GalleryPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3 mt-6">
                     <button
                       onClick={() => toggleLike(project.id)}
-                      disabled={busyId === project.id}
-                      className={`px-4 py-2 rounded-xl font-bold transition ${
+                      disabled={busyId === project.id || busyId !== null}
+                      className={`px-4 py-2 rounded-xl font-bold transition disabled:opacity-50 ${
                         likedIds.includes(project.id)
                           ? 'bg-pink-600 text-white'
                           : 'bg-white/10 hover:bg-white/20'
@@ -320,7 +404,7 @@ export default function GalleryPage() {
 
                     <button
                       onClick={() => copyProject(project)}
-                      disabled={busyId === project.id}
+                      disabled={busyId === project.id || busyId !== null}
                       className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold transition disabled:opacity-50"
                     >
                       {busyId === project.id ? 'İşleniyor...' : 'Projeyi Kopyala'}
@@ -343,7 +427,14 @@ export default function GalleryPage() {
       </div>
 
       {reportProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+          onClick={e => {
+            if (e.target === e.currentTarget && !reportSubmitting) {
+              setReportProject(null)
+            }
+          }}
+        >
           <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111827] p-6 shadow-2xl">
 
             <div className="flex items-center justify-between gap-4 mb-5">
@@ -354,14 +445,18 @@ export default function GalleryPage() {
               <button
                 onClick={() => setReportProject(null)}
                 disabled={reportSubmitting}
-                className="text-gray-400 hover:text-white text-2xl"
+                className="text-gray-400 hover:text-white text-2xl disabled:opacity-50"
+                aria-label="Şikâyet penceresini kapat"
               >
                 ×
               </button>
             </div>
 
             <p className="text-sm text-gray-400 mb-5">
-              Şikâyet edilen proje: <span className="text-white font-semibold">{reportProject.title}</span>
+              Şikâyet edilen proje:{' '}
+              <span className="text-white font-semibold">
+                {reportProject.title}
+              </span>
             </p>
 
             <label className="block text-sm font-semibold mb-2">
@@ -371,14 +466,14 @@ export default function GalleryPage() {
             <select
               value={reportReason}
               onChange={e => setReportReason(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-[#080b14] px-4 py-3 text-white outline-none focus:border-indigo-500"
+              disabled={reportSubmitting}
+              className="w-full rounded-xl border border-white/10 bg-[#080b14] px-4 py-3 text-white outline-none focus:border-indigo-500 disabled:opacity-50"
             >
-              <option>Uygunsuz içerik</option>
-              <option>Telif hakkı ihlali</option>
-              <option>Spam veya reklam</option>
-              <option>Yanıltıcı içerik</option>
-              <option>Hakaret veya taciz</option>
-              <option>Diğer</option>
+              {REPORT_REASONS.map(reason => (
+                <option key={reason} value={reason}>
+                  {reason}
+                </option>
+              ))}
             </select>
 
             <label className="block text-sm font-semibold mt-5 mb-2">
@@ -387,11 +482,12 @@ export default function GalleryPage() {
 
             <textarea
               value={reportDetails}
-              onChange={e => setReportDetails(e.target.value)}
+              onChange={e => setReportDetails(e.target.value.slice(0, 1000))}
+              disabled={reportSubmitting}
               maxLength={1000}
               rows={4}
               placeholder="Şikâyet sebebini açıklayabilirsin..."
-              className="w-full resize-none rounded-xl border border-white/10 bg-[#080b14] px-4 py-3 text-white outline-none focus:border-indigo-500"
+              className="w-full resize-none rounded-xl border border-white/10 bg-[#080b14] px-4 py-3 text-white outline-none focus:border-indigo-500 disabled:opacity-50"
             />
 
             <p className="text-xs text-gray-500 text-right mt-1">
