@@ -276,20 +276,21 @@ export async function runHealthChecks({
   ]
 
   const missingEnv = envKeys.filter((key) => !process.env[key])
+  const missingCore = missingEnv.filter((key) => key !== 'CRON_SECRET')
 
   checks.push({
     id: 'env.keys',
     category: 'Yapilandirma',
     title: 'Gerekli ortam değişkenleri',
-    status: missingEnv.length === 0 ? 'pass' : 'warn',
+    status: missingCore.length > 0 ? 'warn' : 'pass',
     detail:
-      missingEnv.length === 0
+      missingCore.length > 0
+        ? `Eksik: ${missingCore.join(', ')}`
+        : missingEnv.length === 0
         ? 'Hepsi tanımlı.'
-        : `Eksik: ${missingEnv.join(', ')}`,
+        : 'Veritabanı anahtarları tamam. CRON_SECRET tanımlı değil; günlük tarama Vercel’in kendi çağrısıyla çalışır.',
     hint:
-      missingEnv.includes('CRON_SECRET')
-        ? 'CRON_SECRET yoksa otomatik tarama sadece admin girişiyle çalışır.'
-        : missingEnv.length > 0
+      missingCore.length > 0
         ? 'Vercel → Settings → Environment Variables.'
         : undefined,
   })
