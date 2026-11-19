@@ -36,7 +36,7 @@ export default function AuthPage() {
           throw new Error('Hesabınız henüz admin tarafından onaylanmadı. Lütfen bekleyin.')
         }
 
-        router.push('/')
+        router.push('/dashboard')
       } else {
         // Kayıt Ol
         const { error } = await supabase.auth.signUp({ email, password })

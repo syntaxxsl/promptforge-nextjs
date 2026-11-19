@@ -1,6 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { clientIp, isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
+import { logAdminActivity } from '../../../../lib/activity'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -35,6 +37,10 @@ async function checkAdmin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const limit = rateLimit(`admin-reports-get:${clientIp(request)}`, 60, 60_000)
+
+  if (!limit.ok) return tooMany(limit.retryAfter)
+
   const admin = await checkAdmin(request)
 
   if (!admin) {
@@ -54,6 +60,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: 'Geçersiz istek kaynağı.' }, { status: 403 })
+  }
+
+  const limit = rateLimit(`admin-reports-patch:${clientIp(request)}`, 30, 60_000)
+
+  if (!limit.ok) return tooMany(limit.retryAfter)
+
   const admin = await checkAdmin(request)
 
   if (!admin) {
@@ -76,6 +90,15 @@ export async function PATCH(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  await logAdminActivity(adminClient, {
+    action: 'report.update',
+    actorId: admin.id,
+    targetType: 'report',
+    targetId: String(id),
+    detail: { status },
+    ip: clientIp(request),
+  })
 
   return NextResponse.json({ success: true })
 }

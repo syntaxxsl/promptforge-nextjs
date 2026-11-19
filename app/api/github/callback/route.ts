@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { clientIp, rateLimit, tooMany } from '../../../../lib/security'
 
 export async function GET(request: NextRequest) {
+  const limit = rateLimit(`github-callback:${clientIp(request)}`, 30, 60_000)
+
+  if (!limit.ok) return tooMany(limit.retryAfter)
+
   const code = request.nextUrl.searchParams.get('code')
   const state = request.nextUrl.searchParams.get('state')
   const savedState = request.cookies.get('github_oauth_state')?.value

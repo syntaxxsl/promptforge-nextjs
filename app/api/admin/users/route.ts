@@ -1,6 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { clientIp, isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
+import { logAdminActivity } from '../../../../lib/activity'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -51,13 +53,6 @@ async function checkAdmin(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  console.log('ADMIN DEBUG:', {
-    userId: user.id,
-    email: user.email,
-    profile,
-    profileError,
-  })
-
   const role = String(profile?.role || '').toLowerCase().trim()
   const approval = String(profile?.approval_status || '').toLowerCase().trim()
 
@@ -78,6 +73,10 @@ async function checkAdmin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const limit = rateLimit(`admin-users-get:${clientIp(request)}`, 60, 60_000)
+
+  if (!limit.ok) return tooMany(limit.retryAfter)
+
   const auth = await checkAdmin(request)
 
   if (!auth.ok) return auth.response
@@ -137,6 +136,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json(
+      { error: 'Geçersiz istek kaynağı.' },
+      { status: 403 }
+    )
+  }
+
+  const limit = rateLimit(`admin-users-patch:${clientIp(request)}`, 30, 60_000)
+
+  if (!limit.ok) return tooMany(limit.retryAfter)
+
   const auth = await checkAdmin(request)
 
   if (!auth.ok) return auth.response
@@ -167,6 +177,15 @@ export async function PATCH(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    await logAdminActivity(adminClient, {
+      action: action === 'approve' ? 'user.approve' : 'user.reject',
+      actorId: auth.user.id,
+      targetType: 'user',
+      targetId: userId,
+      detail: { status: newStatus },
+      ip: clientIp(request),
+    })
 
     return NextResponse.json({
       success: true,

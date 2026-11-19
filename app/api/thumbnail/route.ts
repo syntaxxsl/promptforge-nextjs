@@ -1,10 +1,18 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isSameOrigin, rateLimit, tooMany } from '../../../lib/security'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json(
+      { error: 'Geçersiz istek kaynağı.' },
+      { status: 403 }
+    )
+  }
+
   try {
     const authorization = request.headers.get('authorization')
 
@@ -43,6 +51,11 @@ export async function POST(request: NextRequest) {
     }
 
     const user = authData.user
+
+    // Ekran görüntüsü servisi ücretli olduğu için kullanıcı bazlı sınır
+    const limit = rateLimit(`thumbnail:${user.id}`, 5, 60_000)
+
+    if (!limit.ok) return tooMany(limit.retryAfter)
 
     // Sunucu tarafında veritabanı bağlantısı
     const supabase = createClient(supabaseUrl, secretKey, {

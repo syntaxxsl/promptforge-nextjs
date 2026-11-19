@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { clientIp, isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get('github_access_token')?.value
@@ -53,6 +54,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: 'Geçersiz istek kaynağı.' }, { status: 403 })
+  }
+
+  const limit = rateLimit(`github-repos-create:${clientIp(request)}`, 10, 60_000)
+
+  if (!limit.ok) return tooMany(limit.retryAfter)
+
   const token = request.cookies.get('github_access_token')?.value
 
   if (!token) {
