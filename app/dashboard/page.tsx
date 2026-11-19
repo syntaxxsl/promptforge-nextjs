@@ -2429,7 +2429,7 @@ ${codeJs}`)
                   <button
                     onClick={handleGenerateVariations}
                     disabled={variationLoading || loading}
-                    className="flex-1 py-3 rounded-xl bg-[#7c5cff] hover:bg-[#8b6fff] text-white font-bold disabled:opacity-50"
+                    className="flex-1 py-3 rounded-lg border border-[#242a36] text-[13px] font-medium text-[#c7cad3] hover:bg-white/[0.045] disabled:opacity-50"
                   >
                     {variationLoading
                       ? `Tasarımlar hazırlanıyor (${designVariants.length}/3)...`
