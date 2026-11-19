@@ -89,7 +89,7 @@ export default function ProfilePage() {
       <div className="max-w-3xl mx-auto">
 
         <button
-          onClick={() => router.push('/')}
+          onClick={() => router.push('/dashboard')}
           className="text-gray-400 hover:text-white mb-8"
         >
           ← Ana sayfaya dön

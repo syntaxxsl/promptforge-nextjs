@@ -82,7 +82,7 @@ ${project.html_code ?? ''}
     <main className="min-h-screen bg-[#090b10] text-white">
       <header className="border-b border-white/10 bg-[#10131b] px-5 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-          <a href="/" className="text-xl font-bold">
+          <a href="/dashboard" className="text-xl font-bold">
             Prompt<span className="text-purple-400">Forge</span>
           </a>
           <span className="text-sm text-gray-400">

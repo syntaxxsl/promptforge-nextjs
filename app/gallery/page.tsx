@@ -326,7 +326,7 @@ export default function GalleryPage() {
             </button>
 
             <Link
-              href="/"
+              href="/dashboard"
               className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition font-bold"
             >
               Ana Sayfa

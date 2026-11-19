@@ -181,7 +181,7 @@ ${project.html_code ?? ''}
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <a href="/" className="text-xl font-bold">
+            <a href="/dashboard" className="text-xl font-bold">
               Prompt<span className="text-purple-400">Forge</span>
             </a>
             <h1 className="mt-5 text-3xl font-bold">Topluluk Galerisi</h1>
@@ -191,7 +191,7 @@ ${project.html_code ?? ''}
           </div>
 
           <a
-            href="/"
+            href="/dashboard"
             className="rounded-xl border border-white/10 px-4 py-2 text-sm transition hover:bg-white/10"
           >
             Ana sayfaya dön

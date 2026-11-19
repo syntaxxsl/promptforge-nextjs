@@ -168,6 +168,174 @@ ${documentText}
   return documentText
 }
 
+type SidebarGroup = {
+  title: string
+  items: {
+    icon: string
+    label: string
+    onClick: () => void
+    active?: boolean
+    badge?: number
+  }[]
+}
+
+function Sidebar({
+  groups,
+  isLight,
+  email,
+  isAdmin,
+  unreadCount,
+  onNewProject,
+  onToggleTheme,
+  onNotifications,
+  onAdmin,
+  onLogout,
+}: {
+  groups: SidebarGroup[]
+  isLight: boolean
+  email: string
+  isAdmin: boolean
+  unreadCount: number
+  onNewProject: () => void
+  onToggleTheme: () => void
+  onNotifications: () => void
+  onAdmin: () => void
+  onLogout: () => void
+}) {
+  const softButton = isLight
+    ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+    : 'bg-[#171c28] hover:bg-[#222939] text-gray-300'
+
+  return (
+    <div
+      className={`flex h-full flex-col border-r ${
+        isLight
+          ? 'bg-white border-gray-200 text-gray-900'
+          : 'bg-[#0b0e16] border-[#1e2431] text-white'
+      }`}
+    >
+      <div className="flex items-center gap-2 px-4 h-16 shrink-0">
+        <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center font-black text-white">
+          P
+        </span>
+        <span className="text-lg font-black tracking-tight">
+          Prompt<span className="text-purple-500">Forge</span>
+        </span>
+      </div>
+
+      <div className="px-3 pb-3">
+        <button
+          onClick={onNewProject}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-sm font-bold shadow-lg shadow-purple-900/20 hover:-translate-y-0.5"
+        >
+          + Yeni Proje
+        </button>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-5 pf-scroll">
+        {groups.map((group) => (
+          <div key={group.title}>
+            <p
+              className={`px-3 mb-2 text-[11px] font-bold uppercase tracking-wider ${
+                isLight ? 'text-gray-400' : 'text-gray-500'
+              }`}
+            >
+              {group.title}
+            </p>
+
+            <div className="space-y-1">
+              {group.items.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.onClick}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold ${
+                    item.active
+                      ? 'bg-purple-600/15 text-purple-400 ring-1 ring-purple-500/30'
+                      : isLight
+                      ? 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <span className="text-base w-5 text-center shrink-0">
+                    {item.icon}
+                  </span>
+                  <span className="truncate">{item.label}</span>
+
+                  {item.badge ? (
+                    <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] flex items-center justify-center">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      <div
+        className={`border-t p-3 space-y-2 ${
+          isLight ? 'border-gray-200' : 'border-[#1e2431]'
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleTheme}
+            title="Tema değiştir"
+            aria-label="Tema değiştir"
+            className={`w-9 h-9 rounded-lg flex items-center justify-center ${softButton}`}
+          >
+            {isLight ? '🌙' : '☀️'}
+          </button>
+
+          <button
+            onClick={onNotifications}
+            title="Bildirimler"
+            aria-label="Bildirimler"
+            className={`relative w-9 h-9 rounded-lg flex items-center justify-center ${softButton}`}
+          >
+            🔔
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full min-w-4 h-4 px-1 flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {isAdmin && (
+            <button
+              onClick={onAdmin}
+              title="Admin paneli"
+              aria-label="Admin paneli"
+              className={`w-9 h-9 rounded-lg flex items-center justify-center ${softButton}`}
+            >
+              🛠️
+            </button>
+          )}
+
+          <button
+            onClick={onLogout}
+            className={`ml-auto px-3 h-9 rounded-lg text-xs font-bold ${softButton}`}
+          >
+            Çıkış
+          </button>
+        </div>
+
+        {email && (
+          <p
+            className={`truncate text-[11px] ${
+              isLight ? 'text-gray-400' : 'text-gray-500'
+            }`}
+            title={email}
+          >
+            {email}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const router = useRouter()
 
@@ -179,6 +347,7 @@ export default function Home() {
   // GENEL
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [activeView, setActiveView] = useState<'dashboard' | 'editor'>('dashboard')
+  const [navOpen, setNavOpen] = useState(false)
   const [error, setError] = useState('')
   const [saveStatus, setSaveStatus] = useState('')
 
@@ -447,6 +616,14 @@ export default function Home() {
       if (!mounted) return
 
       setSession(currentSession)
+
+      if (!profileError && String(profile?.approval_status || '').toLowerCase().trim() === 'banned') {
+        await supabase.auth.signOut()
+        if (!mounted) return
+        setAuthLoading(false)
+        router.replace('/auth?banned=1')
+        return
+      }
 
       if (profileError) {
         console.error('Profil kontrolü başarısız:', profileError.message)
@@ -1638,151 +1815,171 @@ ${codeJs}`)
   const totalJs = projects.filter((project) => Boolean(project.js_code)).length
 
   const combinedCode = buildDocument(codeHtml, codeCss, codeJs, projectTitle)
+  const goTo = (path: string) => {
+    setNavOpen(false)
+    router.push(path)
+  }
+
+  const applyView = (view: 'dashboard' | 'editor') => {
+    setNavOpen(false)
+    setActiveView(view)
+    setShowTrash(false)
+    setShowProfile(false)
+    setShowNotifications(false)
+  }
+
+  const scrollToProjects = () => {
+    setNavOpen(false)
+    setActiveView('dashboard')
+    setShowTrash(false)
+    setTimeout(() => {
+      document.getElementById('projects-section')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 150)
+  }
+
+  const sidebarGroups: SidebarGroup[] = [
+    {
+      title: 'Çalışma',
+      items: [
+        {
+          icon: '🏠',
+          label: 'Ana Sayfa',
+          active: activeView === 'dashboard',
+          onClick: () => applyView('dashboard'),
+        },
+        { icon: '📁', label: 'Projelerim', onClick: scrollToProjects },
+        {
+          icon: '💻',
+          label: 'Editör',
+          active: activeView === 'editor',
+          onClick: () => applyView('editor'),
+        },
+        {
+          icon: '🗑️',
+          label: 'Çöp Kutusu',
+          onClick: () => {
+            setNavOpen(false)
+            handleFetchTrash()
+          },
+        },
+        {
+          icon: '👤',
+          label: 'Profilim',
+          onClick: () => {
+            setNavOpen(false)
+            handleFetchProfile()
+          },
+        },
+      ],
+    },
+    {
+      title: 'Keşfet',
+      items: [
+        { icon: '🎨', label: 'Galeri', onClick: () => goTo('/gallery') },
+        { icon: '🧩', label: 'Keşfet', onClick: () => goTo('/explore') },
+        { icon: '🛒', label: 'Pazaryeri', onClick: () => goTo('/marketplace') },
+        { icon: '🧰', label: 'Araçlar', onClick: () => goTo('/tools') },
+        { icon: '👁️', label: 'Vision', onClick: () => goTo('/vision') },
+      ],
+    },
+    {
+      title: 'Hesap',
+      items: [
+        { icon: '⚙️', label: 'Ayarlar', onClick: () => goTo('/settings') },
+        { icon: '🎧', label: 'Destek', onClick: () => goTo('/support') },
+        { icon: '🛡️', label: 'Güvenlik', onClick: () => goTo('/security') },
+        { icon: '💬', label: 'Geri Bildirim', onClick: () => goTo('/feedback') },
+      ],
+    },
+  ]
+
+  const sidebarCommon = {
+    groups: sidebarGroups,
+    isLight,
+    email: session?.user?.email || '',
+    isAdmin,
+    unreadCount,
+    onNewProject: () => {
+      setNavOpen(false)
+      startNewProject()
+    },
+    onToggleTheme: () => setTheme(isLight ? 'dark' : 'light'),
+    onNotifications: () => {
+      setNavOpen(false)
+      setShowNotifications((previous) => !previous)
+    },
+    onAdmin: () => goTo('/admin'),
+    onLogout: handleLogout,
+  }
+
     return (
-    <main className={`min-h-screen ${isLight ? 'bg-gray-100 text-gray-900' : 'bg-[#090b10] text-white'}`}>
+    <main className={`min-h-screen lg:pl-[252px] ${isLight ? 'bg-gray-100 text-gray-900' : 'bg-[#090b10] text-white'}`}>
 
-      {/* ÜST MENÜ */}
-      <header className={`sticky top-0 z-40 border-b backdrop-blur-xl ${isLight ? 'bg-white/95 border-gray-200' : 'bg-[#10131b]/95 border-[#252a36]'}`}>
-        <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      {/* SOL MENÜ — MASAÜSTÜ */}
+      <aside className="hidden lg:block fixed inset-y-0 left-0 z-40 w-[252px]">
+        <Sidebar {...sidebarCommon} />
+      </aside>
 
-          <button
-            onClick={() => {
-              setActiveView('dashboard')
-              setShowTrash(false)
-              setShowNotifications(false)
-            }}
-            className="flex items-center gap-2"
-          >
-            <span className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center font-black text-white">
-              P
-            </span>
-            <span className="text-xl font-black">
-              Prompt<span className="text-purple-500">Forge</span>
-            </span>
-          </button>
+      {/* SOL MENÜ — MOBİL ÇEKMECE */}
+      {navOpen && (
+        <div className="lg:hidden fixed inset-0 z-[70]">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm pf-fade"
+            onClick={() => setNavOpen(false)}
+          />
 
-          <nav className="flex items-center gap-2 flex-wrap justify-end">
-            <button
-              onClick={() => {
-                setActiveView('dashboard')
-                setShowTrash(false)
-                setShowNotifications(false)
-              }}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
-            >
-              🏠 Ana Sayfa
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveView('dashboard')
-                setShowTrash(false)
-                setTimeout(() => {
-                  document.getElementById('projects-section')?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start',
-                  })
-                }, 150)
-              }}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
-            >
-              📁 Projelerim
-            </button>
-
-            <button
-              onClick={() => router.push('/gallery')}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
-            >
-              🎨 Galeri
-            </button>
-
-            <button
-              onClick={() => router.push('/vision')}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
-            >
-              👁️ Vision
-            </button>
-
-            <button
-              onClick={() => router.push('/support')}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
-            >
-              🎧 Destek
-            </button>
-
-            <button
-              onClick={() => router.push('/settings')}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
-            >
-              ⚙️ Ayarlar
-            </button>
-
-            <button
-              onClick={startNewProject}
-              className="px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold"
-            >
-              + Yeni Proje
-            </button>
-
-            <button
-              onClick={() => setActiveView('editor')}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100 hover:bg-gray-200' : 'bg-[#202431] hover:bg-[#303747]'}`}
-            >
-              💻 Editör
-            </button>
-
-            <button
-              onClick={handleFetchTrash}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100' : 'bg-[#202431]'}`}
-            >
-              🗑️ Çöp Kutusu
-            </button>
-
-            <button
-              onClick={handleFetchProfile}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-100' : 'bg-[#202431]'}`}
-            >
-              👤 Profil
-            </button>
-
-            <button
-              onClick={() => setTheme(isLight ? 'dark' : 'light')}
-              className={`p-2 rounded-lg ${isLight ? 'bg-gray-100' : 'bg-[#202431]'}`}
-              title="Tema değiştir"
-            >
-              {isLight ? '🌙' : '☀️'}
-            </button>
-
-            <button
-              onClick={() => setShowNotifications((previous) => !previous)}
-              className={`relative p-2 rounded-lg ${isLight ? 'bg-gray-100' : 'bg-[#202431]'}`}
-              title="Bildirimler"
-            >
-              🔔
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {isAdmin && (
-              <button
-                onClick={() => router.push('/admin')}
-                className="px-3 py-2 rounded-lg bg-purple-600 text-white text-sm font-bold"
-              >
-                Admin
-              </button>
-            )}
-
-            <button
-              onClick={handleLogout}
-              className={`px-3 py-2 rounded-lg text-sm font-bold ${isLight ? 'bg-gray-200 hover:bg-gray-300' : 'bg-[#252a36] hover:bg-[#343a49]'}`}
-            >
-              Çıkış
-            </button>
-          </nav>
+          <div className="absolute inset-y-0 left-0 w-[280px] shadow-2xl pf-slide-in">
+            <Sidebar {...sidebarCommon} />
+          </div>
         </div>
+      )}
+
+      {/* MOBİL ÜST BAR */}
+      <header
+        className={`lg:hidden sticky top-0 z-40 flex items-center gap-3 px-4 h-14 border-b backdrop-blur-xl ${
+          isLight
+            ? 'bg-white/95 border-gray-200'
+            : 'bg-[#0b0e16]/95 border-[#1e2431]'
+        }`}
+      >
+        <button
+          onClick={() => setNavOpen(true)}
+          aria-label="Menüyü aç"
+          className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${
+            isLight ? 'bg-gray-100' : 'bg-[#171c28]'
+          }`}
+        >
+          ☰
+        </button>
+
+        <span className="font-black tracking-tight">
+          Prompt<span className="text-purple-500">Forge</span>
+        </span>
+
+        <button
+          onClick={() => setShowNotifications((previous) => !previous)}
+          aria-label="Bildirimler"
+          className={`relative ml-auto w-10 h-10 rounded-xl flex items-center justify-center ${
+            isLight ? 'bg-gray-100' : 'bg-[#171c28]'
+          }`}
+        >
+          🔔
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full min-w-4 h-4 px-1 flex items-center justify-center">
+              {unreadCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={startNewProject}
+          className="px-3 h-10 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold"
+        >
+          + Yeni
+        </button>
       </header>
 
       {/* BİLDİRİM PANELİ */}
@@ -1974,7 +2171,7 @@ ${codeJs}`)
         <>
           {/* DASHBOARD */}
           {activeView === 'dashboard' && (
-            <section className="max-w-[1400px] mx-auto px-4 py-8">
+            <section className="pf-enter max-w-[1400px] mx-auto px-4 py-8">
 
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-8">
                 <div>
@@ -2408,7 +2605,7 @@ ${codeJs}`)
 
           {/* EDİTÖR */}
           {activeView === 'editor' && (
-            <section className="max-w-[1600px] mx-auto px-4 py-6">
+            <section className="pf-enter max-w-[1600px] mx-auto px-4 py-6">
 
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">

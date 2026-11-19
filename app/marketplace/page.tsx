@@ -259,14 +259,14 @@ export default function MarketplacePage() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
 
         <header className="mb-10 flex items-center justify-between rounded-2xl border border-white/10 bg-[#101010] px-5 py-4">
-          <Link href="/" className="text-xl font-bold">
+          <Link href="/dashboard" className="text-xl font-bold">
             <span className="bg-gradient-to-r from-purple-500 to-blue-400 bg-clip-text text-transparent">
               PromptForge
             </span>
           </Link>
 
           <Link
-            href="/"
+            href="/dashboard"
             className="text-sm text-gray-400 transition hover:text-white"
           >
             ← Ana Sayfa

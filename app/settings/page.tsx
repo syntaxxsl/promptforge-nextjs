@@ -80,7 +80,7 @@ export default function SettingsPage() {
       <div className="max-w-3xl mx-auto">
 
         <button
-          onClick={() => router.push('/')}
+          onClick={() => router.push('/dashboard')}
           className="mb-8 text-gray-400 hover:text-white transition"
         >
           ← Ana sayfaya dön

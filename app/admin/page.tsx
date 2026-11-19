@@ -77,6 +77,7 @@ export default function AdminPanel() {
 
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
+  const [banReason, setBanReason] = useState('')
 
   const getToken = async () => {
     const { data, error } = await supabase.auth.getSession()
@@ -255,6 +256,64 @@ export default function AdminPanel() {
           userId,
           action,
         }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'İşlem başarısız.')
+      }
+
+      setMessage(result.message || 'İşlem başarılı.')
+      await fetchUsers()
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Bir hata oluştu.'
+      )
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleBan = async (userId: string, ban: boolean) => {
+    if (ban) {
+      const reason = window.prompt(
+        'Askıya alma nedeni (isteğe bağlı, kayda geçer):',
+        ''
+      )
+
+      if (reason === null) return
+
+      if (!window.confirm('Bu kullanıcının erişimi kapatılsın mı?')) return
+
+      setBanReason(reason)
+      await sendUserAction(userId, 'ban', reason)
+      return
+    }
+
+    if (!window.confirm('Bu kullanıcının erişimi yeniden açılsın mı?')) return
+
+    await sendUserAction(userId, 'unban', '')
+  }
+
+  const sendUserAction = async (
+    userId: string,
+    action: 'ban' | 'unban',
+    reason: string
+  ) => {
+    setBusy(userId)
+    setMessage('')
+
+    try {
+      const token = await getToken()
+
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId, action, reason }),
       })
 
       const result = await response.json()
@@ -460,6 +519,14 @@ export default function AdminPanel() {
     return status
   }
 
+  const getApprovalLabel = (status: string) => {
+    if (status === 'approved') return 'Onaylı'
+    if (status === 'pending') return 'Bekliyor'
+    if (status === 'rejected') return 'Reddedildi'
+    if (status === 'banned') return 'Askıya alındı'
+    return status
+  }
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleString('tr-TR')
   }
@@ -502,6 +569,11 @@ export default function AdminPanel() {
         {message && (
           <div className="mb-6 p-4 rounded-xl bg-white/5 border border-white/10 text-yellow-300">
             {message}
+            {banReason && (
+              <span className="block text-xs text-gray-400 mt-1">
+                Kayda geçen neden: {banReason}
+              </span>
+            )}
           </div>
         )}
 
@@ -620,14 +692,49 @@ export default function AdminPanel() {
                     <th className="py-3">E-posta</th>
                     <th className="py-3">Rol</th>
                     <th className="py-3">Durum</th>
+                    <th className="py-3 text-right">İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
                   {allUsers.map((user) => (
                     <tr key={user.id} className="border-b border-white/5">
-                      <td className="py-4">{user.email}</td>
+                      <td className="py-4 break-all">{user.email}</td>
                       <td className="py-4">{user.role || 'user'}</td>
-                      <td className="py-4">{user.approval_status}</td>
+                      <td className="py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs ${
+                            user.approval_status === 'approved'
+                              ? 'bg-green-500/15 text-green-400'
+                              : user.approval_status === 'banned'
+                              ? 'bg-red-500/15 text-red-400'
+                              : 'bg-yellow-500/15 text-yellow-400'
+                          }`}
+                        >
+                          {getApprovalLabel(user.approval_status)}
+                        </span>
+                      </td>
+                      <td className="py-4 text-right">
+                        {user.approval_status === 'banned' ? (
+                          <button
+                            disabled={busy === user.id}
+                            onClick={() => handleBan(user.id, false)}
+                            className="bg-green-600/20 hover:bg-green-600/30 text-green-300 px-3 py-2 rounded-lg text-xs disabled:opacity-40"
+                          >
+                            Banı Kaldır
+                          </button>
+                        ) : (
+                          <button
+                            disabled={
+                              busy === user.id ||
+                              String(user.role || '').toLowerCase() === 'admin'
+                            }
+                            onClick={() => handleBan(user.id, true)}
+                            className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-3 py-2 rounded-lg text-xs disabled:opacity-30"
+                          >
+                            Banla
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

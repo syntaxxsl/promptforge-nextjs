@@ -220,7 +220,7 @@ body, p, button {
       <header className="border-b border-white/10 px-5 py-5">
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div>
-            <a href="/" className="text-sm text-purple-400">← PromptForge</a>
+            <a href="/dashboard" className="text-sm text-purple-400">← PromptForge</a>
             <h1 className="text-2xl font-black mt-2">Geliştirici Araçları</h1>
             <p className="text-sm text-gray-400 mt-1">Tasarım ve kod araçların tek yerde.</p>
           </div>
