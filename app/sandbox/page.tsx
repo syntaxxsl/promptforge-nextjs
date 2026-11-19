@@ -26,7 +26,10 @@ export default function SandboxPage() {
         try {
           ${js.replace(/<\/script/gi, '<\\/script')}
         } catch (error) {
-          document.body.innerHTML += '<pre style="color:red">' + error.message + '</pre>'
+          var pre = document.createElement('pre')
+          pre.style.color = 'red'
+          pre.textContent = error && error.message ? error.message : String(error)
+          document.body.appendChild(pre)
         }
       <\/script>
     </body>
