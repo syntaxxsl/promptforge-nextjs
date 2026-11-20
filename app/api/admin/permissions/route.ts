@@ -7,6 +7,7 @@ import {
 } from '../../../../lib/permissions'
 import { clientIp, isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
 import { logAdminActivity } from '../../../../lib/activity'
+import { reportSecurityEvent } from '../../../../lib/security-events'
 
 /**
  * Bir kullanıcının yetkilerini ve rolünü günceller.
@@ -107,6 +108,20 @@ export async function PATCH(request: NextRequest) {
         permissions: data.permissions || [],
       },
       ip: clientIp(request),
+    })
+
+    await reportSecurityEvent(adminClient, {
+      kind: 'permission.change',
+      severity: 'warning',
+      userId: auth.user.id,
+      email: (target as any)?.email || null,
+      ip: clientIp(request),
+      path: '/api/admin/permissions',
+      detail: {
+        targetUserId: userId,
+        role: data.role,
+        permissions: data.permissions || [],
+      },
     })
 
     return NextResponse.json({

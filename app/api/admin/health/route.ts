@@ -2,57 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { clientIp, rateLimit, tooMany } from '../../../../lib/security'
 import { runAndSaveHealth } from '../../../../lib/health-run'
+import { adminClient, checkAdminAccess } from '../../../../lib/admin-auth'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!
 
-const authClient = createClient(supabaseUrl, supabaseAnonKey)
-const adminClient = createClient(supabaseUrl, supabaseSecretKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-})
 const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
 async function checkAdmin(request: NextRequest) {
-  const authorization = request.headers.get('authorization')
+  const access = await checkAdminAccess(request, 'security')
 
-  if (!authorization?.startsWith('Bearer ')) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: 'Oturum bulunamadı.' }, { status: 401 }),
-    }
+  if ('response' in access) {
+    return { ok: false as const, response: access.response }
   }
 
-  const { data: { user }, error } = await authClient.auth.getUser(
-    authorization.slice(7)
-  )
-
-  if (error || !user) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: 'Geçersiz oturum.' }, { status: 401 }),
-    }
-  }
-
-  const { data: profile } = await adminClient
-    .from('users')
-    .select('role, approval_status')
-    .eq('id', user.id)
-    .single()
-
-  const role = String(profile?.role || '').toLowerCase().trim()
-  const approval = String(profile?.approval_status || '').toLowerCase().trim()
-
-  if (role !== 'admin' || approval !== 'approved') {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: 'Admin yetkisi gerekli.' }, { status: 403 }),
-    }
-  }
-
-  return { ok: true as const, user }
+  return { ok: true as const, user: access.user }
 }
 
 export async function GET(request: NextRequest) {

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * Bakım modu ve IP engelleme.
+ * Güvenlik duvarının uygulama tarafındaki katmanı.
  *
- * Bakım modu: MAINTENANCE_MODE=true env değişkeni ile açılır.
- *            Yöneticiler, tarayıcıya `pf_maintenance_bypass` çerezini
- *            MAINTENANCE_BYPASS_TOKEN değeriyle ekleyerek siteye girebilir.
- * IP engelleme: iki katmanlı.
- *            1) BLOCKED_IPS="1.2.3.4,5.6.7.8" env değişkeni (anında, kod gerekmez)
- *            2) Admin panelinden eklenen engeller (ip_bans tablosu, 60 sn önbellek)
+ * - Bakım modu (MAINTENANCE_MODE)
+ * - IP engelleme: BLOCKED_IPS env listesi + admin panelindeki ip_bans tablosu
+ * - Zararlı yol taraması engeli (/.env, /.git, /wp-admin ...)
+ * - API istekleri için IP başına dakikalık sınır
+ * - Engellenen denemeleri admine raporlama
  */
 
 const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true'
@@ -22,6 +21,18 @@ type CacheEntry = { blocked: boolean; reason: string; until: number }
 
 const banCache = new Map<string, CacheEntry>()
 const BAN_CACHE_MS = 60_000
+
+// API istekleri için IP başına dakikalık sınır.
+const API_WINDOW_MS = 60_000
+const API_LIMIT = 300
+const apiHits = new Map<string, { count: number; reset: number }>()
+
+// Aynı olayın saniyeler içinde yüzlerce kez yazılmasını engeller.
+const reported = new Map<string, number>()
+
+// Sunucu tarafı tarama/istismar denemeleri.
+const SCANNER_PATH =
+  /^\/(?:\.env|\.git|\.svn|\.aws|\.ssh|\.DS_Store|wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php|phpmyadmin|phpMyAdmin|pma|myadmin|cgi-bin|vendor\/|actuator|server-status|config\.json|config\.php|admin\.php|shell\.php|eval-stdin\.php|\.well-known\/(?!security\.txt))/i
 
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
@@ -92,24 +103,101 @@ async function checkDatabaseBan(ip: string, origin: string) {
   }
 }
 
+function apiLimit(ip: string) {
+  const now = Date.now()
+  const existing = apiHits.get(ip)
+
+  if (!existing || existing.reset <= now) {
+    if (apiHits.size > 5000) apiHits.clear()
+    apiHits.set(ip, { count: 1, reset: now + API_WINDOW_MS })
+    return true
+  }
+
+  if (existing.count >= API_LIMIT) return false
+
+  existing.count += 1
+  return true
+}
+
+/**
+ * Olayı iç uç noktaya yazar. İsteği beklemez, hata olursa sessizce geçer.
+ * Anahtar tanımlı değilse (ör. yerel geliştirme) hiçbir şey yapmaz.
+ */
+function reportEvent(
+  request: NextRequest,
+  key: string,
+  payload: Record<string, unknown>,
+  windowMs = 120_000
+) {
+  const token = process.env.SECURITY_EVENT_TOKEN || process.env.SUPABASE_SECRET_KEY
+
+  if (!token) return
+
+  const now = Date.now()
+  const last = reported.get(key)
+
+  if (last && now - last < windowMs) return
+
+  if (reported.size > 1000) reported.clear()
+
+  reported.set(key, now)
+
+  void fetch(`${request.nextUrl.origin}/api/internal/security-event`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-pf-internal': token,
+    },
+    body: JSON.stringify({
+      ...payload,
+      ip: getClientIp(request),
+      path: request.nextUrl.pathname,
+      userAgent: request.headers.get('user-agent') || '',
+    }),
+    cache: 'no-store',
+  }).catch(() => {})
+}
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  // Kendi kontrol uç noktamız ve statikler döngüye girmesin.
-  if (path.startsWith('/api/ip-check') || path.startsWith('/_next')) {
+  // Kendi kontrol uç noktalarımız ve statikler döngüye girmesin.
+  if (
+    path.startsWith('/api/ip-check') ||
+    path.startsWith('/api/internal/security-event') ||
+    path.startsWith('/_next')
+  ) {
     return NextResponse.next()
   }
 
   const ip = getClientIp(request)
 
   if (ip && BLOCKED_IPS.includes(ip)) {
+    reportEvent(request, `blocked:${ip}`, { kind: 'ip.blocked', severity: 'warning' }, 300_000)
     return htmlResponse(blockedPage(''), 403)
+  }
+
+  // Sunucu tarama denemeleri: 404 döner, olay admine raporlanır.
+  if (SCANNER_PATH.test(path)) {
+    reportEvent(
+      request,
+      `scan:${ip}:${path}`,
+      { kind: 'path.scan', severity: 'warning', detail: { path } },
+      300_000
+    )
+
+    return htmlResponse(
+      '<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Bulunamadı</title></head><body></body></html>',
+      404
+    )
   }
 
   if (ip) {
     const ban = await checkDatabaseBan(ip, request.nextUrl.origin)
 
     if (ban.blocked) {
+      reportEvent(request, `banhit:${ip}`, { kind: 'ip.blocked', severity: 'warning' }, 300_000)
+
       // API isteklerinde HTML yerine JSON dön.
       if (path.startsWith('/api/')) {
         return NextResponse.json(
@@ -119,6 +207,16 @@ export async function middleware(request: NextRequest) {
       }
 
       return htmlResponse(blockedPage(ban.reason), 403)
+    }
+
+    // API için dakikalık sınır.
+    if (path.startsWith('/api/') && !apiLimit(ip)) {
+      reportEvent(request, `api-rate:${ip}`, { kind: 'api.rate', severity: 'warning' }, 300_000)
+
+      return NextResponse.json(
+        { error: 'Çok fazla istek gönderdin. Lütfen biraz sonra tekrar dene.' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      )
     }
   }
 
@@ -150,9 +248,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Statik dosyalar, görsel optimizasyonu ve kendi IP kontrol ucumuz hariç
+     * Statik dosyalar, görsel optimizasyonu ve kendi kontrol uçlarımız hariç
      * her istekte çalışır.
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/health|api/ip-check).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/health|api/ip-check|api/internal/security-event).*)',
   ],
 }

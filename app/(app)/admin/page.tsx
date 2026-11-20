@@ -9,6 +9,7 @@ import {
   normalizePermissions,
   type PermissionKey,
 } from '../../../lib/permissions'
+import { securityEventLabel } from '../../../lib/security-labels'
 
 type User = {
   id: string
@@ -25,6 +26,18 @@ type IpBan = {
   reason?: string | null
   created_at: string
   expires_at?: string | null
+}
+
+type SecurityEventRow = {
+  id: string
+  kind: string
+  severity: string
+  ip?: string | null
+  email?: string | null
+  path?: string | null
+  detail?: Record<string, any> | null
+  acknowledged: boolean
+  created_at: string
 }
 
 type Stats = {
@@ -153,6 +166,7 @@ const LOG_ACTIONS: Record<string, string> = {
   'user.permissions': 'Yetkiler güncellendi',
   'security.ipban': 'IP adresi engellendi',
   'security.ipunban': 'IP engeli kaldırıldı',
+  'security.ack': 'Güvenlik olayları okundu olarak işaretlendi',
 }
 
 export default function AdminPanel() {
@@ -212,6 +226,12 @@ export default function AdminPanel() {
   const [ipSetup, setIpSetup] = useState(false)
   const [ipForm, setIpForm] = useState({ ip: '', reason: '', hours: '24' })
   const [ipSaving, setIpSaving] = useState(false)
+
+  // GÜVENLİK OLAYLARI
+  const [secEvents, setSecEvents] = useState<SecurityEventRow[]>([])
+  const [secUnread, setSecUnread] = useState(0)
+  const [secSetup, setSecSetup] = useState(false)
+  const [secLoading, setSecLoading] = useState(false)
 
   const getToken = async () => {
     const { data, error } = await supabase.auth.getSession()
@@ -478,6 +498,54 @@ export default function AdminPanel() {
     }
   }
 
+  const fetchSecurityEvents = async () => {
+    setSecLoading(true)
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/security-events', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Güvenlik olayları alınamadı.')
+
+      setSecEvents(result.events || [])
+      setSecUnread(result.unread || 0)
+      setSecSetup(Boolean(result.needsSetup))
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Güvenlik olayları alınamadı.'
+      )
+    } finally {
+      setSecLoading(false)
+    }
+  }
+
+  const acknowledgeSecurityEvents = async (all: boolean, ids: string[] = []) => {
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/security-events', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(all ? { all: true } : { ids }),
+      })
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Olaylar güncellenemedi.')
+
+      await fetchSecurityEvents()
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Olaylar güncellenemedi.'
+      )
+    }
+  }
+
   const openPermissions = (user: User) => {
     setPermUser(user)
     setPermDraft(normalizePermissions(user.permissions))
@@ -574,6 +642,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     let interval: number | undefined
+    let securityInterval: number | undefined
 
     const boot = async () => {
       const { data: authData } = await supabase.auth.getUser()
@@ -631,13 +700,22 @@ export default function AdminPanel() {
 
       if (can('reports')) fetchReports()
       if (can('logs')) fetchLogs()
-      if (can('security')) fetchIpBans()
+
+      if (can('security')) {
+        fetchIpBans()
+        fetchSecurityEvents()
+        // Güvenlik olayları 30 saniyede bir tazelenir.
+        securityInterval = window.setInterval(() => {
+          fetchSecurityEvents()
+        }, 30_000)
+      }
     }
 
     boot()
 
     return () => {
       if (interval) window.clearInterval(interval)
+      if (securityInterval) window.clearInterval(securityInterval)
     }
   }, [])
 
@@ -1020,7 +1098,10 @@ export default function AdminPanel() {
               if (canAccess('reports')) fetchReports()
               if (canAccess('logs')) fetchLogs()
               if (canAccess('traffic')) fetchTraffic()
-              if (canAccess('security')) fetchIpBans()
+              if (canAccess('security')) {
+                fetchIpBans()
+                fetchSecurityEvents()
+              }
             }}
             className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-[13px] font-medium text-gray-200 hover:bg-white/5"
           >
@@ -1041,6 +1122,17 @@ export default function AdminPanel() {
               }`}
             >
               {item.label}
+              {item.key === 'security' && secUnread > 0 && (
+                <span
+                  className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                    tab === 'security'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-red-500/20 text-red-300'
+                  }`}
+                >
+                  {secUnread}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -2009,6 +2101,122 @@ export default function AdminPanel() {
                   )}
                 </article>
               ))}
+            </div>
+          )}
+        </section>
+
+        {/* GÜVENLİK OLAYLARI */}
+        <section
+          className={`${tab === 'security' ? '' : 'hidden'} bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8`}
+        >
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold">Güvenlik Olayları</h2>
+              <p className="mt-1 text-sm text-gray-400">
+                Hatalı girişler, engellenen adresler ve tarama denemeleri. Uyarı
+                ve kritik olaylar admine e-posta ile de bildirilir.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {secUnread > 0 && (
+                <span className="rounded-full bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-300">
+                  {secUnread} okunmamış
+                </span>
+              )}
+              {secUnread > 0 && (
+                <button
+                  onClick={() => acknowledgeSecurityEvents(true)}
+                  className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-200 hover:bg-white/5"
+                >
+                  Tümünü okundu işaretle
+                </button>
+              )}
+            </div>
+          </div>
+
+          {secSetup && (
+            <div className="mb-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
+              Güvenlik olayları tablosu bulunamadı. Supabase SQL
+              Editor&apos;de
+              <code className="mx-1 rounded bg-black/30 px-1">supabase/security-hardening.sql</code>
+              dosyasını çalıştır.
+            </div>
+          )}
+
+          {secLoading && secEvents.length === 0 ? (
+            <p className="py-4 text-sm text-gray-400">Olaylar yükleniyor...</p>
+          ) : secEvents.length === 0 ? (
+            <p className="py-4 text-sm text-gray-400">
+              Henüz güvenlik olayı yok. Bu iyi haber.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {secEvents.map((event) => {
+                const dot =
+                  event.severity === 'critical'
+                    ? 'bg-red-500'
+                    : event.severity === 'warning'
+                    ? 'bg-yellow-400'
+                    : 'bg-emerald-400'
+
+                return (
+                  <article
+                    key={event.id}
+                    className={`rounded-xl border px-4 py-3 ${
+                      event.acknowledged
+                        ? 'border-white/5 bg-black/10'
+                        : 'border-white/10 bg-[#090b10]'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                        <p
+                          className={`text-sm ${
+                            event.acknowledged
+                              ? 'text-gray-400'
+                              : 'font-medium text-white'
+                          }`}
+                        >
+                          {securityEventLabel(event.kind)}
+                        </p>
+                        {!event.acknowledged && (
+                          <span className="rounded bg-purple-500/15 px-1.5 py-0.5 text-[10px] text-purple-300">
+                            yeni
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span>{formatDate(event.created_at)}</span>
+                        {!event.acknowledged && (
+                          <button
+                            onClick={() =>
+                              acknowledgeSecurityEvents(false, [event.id])
+                            }
+                            className="text-gray-300 hover:text-white"
+                          >
+                            Okundu
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="mt-1.5 break-all text-xs text-gray-500">
+                      {event.ip ? `IP: ${event.ip}` : ''}
+                      {event.email ? ` · ${event.email}` : ''}
+                      {event.path ? ` · ${event.path}` : ''}
+                    </p>
+
+                    {event.detail && Object.keys(event.detail).length > 0 && (
+                      <p className="mt-1 break-all text-xs text-gray-600">
+                        {JSON.stringify(event.detail)}
+                      </p>
+                    )}
+                  </article>
+                )
+              })}
             </div>
           )}
         </section>

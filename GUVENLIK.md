@@ -18,6 +18,11 @@ senin yapman gerekenleri listeler.
 | KVKK çerez politikası | `components/KvkkBanner.tsx`, `app/kvkk` | Onay banner'ı + ayrıntılı politika sayfası. |
 | Log sızıntısı | `app/api/admin/users` | Kullanıcı e-postasını sunucu log'una yazan debug satırı kaldırıldı. |
 | Veritabanı indeksleri | `db/security.sql` | Sık sorgulanan kolonlara indeks, RLS politikaları, yeni tablolar. |
+| Brute force koruması | `lib/login-guard.ts`, `app/api/auth/[action]/route.ts` | Giriş, kayıt ve şifre sıfırlama artık sunucu üzerinden geçiyor. Aynı e-postada 15 dakikada 5 hatalı deneme → 15 dakika kilit; aynı IP'de 15 dakikada 12 hatalı deneme → 2 saat otomatik IP engeli. Sayaçlar `login_attempts` tablosunda ortak tutulur. |
+| Saldırı yüzeyi taraması | `middleware.ts` | `/.env`, `/.git`, `/wp-admin`, `/phpmyadmin`, `/cgi-bin` gibi tarama yolları 404 alır ve admine raporlanır. |
+| API hız sınırı | `middleware.ts` | IP başına dakikada 300 API isteği; aşanlar 429 alır ve olay kaydedilir. |
+| Güvenlik olayları | `lib/security-events.ts`, `app/api/admin/security-events` | Hatalı giriş, kilit, IP engeli, tarama ve yetki değişikliği kaydedilir; panelde Güvenlik sekmesinde okunmamış sayacıyla listelenir. |
+| Admin e-posta uyarısı | `lib/security-events.ts` | `RESEND_API_KEY` + `ADMIN_ALERT_EMAIL` tanımlıysa uyarı ve kritik olaylar e-posta ile de gider. |
 
 ## 2. Ortam değişkenleri (Vercel → Settings → Environment Variables)
 
@@ -27,13 +32,19 @@ senin yapman gerekenleri listeler.
 | `MAINTENANCE_BYPASS_TOKEN` | Hayır | Bakım sırasında yöneticinin girebilmesi için rastgele uzun bir değer. Tarayıcıya `pf_maintenance_bypass` çerezi olarak eklenir. |
 | `BLOCKED_IPS` | Hayır | Virgülle ayrılmış IP listesi: `1.2.3.4,5.6.7.8`. |
 | `API_KEY_ENCRYPTION_SECRET` | **Evet** | En az 32 karakter. API anahtarı şifrelemesi için. Değiştirirsen eski anahtarlar okunamaz. |
+| `RESEND_API_KEY` | Hayır | Admin güvenlik uyarılarını e-posta ile göndermek için Resend anahtarı. |
+| `ADMIN_ALERT_EMAIL` | Hayır | Uyarıların gideceği yönetici e-postası. |
+| `ADMIN_ALERT_FROM` | Hayır | Gönderen adresi (Resend'de doğrulanmış alan adı). |
+| `SECURITY_EVENT_TOKEN` | Hayır | Middleware'in iç olay kaydı için kullandığı anahtar. Boşsa `SUPABASE_SECRET_KEY` kullanılır. |
 
 ## 3. Veritabanı kurulumu
 
-Supabase → SQL Editor'de `db/security.sql` dosyasını çalıştır. Oluşturdukları:
+Supabase → SQL Editor'de `db/security.sql` ve `supabase/security-hardening.sql` dosyalarını çalıştır. Oluşturdukları:
 
 - `admin_activity_logs` (yalnızca sunucu yazar, istemci erişimi kapalı)
 - `user_api_keys` (RLS: kullanıcı sadece kendi kayıtları)
+- `login_attempts` (brute force sayaçları, yalnızca sunucu erişir)
+- `security_events` (güvenlik olayları, yalnızca sunucu erişir)
 - Sorgu performansı için indeksler
 
 Ardından RLS kontrolünü yap — dosyanın sonundaki sorgu **boş dönmeli**:

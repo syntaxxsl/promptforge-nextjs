@@ -385,6 +385,7 @@ export default function Home() {
   const [session, setSession] = useState<any>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [canHealth, setCanHealth] = useState(false)
 
   // GENEL
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
@@ -650,6 +651,7 @@ export default function Home() {
         if (!mounted) return
         setSession(null)
         setIsAdmin(false)
+        setCanHealth(false)
         setProjects([])
         setAuthLoading(false)
         router.replace('/auth')
@@ -689,6 +691,7 @@ export default function Home() {
       if (profileError) {
         console.error('Profil kontrolü başarısız:', profileError.message)
         setIsAdmin(false)
+        setCanHealth(false)
       } else {
         const role = String(profile?.role || '').toLowerCase().trim()
         const approval = String(profile?.approval_status || '').toLowerCase().trim()
@@ -698,6 +701,10 @@ export default function Home() {
 
         setIsAdmin(
           approval === 'approved' && (role === 'admin' || permissions.length > 0)
+        )
+        setCanHealth(
+          approval === 'approved' &&
+            (role === 'admin' || permissions.includes('security'))
         )
       }
 
@@ -1987,11 +1994,15 @@ ${codeJs}`)
                 label: 'Admin Paneli',
                 onClick: () => goTo('/admin'),
               },
-              {
-                icon: 'pulse' as IconName,
-                label: 'Sistem Sağlığı',
-                onClick: () => goTo('/health'),
-              },
+              ...(canHealth
+                ? [
+                    {
+                      icon: 'pulse' as IconName,
+                      label: 'Sistem Sağlığı',
+                      onClick: () => goTo('/health'),
+                    },
+                  ]
+                : []),
             ],
           },
         ]

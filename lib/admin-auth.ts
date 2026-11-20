@@ -10,10 +10,23 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!
 
-const authClient = createClient(supabaseUrl, supabaseAnonKey)
+/**
+ * Supabase çağrıları sonsuza kadar asılı kalmasın: her istek 10 saniyede
+ * zaman aşımına uğrar.
+ */
+const fetchWithTimeout: typeof fetch = (input, init) =>
+  fetch(input, {
+    ...init,
+    signal: init?.signal || AbortSignal.timeout(10_000),
+  })
+
+const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+  global: { fetch: fetchWithTimeout },
+})
 
 export const adminClient = createClient(supabaseUrl, supabaseSecretKey, {
   auth: { autoRefreshToken: false, persistSession: false },
+  global: { fetch: fetchWithTimeout },
 })
 
 type Access =

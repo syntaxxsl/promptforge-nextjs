@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminClient, checkAdminAccess } from '../../../../lib/admin-auth'
 import { clientIp, isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
 import { logAdminActivity } from '../../../../lib/activity'
+import { reportSecurityEvent } from '../../../../lib/security-events'
 
 const IP_PATTERN = /^[0-9a-fA-F:.]{3,45}$/
 
@@ -94,6 +95,15 @@ export async function POST(request: NextRequest) {
       targetId: ip,
       detail: { reason, expiresAt },
       ip: clientIp(request),
+    })
+
+    await reportSecurityEvent(adminClient, {
+      kind: 'ip.ban',
+      severity: 'critical',
+      userId: auth.user.id,
+      ip,
+      path: '/api/admin/ip-bans',
+      detail: { reason, expiresAt, blockedBy: auth.user.email || auth.user.id },
     })
 
     return NextResponse.json({ success: true, ban: data })

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import { normalizePermissions } from '../../../lib/permissions'
 
 type CheckStatus = 'pass' | 'warn' | 'fail'
 
@@ -181,19 +182,34 @@ export default function HealthPage() {
         return
       }
 
-      const { data: profile } = await supabase
+      const extended = await supabase
         .from('users')
-        .select('role, approval_status')
+        .select('role, approval_status, permissions')
         .eq('id', data.user.id)
         .maybeSingle()
 
-      const role = String(profile?.role || '').toLowerCase().trim()
-      const approval = String(profile?.approval_status || '').toLowerCase().trim()
+      // Yetki kolonu yoksa yalnızca rol ve durumu oku.
+      const profile = extended.error
+        ? (
+            await supabase
+              .from('users')
+              .select('role, approval_status')
+              .eq('id', data.user.id)
+              .maybeSingle()
+          ).data
+        : extended.data
 
-      setAllowed(role === 'admin' && approval === 'approved')
+      const role = String((profile as any)?.role || '').toLowerCase().trim()
+      const approval = String((profile as any)?.approval_status || '')
+        .toLowerCase()
+        .trim()
+      const permissions = normalizePermissions((profile as any)?.permissions)
+      const allowed = approval === 'approved' && (role === 'admin' || permissions.includes('security'))
+
+      setAllowed(allowed)
       setCheckingAccess(false)
 
-      if (role === 'admin' && approval === 'approved') {
+      if (allowed) {
         await loadRuns()
       }
     }
@@ -235,9 +251,10 @@ export default function HealthPage() {
       <main className="min-h-screen bg-[#090b10] text-white flex items-center justify-center p-6">
         <div className="bg-[#11141d] border border-white/10 rounded-2xl p-8 max-w-md text-center">
           <p className="text-2xl mb-3">🔒</p>
-          <h1 className="text-xl font-bold mb-2">Bu sayfa sadece admin için</h1>
+          <h1 className="text-xl font-bold mb-2">Bu sayfa için yetkin yok</h1>
           <p className="text-sm text-gray-400 mb-5">
-            Sistem sağlığı raporu yalnızca yöneticilere gösterilir.
+            Sistem sağlığı raporunu yalnızca yöneticiler ve “Güvenlik” yetkisi
+            olanlar görebilir.
           </p>
           <button
             onClick={() => router.push('/dashboard')}

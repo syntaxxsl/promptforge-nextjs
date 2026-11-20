@@ -12,6 +12,10 @@ const securityHeaders = [
     value: 'max-age=63072000; includeSubDomains; preload',
   },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
+  { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
+  { key: 'X-DNS-Prefetch-Control', value: 'off' },
+  { key: 'Origin-Agent-Cluster', value: '?same-origin' },
   {
     key: 'Content-Security-Policy',
     value: [

@@ -19,15 +19,32 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        // Giriş Yap
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
-        if (authError) throw authError
+        // Giriş Yap — sunucu tarafındaki brute force koruması üzerinden.
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+          cache: 'no-store',
+        })
+
+        const result = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Giriş yapılamadı.')
+        }
+
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: result.session.access_token,
+          refresh_token: result.session.refresh_token,
+        })
+
+        if (sessionError) throw sessionError
 
         // Onay durumunu kontrol et
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('approval_status')
-          .eq('id', authData.user.id)
+          .eq('id', result.user.id)
           .single()
 
         if (userError) throw userError
@@ -44,12 +61,12 @@ export default function AuthPage() {
           throw new Error('Hesabınız henüz admin tarafından onaylanmadı. Lütfen bekleyin.')
         }
 
-        if (authData.session?.access_token) {
+        if (result.session?.access_token) {
           fetch('/api/presence', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${authData.session.access_token}`,
+              Authorization: `Bearer ${result.session.access_token}`,
             },
             body: JSON.stringify({ event: 'login', path: '/dashboard' }),
           }).catch(() => {})
@@ -57,9 +74,20 @@ export default function AuthPage() {
 
         router.push('/dashboard')
       } else {
-        // Kayıt Ol
-        const { error } = await supabase.auth.signUp({ email, password })
-        if (error) throw error
+        // Kayıt Ol — sunucu tarafındaki sınır üzerinden.
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+          cache: 'no-store',
+        })
+
+        const result = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Kayıt oluşturulamadı.')
+        }
+
         setMessage('Kayıt başarılı! Admin onayı bekleniyor. Onaylandığında giriş yapabilirsiniz.')
         setIsLogin(true)
       }
@@ -80,11 +108,18 @@ export default function AuthPage() {
     setMessage('')
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const response = await fetch('/api/auth/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+        cache: 'no-store',
       })
 
-      if (error) throw error
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Sıfırlama isteği gönderilemedi.')
+      }
 
       setMessage('Sıfırlama bağlantısı e-postana gönderildi. Gelen kutunu kontrol et.')
     } catch (error: any) {

@@ -48,7 +48,7 @@ export const PERMISSION_LIST: {
   {
     key: 'security',
     label: 'Güvenlik',
-    hint: 'IP engelleme ve güvenlik ayarları',
+    hint: 'IP engelleme, güvenlik olayları ve sistem sağlığı',
   },
   {
     key: 'manage_permissions',

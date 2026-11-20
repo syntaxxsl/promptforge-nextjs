@@ -60,6 +60,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [email, setEmail] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [canHealth, setCanHealth] = useState(false)
 
   // Menünün daraltılmış hâli tarayıcıda hatırlanır.
   useEffect(() => {
@@ -113,6 +114,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       const permissions = normalizePermissions((profile as any)?.permissions)
 
       setIsAdmin(role === 'admin' || permissions.length > 0)
+      setCanHealth(role === 'admin' || permissions.includes('security'))
     }
 
     load()
@@ -188,7 +190,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const adminItems: NavItem[] = [
     { icon: 'terminal', label: 'Admin Paneli', href: '/admin' },
-    { icon: 'pulse', label: 'Sistem Sağlığı', href: '/health' },
+    ...(canHealth
+      ? [
+          {
+            icon: 'pulse' as IconName,
+            label: 'Sistem Sağlığı',
+            href: '/health',
+          },
+        ]
+      : []),
   ]
 
   const renderItem = (item: NavItem, isCollapsed: boolean) => {

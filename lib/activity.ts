@@ -11,11 +11,18 @@ export type AdminAction =
   | 'user.permissions'
   | 'security.ipban'
   | 'security.ipunban'
+  | 'security.ack'
 
 type LogParams = {
   action: AdminAction
   actorId: string
-  targetType: 'user' | 'support_ticket' | 'report' | 'feedback' | 'ip_ban'
+  targetType:
+    | 'user'
+    | 'support_ticket'
+    | 'report'
+    | 'feedback'
+    | 'ip_ban'
+    | 'security'
   targetId: string
   detail?: Record<string, unknown>
   ip?: string
