@@ -11,6 +11,9 @@ export default function AuthPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [mfaFactorId, setMfaFactorId] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+  const [pendingUser, setPendingUser] = useState<{ id: string; token: string } | null>(null)
   const [turnstileToken, setTurnstileToken] = useState('')
   const turnstileRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -78,6 +81,77 @@ export default function AuthPage() {
     return true
   }
 
+  const completeLogin = async (userId: string, accessToken: string) => {
+    // Onay durumunu kontrol et
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('approval_status')
+      .eq('id', userId)
+      .single()
+
+    if (userError) throw userError
+
+    if (userData.approval_status === 'banned') {
+      await supabase.auth.signOut()
+      throw new Error(
+        'Hesabınız askıya alınmış. Destek ekibiyle iletişime geçebilirsiniz.'
+      )
+    }
+
+    if (userData.approval_status !== 'approved') {
+      await supabase.auth.signOut()
+      throw new Error('Hesabınız henüz admin tarafından onaylanmadı. Lütfen bekleyin.')
+    }
+
+    if (accessToken) {
+      fetch('/api/presence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ event: 'login', path: '/dashboard' }),
+      }).catch(() => {})
+    }
+
+    setPendingUser(null)
+    setMfaFactorId('')
+    setMfaCode('')
+    router.push('/dashboard')
+  }
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!pendingUser || !mfaFactorId) return
+
+    setLoading(true)
+    setMessage('')
+
+    try {
+      const { data: challenge, error: challengeError } =
+        await supabase.auth.mfa.challenge({ factorId: mfaFactorId })
+
+      if (challengeError || !challenge) throw challengeError || new Error('Doğrulama başlatılamadı.')
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaCode.trim(),
+      })
+
+      if (verifyError) {
+        throw new Error('Kod doğrulanamadı. Uygulamadaki 6 haneli kodu tekrar gir.')
+      }
+
+      await completeLogin(pendingUser.id, pendingUser.token)
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Doğrulama başarısız.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -112,39 +186,28 @@ export default function AuthPage() {
 
         if (sessionError) throw sessionError
 
-        // Onay durumunu kontrol et
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('approval_status')
-          .eq('id', result.user.id)
-          .single()
+        // İki adımlı giriş açıksa kodu istemeden içeri alma.
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
 
-        if (userError) throw userError
-
-        if (userData.approval_status === 'banned') {
-          await supabase.auth.signOut()
-          throw new Error(
-            'Hesabınız askıya alınmış. Destek ekibiyle iletişime geçebilirsiniz.'
+        if (aal && aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
+          const { data: factorData } = await supabase.auth.mfa.listFactors()
+          const verified = (factorData?.totp || []).find(
+            (factor) => factor.status === 'verified'
           )
+
+          if (verified) {
+            setPendingUser({
+              id: result.user.id,
+              token: result.session.access_token,
+            })
+            setMfaFactorId(verified.id)
+            setMessage('Hesabında iki adımlı giriş açık. Uygulamadaki kodu gir.')
+            setLoading(false)
+            return
+          }
         }
 
-        if (userData.approval_status !== 'approved') {
-          await supabase.auth.signOut()
-          throw new Error('Hesabınız henüz admin tarafından onaylanmadı. Lütfen bekleyin.')
-        }
-
-        if (result.session?.access_token) {
-          fetch('/api/presence', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${result.session.access_token}`,
-            },
-            body: JSON.stringify({ event: 'login', path: '/dashboard' }),
-          }).catch(() => {})
-        }
-
-        router.push('/dashboard')
+        await completeLogin(result.user.id, result.session.access_token)
       } else {
         // Kayıt Ol — sunucu tarafındaki sınır üzerinden.
         const response = await fetch('/api/auth/signup', {
@@ -256,7 +319,10 @@ export default function AuthPage() {
             </div>
           )}
 
-          <form onSubmit={handleAuth} className="mt-5 flex flex-col gap-4">
+          <form
+            onSubmit={handleAuth}
+            className={`mt-5 flex-col gap-4 ${mfaFactorId ? 'hidden' : 'flex'}`}
+          >
             <div>
               <label htmlFor="pf-email" className="mb-1.5 block text-[11px] font-semibold tracking-[0.08em] text-gray-500">
                 E-POSTA
@@ -318,6 +384,55 @@ export default function AuthPage() {
               </button>
             )}
           </form>
+
+          {mfaFactorId && (
+            <form onSubmit={handleMfaSubmit} className="mt-5 flex flex-col gap-4">
+              <div>
+                <label
+                  htmlFor="pf-mfa"
+                  className="mb-1.5 block text-[11px] font-semibold tracking-[0.08em] text-gray-500"
+                >
+                  DOĞRULAMA KODU
+                </label>
+                <input
+                  id="pf-mfa"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value)}
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                  placeholder="123456"
+                  className="w-full rounded-xl bg-white/[0.03] px-3.5 py-3 text-center font-mono text-lg tracking-[0.4em] text-white outline-none ring-1 ring-inset ring-white/10 transition placeholder:text-gray-600 focus:bg-white/[0.05] focus:ring-2 focus:ring-[#7c3aed]"
+                  required
+                />
+                <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
+                  Telefonundaki kimlik doğrulama uygulamasının gösterdiği kodu gir.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#7c3aed] via-[#6366f1] to-[#3b82f6] py-3.5 text-sm font-semibold text-white shadow-[0_12px_40px_-12px_rgba(124,58,237,1)] transition hover:brightness-110 disabled:opacity-60"
+              >
+                {loading ? 'Doğrulanıyor...' : 'Doğrula ve gir'}
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await supabase.auth.signOut()
+                  setPendingUser(null)
+                  setMfaFactorId('')
+                  setMfaCode('')
+                  setMessage('')
+                }}
+                className="self-center text-xs text-gray-500 transition hover:text-[#c4b5fd]"
+              >
+                Vazgeç
+              </button>
+            </form>
+          )}
 
           <div className="mt-6 flex items-center gap-3">
             <span className="h-px flex-1 bg-white/10" />

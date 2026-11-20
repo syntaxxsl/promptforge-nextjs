@@ -231,7 +231,43 @@ export default function AdminPanel() {
 
   const [logs, setLogs] = useState<AdminLog[]>([])
   const [logLoading, setLogLoading] = useState(false)
+
+  const downloadCsv = async (type: 'logs' | 'users') => {
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+
+      if (!token) {
+        window.alert('Oturum bulunamadı. Sayfayı yenile.')
+        return
+      }
+
+      const response = await fetch(`/api/admin/export?type=${type}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}))
+        window.alert(result.error || 'Dosya indirilemedi.')
+        return
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `promptforge-${type}-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      window.alert('Dosya indirilemedi.')
+    }
+  }
   const [logFilter, setLogFilter] = useState('all')
+  const [logSearch, setLogSearch] = useState('')
 
   const [traffic, setTraffic] = useState<Traffic | null>(null)
   const [trafficLoading, setTrafficLoading] = useState(false)
@@ -1429,10 +1465,26 @@ export default function AdminPanel() {
 
   const logLabel = (action: string) => LOG_ACTIONS[action] || action
 
-  const filteredLogs =
-    logFilter === 'all'
-      ? logs
-      : logs.filter((log) => log.action === logFilter)
+  const filteredLogs = logs
+    .filter((log) => logFilter === 'all' || log.action === logFilter)
+    .filter((log) => {
+      const term = logSearch.trim().toLowerCase()
+
+      if (!term) return true
+
+      return [
+        logLabel(log.action),
+        log.action,
+        log.target_type,
+        log.target_id,
+        log.actor_id,
+        log.ip || '',
+        JSON.stringify(log.detail || {}),
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(term)
+    })
 
   const logReason = (log: AdminLog) => {
     const detail = log.detail || {}
@@ -2749,6 +2801,22 @@ export default function AdminPanel() {
               <p className="text-xs text-gray-500 mt-1">
                 Yönetici işlemlerinin denetim kaydı (en son 200 kayıt).
               </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={logSearch}
+                onChange={(event) => setLogSearch(event.target.value)}
+                placeholder="Ara: e-posta, işlem, IP…"
+                className="rounded-lg bg-white/5 px-3 py-2 text-xs text-gray-200 outline-none ring-1 ring-inset ring-white/10 placeholder:text-gray-500 focus:ring-purple-500"
+              />
+
+              <button
+                onClick={() => downloadCsv('logs')}
+                className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-300 hover:bg-white/5"
+              >
+                CSV indir
+              </button>
             </div>
 
             <div className="flex flex-wrap gap-2">

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import { askAI as askAIServer } from '../../lib/ai-client'
+import { askAIResult } from '../../lib/ai-client'
 import Icon, { type IconName } from '../components/Icon'
 
 type Notification = {
@@ -359,6 +359,50 @@ function Sidebar({
   )
 }
 
+// Hazır başlangıç fikirleri: boş sayfa korkusunu kırmak için.
+const PROMPT_IDEAS: { label: string; prompt: string }[] = [
+  {
+    label: 'Kişisel portfolyo',
+    prompt:
+      'Koyu temalı, tek sayfalık bir yazılım geliştirici portfolyosu oluştur: hero bölümü, hakkımda, yetenekler, 3 örnek proje kartı ve iletişim formu. Modern, bol boşluklu ve mobil uyumlu olsun.',
+  },
+  {
+    label: 'Kahve dükkanı',
+    prompt:
+      'Sıcak tonlarda, tek sayfalık bir kahve dükkanı sitesi oluştur: menü kartları, hikâyemiz bölümü, çalışma saatleri ve harita yer tutucusu. Yumuşak animasyonlar ve mobil uyumlu tasarım kullan.',
+  },
+  {
+    label: 'Diş kliniği',
+    prompt:
+      'Güven veren açık renklerde bir diş kliniği sitesi oluştur: hizmetler, doktor tanıtımı, fiyat tablosu ve randevu formu (gönderim yapmadan). Sade, profesyonel ve mobil uyumlu olsun.',
+  },
+  {
+    label: 'SaaS açılış sayfası',
+    prompt:
+      'Koyu temalı bir SaaS açılış sayfası oluştur: başlık, özellik kartları, üç kademeli fiyatlandırma, SSS ve alt bilgi. Mor-mavi gradyan vurgular, temiz tipografi ve mobil uyumlu olsun.',
+  },
+  {
+    label: 'Düğün davetiyesi',
+    prompt:
+      'Zarif, tek sayfalık bir düğün davetiyesi sitesi oluştur: çift isimleri, geri sayım, tarih-yer bilgisi ve harita linki. Krem-altın tonlarda, ince serif başlıklar ve yumuşak animasyonlar kullan.',
+  },
+  {
+    label: 'Restoran menüsü',
+    prompt:
+      'Modern bir restoran menüsü sayfası oluştur: kategorilere ayrılmış yemekler, fiyatlar, alerjen notları ve rezervasyon butonu. Sıcak ahşap tonları, geniş okunabilir tipografi, mobil uyumlu olsun.',
+  },
+  {
+    label: 'Fitness koçu',
+    prompt:
+      'Enerjik bir fitness koçu sitesi oluştur: program kartları, dönüşüm hikâyeleri, haftalık plan tablosu ve iletişim formu. Koyu arka plan, turuncu vurgular ve güçlü başlıklar kullan.',
+  },
+  {
+    label: 'Blog ana sayfası',
+    prompt:
+      'Minimal bir kişisel blog ana sayfası oluştur: öne çıkan yazı, yazı kartları listesi, kategori etiketleri ve bülten aboneliği kutusu (gönderim yapmadan). Açık tema, serif başlıklar, sade düzen.',
+  },
+]
+
 export default function Home() {
   const router = useRouter()
 
@@ -378,6 +422,7 @@ export default function Home() {
 
   // AI ÜRETİM
   const [prompt, setPrompt] = useState('')
+  const [quotaLeft, setQuotaLeft] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [variationLoading, setVariationLoading] = useState(false)
   const [designVariants, setDesignVariants] = useState<DesignVariant[]>([])
@@ -530,7 +575,9 @@ export default function Home() {
 
   // AI ÇAĞRISI (sunucu üzerinden; Groq varsayılan)
   const askAI = async (promptText: string) => {
-    return askAIServer({ prompt: promptText })
+    const result = await askAIResult({ prompt: promptText })
+    setQuotaLeft(result.remaining)
+    return result.text
   }
 
   // TEMA
@@ -2472,6 +2519,36 @@ ${codeJs}`)
                 <p className="text-sm text-gray-400 mb-4">
                   Web sitesi fikrini yaz, AI senin için kodlasın.
                 </p>
+
+                {quotaLeft !== null && (
+                  <p
+                    className={`mb-3 rounded-lg border px-3 py-2 text-[12px] ${
+                      quotaLeft > 0
+                        ? 'border-[#242a36] text-[#8b909d]'
+                        : 'border-amber-500/30 bg-amber-500/5 text-amber-300'
+                    }`}
+                  >
+                    {quotaLeft > 0
+                      ? `Bugün kalan ücretsiz hak: ${quotaLeft}`
+                      : 'Bugünkü ücretsiz hakkın doldu. Yarın sıfırlanır; istersen Ayarlar’dan kendi API anahtarını ekleyip sınırsız devam edebilirsin.'}
+                  </p>
+                )}
+
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6573]">
+                    Hazır fikirler
+                  </span>
+                  {PROMPT_IDEAS.map((idea) => (
+                    <button
+                      key={idea.label}
+                      type="button"
+                      onClick={() => setPrompt(idea.prompt)}
+                      className="rounded-full border border-[#242a36] px-3 py-1.5 text-[12px] text-[#c7cad3] transition hover:border-[#7c5cff]/60 hover:bg-[#7c5cff]/10 hover:text-white"
+                    >
+                      {idea.label}
+                    </button>
+                  ))}
+                </div>
 
                 <textarea
                   value={prompt}
