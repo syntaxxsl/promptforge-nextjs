@@ -31,6 +31,8 @@ export type Provider = {
   baseUrl: string
   defaultModel: string
   visionModel?: string
+  /** Model kapalı/aşırı yüklü olduğunda sırayla denenecek yedek modeller. */
+  backupModels?: string[]
   envKeys: string[]
   keyPrefix?: string
   keyUrl: string
@@ -79,9 +81,11 @@ export const PROVIDERS: Provider[] = [
     name: 'Google Gemini',
     kind: 'gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    // Gemini 2.5 Flash yeni hesaplara kapatıldı; 3.8 Flash güncel model.
-    defaultModel: 'gemini-3.8-flash',
-    visionModel: 'gemini-3.8-flash',
+    // Gemini 2.5 Flash yeni hesaplara kapatıldı. 3.6 hızlı ve kararlı;
+    // yoğunlukta 3.8 ve 3.5'e otomatik geçilir.
+    defaultModel: 'gemini-3.6-flash',
+    visionModel: 'gemini-3.6-flash',
+    backupModels: ['gemini-3.8-flash', 'gemini-3.5-flash'],
     envKeys: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'],
     keyUrl: 'https://aistudio.google.com/app/apikey',
     note: 'Ücretsiz katman var; ücretsiz planda veriler eğitimde kullanılabilir.',

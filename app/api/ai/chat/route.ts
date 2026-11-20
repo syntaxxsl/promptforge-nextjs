@@ -528,34 +528,66 @@ export async function POST(request: NextRequest) {
 
   for (const candidate of candidates) {
     const model = candidate.model || baseModel
+    const attempts =
+      provider.kind === 'gemini'
+        ? [model, ...(provider.backupModels || []).filter((item) => item !== model)]
+        : [model]
 
-    try {
-      if (provider.kind === 'anthropic') {
-        text = await callAnthropic(provider, candidate.key, model, messages, image)
-      } else if (provider.kind === 'gemini') {
-        text = await callGemini(provider, candidate.key, model, messages, image)
-      } else {
-        text = await callOpenAICompatible(
-          provider,
-          candidate.key,
-          model,
-          messages,
-          image
-        )
+    let attemptText = ''
+    let attemptError: unknown = null
+
+    for (const attemptModel of attempts) {
+      try {
+        if (provider.kind === 'anthropic') {
+          attemptText = await callAnthropic(
+            provider,
+            candidate.key,
+            attemptModel,
+            messages,
+            image
+          )
+        } else if (provider.kind === 'gemini') {
+          attemptText = await callGemini(
+            provider,
+            candidate.key,
+            attemptModel,
+            messages,
+            image
+          )
+        } else {
+          attemptText = await callOpenAICompatible(
+            provider,
+            candidate.key,
+            attemptModel,
+            messages,
+            image
+          )
+        }
+
+        if (!attemptText || !attemptText.trim()) {
+          throw new ProviderError('Sağlayıcı boş yanıt döndürdü.', 502)
+        }
+
+        attemptError = null
+        usedModel = attemptModel
+        break
+      } catch (error) {
+        attemptError = error
+        const status = error instanceof ProviderError ? error.status : 0
+
+        // Gemini modeli kapatılmış veya aşırı yüklüyse yedek modeli dene.
+        if (provider.kind === 'gemini' && [404, 429, 503].includes(status)) {
+          continue
+        }
+
+        break
       }
+    }
 
-      if (!text || !text.trim()) {
-        throw new ProviderError('Sağlayıcı boş yanıt döndürdü.', 502)
-      }
+    if (attemptError || !attemptText.trim()) {
+      const error =
+        attemptError || new ProviderError('Sağlayıcı boş yanıt döndürdü.', 502)
 
-      if (candidate.keyId) {
-        await markPoolKeyUse(candidate.keyId, true)
-      }
-
-      used = candidate
-      usedModel = model
-      break
-    } catch (error) {
       lastError = error
 
       if (candidate.keyId) {
@@ -574,7 +606,18 @@ export async function POST(request: NextRequest) {
           : true
 
       if (!retryable) break
+
+      continue
     }
+
+    text = attemptText
+
+    if (candidate.keyId) {
+      await markPoolKeyUse(candidate.keyId, true)
+    }
+
+    used = candidate
+    break
   }
 
   if (!used) {
