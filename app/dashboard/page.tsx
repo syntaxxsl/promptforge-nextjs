@@ -12,6 +12,13 @@ import {
   type GenerationJob,
 } from '../../lib/generation'
 import Icon, { type IconName } from '../components/Icon'
+import {
+  asProjectFiles,
+  bundleFiles,
+  entryFile,
+  splitToFiles,
+  type ProjectFile,
+} from '../../lib/project-files'
 
 type Notification = {
   id: string
@@ -454,6 +461,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'html' | 'css' | 'js'>('html')
   // Varsayılan görünüm tek dosya; üç sekmeli görünüm "Gelişmiş" altında.
   const [advancedEditor, setAdvancedEditor] = useState(false)
+  // Doluysa proje çok dosyalı moddadır.
+  const [projectFiles, setProjectFiles] = useState<ProjectFile[] | null>(null)
+  const [activeFile, setActiveFile] = useState('index.html')
+  const [newFileName, setNewFileName] = useState('')
   const [copied, setCopied] = useState(false)
 
   // PROJE
@@ -629,6 +640,7 @@ export default function Home() {
 
       setPrompt(job.prompt)
       setProjectTitle(job.title)
+      setProjectFiles(null)
       setCodeHtml(job.html || '')
       setCodeCss(job.css || '')
       setCodeJs(job.js || '')
@@ -658,6 +670,7 @@ export default function Home() {
       if (restored.kind === 'variants') {
         setDesignVariants(restored.variants || [])
       } else {
+        setProjectFiles(null)
         setCodeHtml(restored.html || '')
         setCodeCss(restored.css || '')
         setCodeJs(restored.js || '')
@@ -952,6 +965,8 @@ export default function Home() {
     setCurrentProjectId(null)
     setProjectTitle('Yeni Proje')
     setPrompt('')
+    setProjectFiles(null)
+    setActiveFile('index.html')
     setCodeHtml('')
     setCodeCss('')
     setCodeJs('')
@@ -1052,6 +1067,7 @@ export default function Home() {
   }
 
   const handleSelectVariation = (variant: DesignVariant) => {
+    setProjectFiles(null)
     setCodeHtml(variant.html)
     setCodeCss(variant.css)
     setCodeJs(variant.js)
@@ -1069,7 +1085,11 @@ export default function Home() {
 
   // AI İLE KOD DÜZENLE
   const handleRevise = async () => {
-    if (!chatInput.trim() || !codeHtml.trim()) return
+    const reviseSource = projectFiles
+      ? bundleFiles(projectFiles)
+      : buildDocument(codeHtml, codeCss, codeJs, projectTitle)
+
+    if (!chatInput.trim() || !reviseSource.trim()) return
 
     const request = chatInput.trim()
     const nextMessages = [...chatMessages, { role: 'user' as const, content: request }]
@@ -1093,7 +1113,7 @@ Kullanıcının son isteğini mevcut projeye uygula.
 Açıklama yazma.
 
 MEVCUT HTML:
-${codeHtml}
+${projectFiles ? bundleFiles(projectFiles) : codeHtml}
 
 MEVCUT CSS:
 ${codeCss}
@@ -1118,6 +1138,13 @@ JavaScript kodu`)
       setCodeHtml(parsed.html)
       setCodeCss(parsed.css)
       setCodeJs(parsed.js)
+
+      if (projectFiles) {
+        // Çok dosyalı projede AI çıktısı yeniden dosyalara bölünür.
+        const rebuilt = splitToFiles(parsed.html, parsed.css, parsed.js, projectTitle)
+        setProjectFiles(rebuilt)
+        setActiveFile(rebuilt[0]?.path || 'index.html')
+      }
       setActiveTab('html')
       setChatMessages((previous) => [
         ...previous,
@@ -1210,6 +1237,13 @@ JavaScript kodu`)
       setCodeHtml(parsed.html)
       setCodeCss(parsed.css)
       setCodeJs(parsed.js)
+
+      if (projectFiles) {
+        // Çok dosyalı projede AI çıktısı yeniden dosyalara bölünür.
+        const rebuilt = splitToFiles(parsed.html, parsed.css, parsed.js, projectTitle)
+        setProjectFiles(rebuilt)
+        setActiveFile(rebuilt[0]?.path || 'index.html')
+      }
       setActiveTab('html')
       setReviewResult('Kodlar AI tarafından düzeltildi.')
       addNotification('Kodlar düzeltildi', 'AI düzeltilmiş kodları editöre aktardı.')
@@ -1266,8 +1300,15 @@ ${codeJs}`)
       const zip = new JSZip()
 
       // Tek dosya: stil ve script index.html içine gömülür.
-      const htmlFile = buildDocument(codeHtml, codeCss, codeJs, projectTitle)
-      zip.file('index.html', htmlFile)
+      if (projectFiles) {
+        // Çok dosyalı proje: her dosya kendi yolunda paketlenir.
+        for (const file of projectFiles) {
+          zip.file(file.path, file.content)
+        }
+      } else {
+        const htmlFile = buildDocument(codeHtml, codeCss, codeJs, projectTitle)
+        zip.file('index.html', htmlFile)
+      }
 
       const content = await zip.generateAsync({
         type: 'blob',
@@ -1295,7 +1336,9 @@ ${codeJs}`)
   const generateThumbnail = async (projectId: string) => {
     if (!session?.access_token) throw new Error('Oturum bilgisi bulunamadı.')
 
-    const htmlDocument = buildDocument(codeHtml, codeCss, codeJs, projectTitle)
+    const htmlDocument = projectFiles
+      ? bundleFiles(projectFiles)
+      : buildDocument(codeHtml, codeCss, codeJs, projectTitle)
 
     const response = await fetch('/api/thumbnail', {
       method: 'POST',
@@ -1320,16 +1363,20 @@ ${codeJs}`)
 
   // PROJE KAYDET
   const handleSaveProject = async () => {
-    if (!codeHtml.trim() || !userId) return
+    const filesToSave = asProjectFiles(projectFiles)
+    const savedHtml = filesToSave ? bundleFiles(filesToSave) : codeHtml
+
+    if (!savedHtml.trim() || !userId) return
 
     setSaveStatus('Kaydediliyor...')
 
     const projectData = {
       title: projectTitle.trim() || 'Yeni Proje',
       prompt,
-      html_code: codeHtml,
-      css_code: codeCss,
-      js_code: codeJs,
+      html_code: savedHtml,
+      css_code: filesToSave ? '' : codeCss,
+      js_code: filesToSave ? '' : codeJs,
+      files: filesToSave,
       user_id: userId,
       tags: selectedTags,
       updated_at: new Date().toISOString(),
@@ -1371,9 +1418,9 @@ ${codeJs}`)
           user_id: userId,
           title: projectTitle,
           prompt,
-          html_code: codeHtml,
-          css_code: codeCss,
-          js_code: codeJs,
+          html_code: savedHtml,
+          css_code: filesToSave ? '' : codeCss,
+          js_code: filesToSave ? '' : codeJs,
           created_at: new Date().toISOString(),
         })
 
@@ -1422,6 +1469,11 @@ ${codeJs}`)
     setCodeHtml(project.html_code || '')
     setCodeCss(project.css_code || '')
     setCodeJs(project.js_code || '')
+    const loadedFiles = asProjectFiles((project as any).files)
+    setProjectFiles(loadedFiles)
+    setActiveFile(
+      loadedFiles ? entryFile(loadedFiles)?.path || loadedFiles[0].path : 'index.html'
+    )
     setSelectedTags(project.tags || [])
     setShareLink(
       project.is_public && project.share_token
@@ -1846,6 +1898,7 @@ ${codeJs}`)
 
       setProjectTitle(version.title || 'Yeni Proje')
       setPrompt(version.prompt || '')
+      setProjectFiles(null)
       setCodeHtml(version.html_code || '')
       setCodeCss(version.css_code || '')
       setCodeJs(version.js_code || '')
@@ -1863,6 +1916,20 @@ ${codeJs}`)
 
   // KOD KOPYALA
   const handleCopy = async () => {
+    if (projectFiles) {
+      if (!activeFileContent) return
+
+      try {
+        await navigator.clipboard.writeText(activeFileContent)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1800)
+      } catch {
+        setError('Kod kopyalanamadı.')
+      }
+
+      return
+    }
+
     const value = !advancedEditor
       ? singleFileValue
       : activeTab === 'html'
@@ -1916,7 +1983,12 @@ ${codeJs}`)
   const totalCss = projects.filter((project) => Boolean(project.css_code)).length
   const totalJs = projects.filter((project) => Boolean(project.js_code)).length
 
-  const combinedCode = buildDocument(codeHtml, codeCss, codeJs, projectTitle)
+  const combinedCode = projectFiles
+    ? bundleFiles(projectFiles)
+    : buildDocument(codeHtml, codeCss, codeJs, projectTitle)
+  const activeFileContent = projectFiles
+    ? projectFiles.find((file) => file.path === activeFile)?.content ?? ''
+    : ''
   // Tek dosya görünümü: CSS/JS ayrı duruyorsa belgeye gömülür, sonra hepsi HTML alanında tutulur.
   const singleFileValue =
     codeCss.trim() || codeJs.trim()
@@ -3076,87 +3148,234 @@ ${codeJs}`)
                     {/* KOD EDİTÖRÜ */}
                     <div className={`rounded-2xl border overflow-hidden ${panelClass}`}>
                       <div className="flex flex-wrap items-center justify-between gap-2 p-3 border-b border-gray-500/20">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setAdvancedEditor(false)}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold ${
-                              !advancedEditor
-                                ? 'bg-[#7c5cff] text-white'
-                                : 'text-gray-400 hover:bg-gray-500/10'
-                            }`}
-                          >
-                            Tek dosya
-                          </button>
-                          <button
-                            onClick={() => setAdvancedEditor(true)}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold ${
-                              advancedEditor
-                                ? 'bg-[#7c5cff] text-white'
-                                : 'text-gray-400 hover:bg-gray-500/10'
-                            }`}
-                          >
-                            Gelişmiş
-                          </button>
+                        <div className="flex flex-wrap gap-2">
+                          {projectFiles ? (
+                            <span className="rounded-lg bg-[#7c5cff] px-4 py-2 text-sm font-bold text-white">
+                              Dosyalar
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setAdvancedEditor(false)}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold ${
+                                  !advancedEditor
+                                    ? 'bg-[#7c5cff] text-white'
+                                    : 'text-gray-400 hover:bg-gray-500/10'
+                                }`}
+                              >
+                                Tek dosya
+                              </button>
+                              <button
+                                onClick={() => setAdvancedEditor(true)}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold ${
+                                  advancedEditor
+                                    ? 'bg-[#7c5cff] text-white'
+                                    : 'text-gray-400 hover:bg-gray-500/10'
+                                }`}
+                              >
+                                Gelişmiş
+                              </button>
+                            </>
+                          )}
                         </div>
 
-                        <button
-                          onClick={handleCopy}
-                          className="px-3 py-2 rounded-lg bg-gray-500/10 text-sm"
-                        >
-                          {copied ? '✓ Kopyalandı' : '📋 Kopyala'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {projectFiles ? (
+                            <button
+                              onClick={() => {
+                                setCodeHtml(bundleFiles(projectFiles))
+                                setCodeCss('')
+                                setCodeJs('')
+                                setProjectFiles(null)
+                                setAdvancedEditor(false)
+                              }}
+                              className="rounded-lg px-3 py-2 text-sm text-gray-400 hover:bg-gray-500/10"
+                            >
+                              Tek dosyaya çevir
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                const files = splitToFiles(
+                                  codeHtml,
+                                  codeCss,
+                                  codeJs,
+                                  projectTitle
+                                )
+                                setProjectFiles(files)
+                                setActiveFile(entryFile(files)?.path || files[0].path)
+                              }}
+                              className="rounded-lg border border-[#7c5cff]/30 bg-[#7c5cff]/15 px-3 py-2 text-sm text-[#a48cff]"
+                            >
+                              Dosyalara böl
+                            </button>
+                          )}
+
+                          <button
+                            onClick={handleCopy}
+                            className="px-3 py-2 rounded-lg bg-gray-500/10 text-sm"
+                          >
+                            {copied ? '✓ Kopyalandı' : '📋 Kopyala'}
+                          </button>
+                        </div>
                       </div>
 
-                      {advancedEditor && (
-                        <div className="flex gap-2 px-3 pt-3">
-                          {(['html', 'css', 'js'] as const).map((tab) => (
-                            <button
-                              key={tab}
-                              onClick={() => setActiveTab(tab)}
-                              className={`px-4 py-2 rounded-lg text-sm font-bold ${
-                                activeTab === tab
-                                  ? 'bg-[#7c5cff] text-white'
-                                  : 'text-gray-400 hover:bg-gray-500/10'
-                              }`}
+                      {projectFiles ? (
+                        <>
+                          <div className="flex flex-wrap items-center gap-2 border-b border-gray-500/20 px-3 py-2">
+                            {projectFiles.map((file) => (
+                              <span
+                                key={file.path}
+                                className={`flex items-center gap-1.5 rounded-lg px-2 py-1 font-mono text-xs ${
+                                  activeFile === file.path
+                                    ? 'bg-[#7c5cff] text-white'
+                                    : 'bg-white/5 text-gray-400'
+                                }`}
+                              >
+                                <button onClick={() => setActiveFile(file.path)}>
+                                  {file.path}
+                                </button>
+                                {projectFiles.length > 1 &&
+                                  !/^index\.html$/i.test(file.path) && (
+                                    <button
+                                      onClick={() => {
+                                        const next = projectFiles.filter(
+                                          (item) => item.path !== file.path
+                                        )
+                                        setProjectFiles(next)
+                                        if (activeFile === file.path) {
+                                          setActiveFile(next[0]?.path || 'index.html')
+                                        }
+                                      }}
+                                      aria-label={`${file.path} dosyasını sil`}
+                                      className="text-current/70 hover:text-current"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                              </span>
+                            ))}
+
+                            <form
+                              onSubmit={(event) => {
+                                event.preventDefault()
+                                const path = newFileName.trim()
+
+                                if (!path) return
+
+                                if (!/\.[a-z0-9]{1,8}$/i.test(path)) {
+                                  setError('Dosya adı .html, .css, .js gibi bir uzantıyla bitmeli.')
+                                  return
+                                }
+
+                                if (
+                                  projectFiles.some(
+                                    (item) => item.path.toLowerCase() === path.toLowerCase()
+                                  )
+                                ) {
+                                  setError('Bu isimde bir dosya zaten var.')
+                                  return
+                                }
+
+                                setProjectFiles([...projectFiles, { path, content: '' }])
+                                setActiveFile(path)
+                                setNewFileName('')
+                                setError('')
+                              }}
+                              className="flex items-center gap-1"
                             >
-                              {tab.toUpperCase()}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                              <input
+                                value={newFileName}
+                                onChange={(event) => setNewFileName(event.target.value)}
+                                placeholder="yeni-dosya.css"
+                                className="w-36 rounded-lg border border-white/10 bg-[#090d16] px-2 py-1 text-xs text-white outline-none"
+                              />
+                              <button
+                                type="submit"
+                                className="rounded-lg bg-white/5 px-2 py-1 text-xs hover:bg-white/10"
+                              >
+                                + Ekle
+                              </button>
+                            </form>
+                          </div>
 
-                      <textarea
-                        value={
-                          advancedEditor
-                            ? activeTab === 'html'
-                              ? codeHtml
-                              : activeTab === 'css'
-                                ? codeCss
-                                : codeJs
-                            : singleFileValue
-                        }
-                        onChange={(e) => {
-                          if (!advancedEditor) {
-                            // Tek dosyada tüm kod HTML alanında tutulur.
-                            setCodeHtml(e.target.value)
-                            if (codeCss) setCodeCss('')
-                            if (codeJs) setCodeJs('')
-                            return
-                          }
+                          <textarea
+                            value={activeFileContent}
+                            onChange={(event) => {
+                              const value = event.target.value
+                              setProjectFiles((previous) =>
+                                previous
+                                  ? previous.map((file) =>
+                                      file.path === activeFile
+                                        ? { ...file, content: value }
+                                        : file
+                                    )
+                                  : previous
+                              )
+                            }}
+                            spellCheck={false}
+                            className="w-full min-h-[500px] p-4 bg-[#090d16] text-green-300 font-mono text-xs md:text-sm outline-none resize-y"
+                          />
 
-                          if (activeTab === 'html') setCodeHtml(e.target.value)
-                          if (activeTab === 'css') setCodeCss(e.target.value)
-                          if (activeTab === 'js') setCodeJs(e.target.value)
-                        }}
-                        spellCheck={false}
-                        className="w-full min-h-[500px] p-4 bg-[#090d16] text-green-300 font-mono text-xs md:text-sm outline-none resize-y"
-                      />
+                          <p className="border-t border-gray-500/20 px-4 py-2 text-xs text-gray-500">
+                            {activeFile} düzenleniyor · Önizlemede index.html ve bağlı dosyalar
+                            birleşir, ZIP klasör yapısıyla iner.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          {advancedEditor && (
+                            <div className="flex gap-2 px-3 pt-3">
+                              {(['html', 'css', 'js'] as const).map((tab) => (
+                                <button
+                                  key={tab}
+                                  onClick={() => setActiveTab(tab)}
+                                  className={`px-4 py-2 rounded-lg text-sm font-bold ${
+                                    activeTab === tab
+                                      ? 'bg-[#7c5cff] text-white'
+                                      : 'text-gray-400 hover:bg-gray-500/10'
+                                  }`}
+                                >
+                                  {tab.toUpperCase()}
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
-                      {!advancedEditor && (
-                        <p className="px-4 py-2 text-xs text-gray-500 border-t border-gray-500/20">
-                          HTML, stil ve script tek dosyada. Ayrı ayrı düzenlemek istersen
-                          Gelişmiş'e geç.
-                        </p>
+                          <textarea
+                            value={
+                              advancedEditor
+                                ? activeTab === 'html'
+                                  ? codeHtml
+                                  : activeTab === 'css'
+                                    ? codeCss
+                                    : codeJs
+                                : singleFileValue
+                            }
+                            onChange={(e) => {
+                              if (!advancedEditor) {
+                                // Tek dosyada tüm kod HTML alanında tutulur.
+                                setCodeHtml(e.target.value)
+                                if (codeCss) setCodeCss('')
+                                if (codeJs) setCodeJs('')
+                                return
+                              }
+
+                              if (activeTab === 'html') setCodeHtml(e.target.value)
+                              if (activeTab === 'css') setCodeCss(e.target.value)
+                              if (activeTab === 'js') setCodeJs(e.target.value)
+                            }}
+                            spellCheck={false}
+                            className="w-full min-h-[500px] p-4 bg-[#090d16] text-green-300 font-mono text-xs md:text-sm outline-none resize-y"
+                          />
+
+                          {!advancedEditor && (
+                            <p className="px-4 py-2 text-xs text-gray-500 border-t border-gray-500/20">
+                              HTML, stil ve script tek dosyada. Ayrı ayrı düzenlemek istersen
+                              Gelişmiş'e geç.
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
 
