@@ -167,7 +167,46 @@ const LOG_ACTIONS: Record<string, string> = {
   'security.ipban': 'IP adresi engellendi',
   'security.ipunban': 'IP engeli kaldırıldı',
   'security.ack': 'Güvenlik olayları okundu olarak işaretlendi',
+  'ai.key.add': 'API deposuna anahtar eklendi',
+  'ai.key.delete': 'API deposundan anahtar silindi',
+  'ai.user.access': 'Yapay zekâ erişimi güncellendi',
 }
+
+const AI_KEYS_SQL = `-- PromptForge API deposu ve kullanıcı bazlı yapay zekâ erişimi
+create table if not exists public.ai_keys (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null,
+  label text not null default '',
+  encrypted_key text not null,
+  last_four text not null default '',
+  active boolean not null default true,
+  model text,
+  note text,
+  cooldown_until timestamptz,
+  last_used_at timestamptz,
+  last_error text,
+  uses_today integer not null default 0,
+  uses_day date,
+  total_uses bigint not null default 0,
+  error_count integer not null default 0,
+  created_by uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists ai_keys_provider_idx on public.ai_keys (provider, active);
+alter table public.ai_keys enable row level security;
+
+create table if not exists public.ai_user_access (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  mode text not null default 'both'
+    check (mode in ('site', 'own', 'both', 'off')),
+  daily_limit integer check (daily_limit is null or daily_limit >= 0),
+  providers text[],
+  note text,
+  updated_by uuid,
+  updated_at timestamptz not null default now()
+);
+alter table public.ai_user_access enable row level security;`
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([])
@@ -477,12 +516,14 @@ export default function AdminPanel() {
       { key: 'reports', label: 'Raporlar', permission: 'reports' },
       { key: 'security', label: 'Güvenlik', permission: 'security' },
       { key: 'ai', label: 'Yapay Zekâ', permission: null },
+      { key: 'keys', label: 'API Deposu', permission: null },
       { key: 'logs', label: 'Kayıtlar', permission: 'logs' },
     ] as { key: string; label: string; permission: PermissionKey | null }[]
   ).filter(
     (item) =>
       (!item.permission || canAccess(item.permission)) &&
-      (item.key !== 'ai' || me.role === 'admin')
+      (item.key !== 'ai' || me.role === 'admin') &&
+      (item.key !== 'keys' || me.role === 'admin')
   )
 
   const fetchIpBans = async () => {
@@ -727,6 +768,287 @@ export default function AdminPanel() {
       )
     } finally {
       setAiSaving(false)
+    }
+  }
+
+  // API DEPOSU (ANAHTAR HAVUZU)
+  const [poolKeys, setPoolKeys] = useState<
+    {
+      id: string
+      provider: string
+      label: string
+      lastFour: string
+      active: boolean
+      model: string | null
+      cooldownUntil: string | null
+      lastUsedAt: string | null
+      lastError: string | null
+      usesToday: number
+      totalUses: number
+      errorCount: number
+      createdAt: string | null
+    }[]
+  >([])
+  const [poolProviders, setPoolProviders] = useState<
+    { id: string; name: string; keyUrl: string; defaultModel: string; keyPrefix: string }[]
+  >([])
+  const [poolLoading, setPoolLoading] = useState(false)
+  const [poolSetup, setPoolSetup] = useState(false)
+  const [poolNote, setPoolNote] = useState('')
+  const [poolSaving, setPoolSaving] = useState(false)
+  const [poolBusy, setPoolBusy] = useState('')
+  const [newKeyProvider, setNewKeyProvider] = useState('groq')
+  const [newKeyLabel, setNewKeyLabel] = useState('')
+  const [newKeyValue, setNewKeyValue] = useState('')
+  const [newKeyModel, setNewKeyModel] = useState('')
+  const [poolSqlCopied, setPoolSqlCopied] = useState(false)
+
+  const fetchPool = async () => {
+    setPoolLoading(true)
+    setPoolNote('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/api-keys', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'API deposu alınamadı.')
+      }
+
+      setPoolKeys(result.keys || [])
+      setPoolProviders(result.providers || [])
+      setPoolSetup(Boolean(result.needsSetup))
+
+      if (result.providers?.length) {
+        setNewKeyProvider((current) =>
+          result.providers.some((item: any) => item.id === current)
+            ? current
+            : result.providers[0].id
+        )
+      }
+    } catch (error) {
+      setPoolNote(error instanceof Error ? error.message : 'API deposu alınamadı.')
+    } finally {
+      setPoolLoading(false)
+    }
+  }
+
+  const addPoolKey = async () => {
+    if (!newKeyValue.trim()) {
+      setPoolNote('Anahtarı gir.')
+      return
+    }
+
+    setPoolSaving(true)
+    setPoolNote('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/api-keys', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: newKeyProvider,
+          label: newKeyLabel,
+          key: newKeyValue,
+          model: newKeyModel,
+        }),
+      })
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Anahtar eklenemedi.')
+      }
+
+      setNewKeyValue('')
+      setNewKeyLabel('')
+      setNewKeyModel('')
+      await fetchPool()
+      setPoolNote(`Anahtar eklendi. ${result.message || ''}`.trim())
+    } catch (error) {
+      setPoolNote(error instanceof Error ? error.message : 'Anahtar eklenemedi.')
+    } finally {
+      setPoolSaving(false)
+    }
+  }
+
+  const testPoolKey = async (id: string) => {
+    setPoolBusy(id)
+    setPoolNote('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/api-keys', {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, action: 'test' }),
+      })
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Anahtar test edilemedi.')
+
+      setPoolNote(result.message || 'Anahtar test edildi.')
+    } catch (error) {
+      setPoolNote(error instanceof Error ? error.message : 'Anahtar test edilemedi.')
+    } finally {
+      setPoolBusy('')
+    }
+  }
+
+  const togglePoolKey = async (id: string, active: boolean) => {
+    setPoolBusy(id)
+    setPoolNote('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/api-keys', {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, active }),
+      })
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Anahtar güncellenemedi.')
+
+      await fetchPool()
+      setPoolNote(active ? 'Anahtar aktif edildi.' : 'Anahtar pasife alındı.')
+    } catch (error) {
+      setPoolNote(error instanceof Error ? error.message : 'Anahtar güncellenemedi.')
+    } finally {
+      setPoolBusy('')
+    }
+  }
+
+  const removePoolKey = async (id: string) => {
+    if (!window.confirm('Bu anahtar depodan silinsin mi?')) return
+
+    setPoolBusy(id)
+    setPoolNote('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch(`/api/admin/api-keys?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Anahtar silinemedi.')
+
+      await fetchPool()
+      setPoolNote('Anahtar silindi.')
+    } catch (error) {
+      setPoolNote(error instanceof Error ? error.message : 'Anahtar silinemedi.')
+    } finally {
+      setPoolBusy('')
+    }
+  }
+
+  const copyPoolSql = async () => {
+    try {
+      await navigator.clipboard.writeText(AI_KEYS_SQL)
+      setPoolSqlCopied(true)
+      window.setTimeout(() => setPoolSqlCopied(false), 2500)
+    } catch {
+      setPoolNote('Kopyalanamadı. db/ai-keys.sql dosyasını kullan.')
+    }
+  }
+
+  // KULLANICI BAZLI YAPAY ZEKÂ ERİŞİMİ
+  const [aiUser, setAiUser] = useState<User | null>(null)
+  const [aiAccess, setAiAccess] = useState<{
+    mode: string
+    dailyLimit: number | null
+    providers: string[] | null
+  } | null>(null)
+  const [aiAccessProviders, setAiAccessProviders] = useState<
+    { id: string; name: string }[]
+  >([])
+  const [aiAccessLoading, setAiAccessLoading] = useState(false)
+  const [aiAccessSaving, setAiAccessSaving] = useState(false)
+  const [aiAccessNote, setAiAccessNote] = useState('')
+
+  const openAiAccess = async (user: User) => {
+    setAiUser(user)
+    setAiAccess(null)
+    setAiAccessNote('')
+    setAiAccessLoading(true)
+
+    try {
+      const token = await getToken()
+      const response = await fetch(
+        `/api/admin/ai-access?userId=${encodeURIComponent(user.id)}`,
+        { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
+      )
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Erişim bilgisi alınamadı.')
+
+      setAiAccess({
+        mode: result.access?.mode || 'both',
+        dailyLimit:
+          typeof result.access?.dailyLimit === 'number'
+            ? result.access.dailyLimit
+            : null,
+        providers: Array.isArray(result.access?.providers)
+          ? result.access.providers
+          : null,
+      })
+      setAiAccessProviders(result.providers || [])
+    } catch (error) {
+      setAiAccessNote(
+        error instanceof Error ? error.message : 'Erişim bilgisi alınamadı.'
+      )
+    } finally {
+      setAiAccessLoading(false)
+    }
+  }
+
+  const saveAiAccess = async () => {
+    if (!aiUser || !aiAccess) return
+
+    setAiAccessSaving(true)
+    setAiAccessNote('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/ai-access', {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: aiUser.id,
+          mode: aiAccess.mode,
+          dailyLimit: aiAccess.dailyLimit,
+          providers: aiAccess.providers,
+        }),
+      })
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Erişim kaydedilemedi.')
+
+      setAiAccessNote(result.message || 'Erişim kaydedildi.')
+    } catch (error) {
+      setAiAccessNote(
+        error instanceof Error ? error.message : 'Erişim kaydedilemedi.'
+      )
+    } finally {
+      setAiAccessSaving(false)
     }
   }
 
@@ -1207,6 +1529,7 @@ export default function AdminPanel() {
               onClick={() => {
                 setTab(item.key)
                 if (item.key === 'ai' && !aiSettings) fetchAISettings()
+                if (item.key === 'keys' && !poolKeys.length) fetchPool()
               }}
               className={`rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
                 tab === item.key
@@ -1618,6 +1941,15 @@ export default function AdminPanel() {
                         </span>
                       </td>
                       <td className="py-4 text-right">
+                        {me.role === 'admin' && (
+                          <button
+                            onClick={() => openAiAccess(user)}
+                            className="mr-2 rounded-lg bg-purple-500/10 px-3 py-2 text-xs text-purple-200 hover:bg-purple-500/20"
+                          >
+                            AI
+                          </button>
+                        )}
+
                         {canAccess('manage_permissions') && (
                           <button
                             onClick={() => openPermissions(user)}
@@ -2594,6 +2926,404 @@ export default function AdminPanel() {
             </div>
           </div>
         )}
+
+        {aiUser && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
+            <div className="max-h-[88vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0f121a] p-5">
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">Yapay Zekâ erişimi</h2>
+                  <p className="mt-1 break-all text-[13px] text-gray-400">
+                    {aiUser.email}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setAiUser(null)}
+                  aria-label="Kapat"
+                  className="rounded-lg px-2 py-1 text-gray-400 hover:bg-white/5"
+                >
+                  <Icon name="plus" className="h-4 w-4 rotate-45" />
+                </button>
+              </div>
+
+              {aiAccessNote && (
+                <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-yellow-300">
+                  {aiAccessNote}
+                </div>
+              )}
+
+              {aiAccessLoading || !aiAccess ? (
+                <p className="py-8 text-center text-sm text-gray-400">
+                  Erişim bilgisi yükleniyor...
+                </p>
+              ) : (
+                <>
+                  <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">
+                    Anahtar kaynağı
+                  </p>
+
+                  <div className="mb-5 grid gap-2 sm:grid-cols-2">
+                    {[
+                      {
+                        value: 'site',
+                        label: 'Site havuzu',
+                        hint: 'Sitenin anahtarları, günlük haktan düşer',
+                      },
+                      {
+                        value: 'own',
+                        label: 'Kendi anahtarı',
+                        hint: 'Ücret kullanıcıda, sınırsız',
+                      },
+                      {
+                        value: 'both',
+                        label: 'İkisi de (varsayılan)',
+                        hint: 'Kendi anahtarı varsa o, yoksa site',
+                      },
+                      {
+                        value: 'off',
+                        label: 'Kapalı',
+                        hint: 'Yapay zekâ özellikleri kullanılamaz',
+                      },
+                    ].map((mode) => (
+                      <button
+                        key={mode.value}
+                        onClick={() =>
+                          setAiAccess({ ...aiAccess, mode: mode.value })
+                        }
+                        className={`rounded-xl border px-3 py-2.5 text-left ${
+                          aiAccess.mode === mode.value
+                            ? 'border-purple-500/60 bg-purple-500/10'
+                            : 'border-white/10 hover:bg-white/5'
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold">
+                          {mode.label}
+                        </span>
+                        <span className="mt-0.5 block text-[11px] text-gray-400">
+                          {mode.hint}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">
+                    Günlük hak
+                  </p>
+
+                  <input
+                    type="number"
+                    min={0}
+                    max={10000}
+                    value={aiAccess.dailyLimit ?? ''}
+                    onChange={(event) =>
+                      setAiAccess({
+                        ...aiAccess,
+                        dailyLimit:
+                          event.target.value === ''
+                            ? null
+                            : Math.max(0, Number(event.target.value) || 0),
+                      })
+                    }
+                    placeholder="Boş = Yapay Zekâ sekmesindeki varsayılan"
+                    className="w-full rounded-xl border border-gray-700 bg-[#090b10] p-3 text-white outline-none focus:border-purple-500"
+                  />
+                  <p className="mt-1 text-[11.5px] text-gray-500">
+                    Yalnızca site havuzu kullanıldığında sayılır. 0 = sınırsız.
+                  </p>
+
+                  <p className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">
+                    İzin verilen sağlayıcılar
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {aiAccessProviders.map((provider) => {
+                      const checked =
+                        !aiAccess.providers ||
+                        aiAccess.providers.includes(provider.id)
+
+                      return (
+                        <button
+                          key={provider.id}
+                          onClick={() => {
+                            const all = aiAccessProviders.map((item) => item.id)
+                            const current = aiAccess.providers || all
+                            const next = checked
+                              ? current.filter((item) => item !== provider.id)
+                              : all.filter(
+                                  (item) =>
+                                    item === provider.id || current.includes(item)
+                                )
+
+                            setAiAccess({
+                              ...aiAccess,
+                              providers:
+                                next.length === 0 || next.length === all.length
+                                  ? null
+                                  : next,
+                            })
+                          }}
+                          className={`rounded-lg border px-3 py-1.5 text-xs ${
+                            checked
+                              ? 'border-purple-500/50 bg-purple-500/10 text-purple-100'
+                              : 'border-white/10 text-gray-400 hover:bg-white/5'
+                          }`}
+                        >
+                          {provider.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="mt-1 text-[11.5px] text-gray-500">
+                    Hiçbiri seçilmezse açık olan tüm sağlayıcılar serbest.
+                  </p>
+
+                  <div className="mt-5 flex justify-end gap-2">
+                    <button
+                      onClick={() => setAiUser(null)}
+                      className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
+                    >
+                      Kapat
+                    </button>
+                    <button
+                      onClick={saveAiAccess}
+                      disabled={aiAccessSaving}
+                      className="rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-purple-500 disabled:opacity-50"
+                    >
+                      {aiAccessSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* API DEPOSU */}
+        <section
+          className={`${tab === 'keys' ? '' : 'hidden'} bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8`}
+        >
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold">API Deposu</h2>
+              <p className="mt-1 max-w-2xl text-sm text-gray-400">
+                Sitenin kullanacağı yapay zekâ anahtarları. Aynı sağlayıcıdan
+                birden fazla anahtar ekleyebilirsin; istekler sırayla döner,
+                limite takılan anahtar kısa süre dinlenir. Anahtarlar şifreli
+                saklanır ve kimseye gösterilmez.
+              </p>
+            </div>
+
+            <button
+              onClick={fetchPool}
+              disabled={poolLoading}
+              className="rounded-lg border border-white/10 px-4 py-2.5 text-[13px] font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
+            >
+              {poolLoading ? 'Yükleniyor...' : 'Yenile'}
+            </button>
+          </div>
+
+          {poolNote && (
+            <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-yellow-300">
+              {poolNote}
+            </div>
+          )}
+
+          {poolSetup && (
+            <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+              <p className="font-semibold">Veritabanı kurulumu eksik</p>
+              <p className="mt-1 text-amber-200/80">
+                Anahtar havuzu için Supabase SQL Editor üzerinde{' '}
+                <span className="font-mono">db/ai-keys.sql</span> dosyasını bir
+                kez çalıştırman gerekiyor.
+              </p>
+              <button
+                onClick={copyPoolSql}
+                className="mt-3 rounded-lg border border-amber-400/30 px-3 py-2 text-xs font-medium text-amber-100 hover:bg-amber-400/10"
+              >
+                {poolSqlCopied ? 'Kopyalandı' : "SQL'i kopyala"}
+              </button>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-white/10 bg-[#090b10] p-4">
+            <p className="mb-3 text-sm font-semibold">Yeni anahtar ekle</p>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="block">
+                <span className="mb-1.5 block text-xs text-gray-400">Sağlayıcı</span>
+                <select
+                  value={newKeyProvider}
+                  onChange={(event) => setNewKeyProvider(event.target.value)}
+                  className="w-full rounded-lg border border-gray-700 bg-[#05060a] p-2.5 text-sm text-white outline-none focus:border-purple-500"
+                >
+                  {poolProviders.map((provider) => (
+                    <option key={provider.id} value={provider.id}>
+                      {provider.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs text-gray-400">
+                  Etiket (isteğe bağlı)
+                </span>
+                <input
+                  value={newKeyLabel}
+                  onChange={(event) => setNewKeyLabel(event.target.value)}
+                  placeholder="Groq 1, yedek, görsel..."
+                  className="w-full rounded-lg border border-gray-700 bg-[#05060a] p-2.5 text-sm text-white outline-none focus:border-purple-500"
+                />
+              </label>
+            </div>
+
+            <label className="mt-3 block">
+              <span className="mb-1.5 block text-xs text-gray-400">API anahtarı</span>
+              <input
+                type="password"
+                value={newKeyValue}
+                onChange={(event) => setNewKeyValue(event.target.value)}
+                placeholder="gsk_... / sk-... / AIza..."
+                autoComplete="off"
+                className="w-full rounded-lg border border-gray-700 bg-[#05060a] p-2.5 font-mono text-sm text-white outline-none focus:border-purple-500"
+              />
+            </label>
+
+            <label className="mt-3 block">
+              <span className="mb-1.5 block text-xs text-gray-400">
+                Model (isteğe bağlı)
+              </span>
+              <input
+                value={newKeyModel}
+                onChange={(event) => setNewKeyModel(event.target.value)}
+                placeholder="Boş bırakırsan Yapay Zekâ sekmesindeki model kullanılır"
+                className="w-full rounded-lg border border-gray-700 bg-[#05060a] p-2.5 font-mono text-xs text-gray-200 outline-none focus:border-purple-500"
+              />
+            </label>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[11.5px] text-gray-500">
+                Anahtar kaydedilmeden önce sağlayıcıda test edilir.
+              </p>
+              <button
+                onClick={addPoolKey}
+                disabled={poolSaving || !newKeyValue.trim()}
+                className="rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-purple-500 disabled:opacity-50"
+              >
+                {poolSaving ? 'Test ediliyor...' : 'Test edip ekle'}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <p className="mb-3 text-sm font-semibold">
+              Depodaki anahtarlar ({poolKeys.length})
+            </p>
+
+            {poolLoading && !poolKeys.length ? (
+              <p className="py-6 text-center text-sm text-gray-400">
+                Anahtarlar yükleniyor...
+              </p>
+            ) : poolKeys.length === 0 ? (
+              <p className="rounded-xl border border-white/10 bg-[#090b10] p-4 text-sm text-gray-400">
+                Henüz anahtar yok. Yukarıdan eklediğinde site bu anahtarları
+                kullanmaya başlar.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {poolKeys.map((key) => {
+                  const provider = poolProviders.find(
+                    (item) => item.id === key.provider
+                  )
+                  const cooling =
+                    key.cooldownUntil && new Date(key.cooldownUntil) > new Date()
+
+                  return (
+                    <div
+                      key={key.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#090b10] px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold">
+                            {key.label || provider?.name || key.provider}
+                          </span>
+                          <span className="text-[11px] text-gray-500">
+                            {provider?.name || key.provider}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              !key.active
+                                ? 'bg-white/10 text-gray-400'
+                                : cooling
+                                ? 'bg-amber-500/15 text-amber-300'
+                                : 'bg-green-500/15 text-green-300'
+                            }`}
+                          >
+                            {!key.active
+                              ? 'pasif'
+                              : cooling
+                              ? 'dinleniyor'
+                              : 'aktif'}
+                          </span>
+                        </div>
+
+                        <p className="mt-1 font-mono text-[11px] text-gray-500">
+                          ••••{key.lastFour}
+                          {key.model ? ` · ${key.model}` : ''}
+                        </p>
+
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          {key.usesToday} bugün · {key.totalUses} toplam ·{' '}
+                          {key.errorCount} hata
+                          {key.lastUsedAt
+                            ? ` · son: ${new Date(key.lastUsedAt).toLocaleString('tr-TR')}`
+                            : ''}
+                        </p>
+
+                        {key.lastError && (
+                          <p className="mt-1 line-clamp-2 text-[11px] text-red-300/80">
+                            {key.lastError}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => testPoolKey(key.id)}
+                          disabled={poolBusy === key.id}
+                          className="rounded-lg bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 disabled:opacity-40"
+                        >
+                          Test et
+                        </button>
+                        <button
+                          onClick={() => togglePoolKey(key.id, !key.active)}
+                          disabled={poolBusy === key.id}
+                          className="rounded-lg bg-white/5 px-3 py-2 text-xs text-gray-200 hover:bg-white/10 disabled:opacity-40"
+                        >
+                          {key.active ? 'Pasife al' : 'Aktif et'}
+                        </button>
+                        <button
+                          onClick={() => removePoolKey(key.id)}
+                          disabled={poolBusy === key.id}
+                          className="rounded-lg bg-red-600/20 px-3 py-2 text-xs text-red-300 hover:bg-red-600/30 disabled:opacity-40"
+                        >
+                          Sil
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <p className="mt-5 text-xs text-gray-500">
+            Kullanıcıya özel hak ve izinleri Kullanıcılar sekmesindeki{' '}
+            <span className="font-medium text-gray-300">AI</span> düğmesinden
+            ayarlarsın.
+          </p>
+        </section>
 
         {/* YAPAY ZEKÂ */}
         <section

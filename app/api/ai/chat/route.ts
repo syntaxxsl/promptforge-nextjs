@@ -13,6 +13,11 @@ import {
   getUsage,
   loadAISettings,
 } from '../../../../lib/ai/settings'
+import {
+  getUserAccess,
+  markPoolKeyUse,
+  pickPoolKeys,
+} from '../../../../lib/ai/keys'
 import { adminClient } from '../../../../lib/admin-auth'
 
 export const runtime = 'nodejs'
@@ -41,27 +46,62 @@ async function getUserId(request: NextRequest) {
   return data.user.id
 }
 
-async function resolveKey(userId: string, provider: Provider) {
-  const { data } = await adminClient
-    .from('user_api_keys')
-    .select('encrypted_key')
-    .eq('user_id', userId)
-    .eq('label', provider.id)
-    .maybeSingle()
+type Candidate = {
+  key: string
+  source: 'user' | 'pool' | 'server'
+  keyId?: string
+  model?: string | null
+}
 
-  if (data?.encrypted_key) {
-    try {
-      return { key: decryptSecret(data.encrypted_key), source: 'user' as const }
-    } catch {
-      // Şifre çözülemezse sunucu anahtarına düş.
+/**
+ * Sağlayıcı için sırayla denenecek anahtarlar.
+ * Kullanıcı anahtarı önce, sonra havuzdaki anahtarlar, en son ortam değişkeni.
+ */
+async function buildCandidates(
+  userId: string,
+  provider: Provider,
+  mode: string
+): Promise<Candidate[]> {
+  const candidates: Candidate[] = []
+
+  if (mode === 'own' || mode === 'both') {
+    const { data } = await adminClient
+      .from('user_api_keys')
+      .select('encrypted_key')
+      .eq('user_id', userId)
+      .eq('label', provider.id)
+      .maybeSingle()
+
+    if (data?.encrypted_key) {
+      try {
+        candidates.push({
+          key: decryptSecret(data.encrypted_key),
+          source: 'user',
+        })
+      } catch {
+        // Şifre çözülemezse havuza düş.
+      }
     }
   }
 
-  const envKey = providerEnvKey(provider)
+  if (mode === 'site' || mode === 'both') {
+    const pool = await pickPoolKeys(provider.id)
 
-  if (envKey) return { key: envKey, source: 'server' as const }
+    for (const item of pool) {
+      candidates.push({
+        key: item.key,
+        source: 'pool',
+        keyId: item.id,
+        model: item.model,
+      })
+    }
 
-  return null
+    const envKey = providerEnvKey(provider)
+
+    if (envKey) candidates.push({ key: envKey, source: 'server' })
+  }
+
+  return candidates
 }
 
 function imageParts(dataUrl: string) {
@@ -336,6 +376,16 @@ export async function POST(request: NextRequest) {
   }
 
   const settings = await loadAISettings()
+  const userAccess = await getUserAccess(userId)
+
+  if (userAccess.mode === 'off') {
+    return fail(
+      'Hesabın için yapay zekâ özellikleri yönetici tarafından kapatılmış.',
+      403,
+      'ai_disabled'
+    )
+  }
+
   const requestedProvider = String(body?.provider || '').trim()
   const providerId = getProvider(requestedProvider)
     ? requestedProvider
@@ -343,6 +393,18 @@ export async function POST(request: NextRequest) {
 
   if (!settings.enabledProviders.includes(providerId as any)) {
     return fail('Bu yapay zekâ sağlayıcısı şu anda kapalı.', 403, 'provider_disabled')
+  }
+
+  if (
+    userAccess.providers &&
+    userAccess.providers.length > 0 &&
+    !userAccess.providers.includes(providerId)
+  ) {
+    return fail(
+      'Bu yapay zekâ sağlayıcısı hesabın için açık değil.',
+      403,
+      'provider_not_allowed'
+    )
   }
 
   let provider = getProvider(providerId)
@@ -392,16 +454,29 @@ export async function POST(request: NextRequest) {
     }
 
     if (!provider.visionModel && !body?.model) {
-      // Görseli destekleyen ve sunucu anahtarı hazır olan bir sağlayıcıya geç.
-      const fallback = PROVIDERS.find(
+      // Görseli destekleyen ve kullanılabilir anahtarı olan bir sağlayıcıya geç.
+      const fallbacks = PROVIDERS.filter(
         (item) =>
           item.visionModel &&
           item.id !== provider!.id &&
           settings.enabledProviders.includes(item.id) &&
-          Boolean(providerEnvKey(item))
+          (!userAccess.providers ||
+            !userAccess.providers.length ||
+            userAccess.providers.includes(item.id))
       )
 
-      if (!fallback) {
+      let chosen: Provider | null = null
+
+      for (const item of fallbacks) {
+        const available = await buildCandidates(userId, item, userAccess.mode)
+
+        if (available.length) {
+          chosen = item
+          break
+        }
+      }
+
+      if (!chosen) {
         return fail(
           `${provider.name} görsel analizi desteklemiyor. Ayarlar > Yapay Zekâ Anahtarların bölümünden Gemini veya OpenAI anahtarı ekleyerek görsel analizini kullanabilirsin.`,
           400,
@@ -409,85 +484,121 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      provider = fallback
+      provider = chosen
     }
   }
 
-  const resolved = await resolveKey(userId, provider)
+  const candidates = await buildCandidates(userId, provider, userAccess.mode)
 
-  if (!resolved) {
+  if (!candidates.length) {
     return fail(
-      `${provider.name} için anahtar tanımlı değil. Ayarlar > Yapay Zekâ bölümünden kendi anahtarını ekleyebilirsin.`,
+      userAccess.mode === 'own'
+        ? `${provider.name} için anahtarın yok. Ayarlar > Yapay Zekâ Anahtarların bölümünden anahtarını ekleyebilirsin.`
+        : `${provider.name} için kullanılabilir anahtar yok. Yönetici anahtar eklemeli ya da Ayarlar bölümünden kendi anahtarını ekleyebilirsin.`,
       400,
       'missing_key'
     )
   }
 
-  const usesServerKey = resolved.source === 'server'
+  // Kendi anahtarı ilk sıradaysa günlük site hakkından düşülmez.
+  const usesSiteKey = candidates[0].source !== 'user'
+  const dailyLimit = userAccess.dailyLimit ?? settings.dailyLimit
 
-  if (usesServerKey && settings.dailyLimit > 0) {
-    const used = await getUsage(userId)
+  if (usesSiteKey && dailyLimit > 0) {
+    const usedCount = await getUsage(userId)
 
-    if (used >= settings.dailyLimit) {
+    if (usedCount >= dailyLimit) {
       return fail(
-        `Günlük ücretsiz yapay zekâ hakkın doldu (${settings.dailyLimit} istek). Yarın yenilenir; istersen Ayarlar bölümünden kendi anahtarını ekleyip sınırsız devam edebilirsin.`,
+        `Günlük yapay zekâ hakkın doldu (${dailyLimit} istek). Yarın yenilenir; istersen Ayarlar bölümünden kendi anahtarını ekleyip sınırsız devam edebilirsin.`,
         429,
         'quota_exceeded'
       )
     }
   }
 
-  const model =
+  const baseModel =
     (typeof body?.model === 'string' && body.model.trim()) ||
     settings.models[provider.id] ||
     (image && provider.visionModel ? provider.visionModel : provider.defaultModel)
 
-  try {
-    let text = ''
+  let used: Candidate | null = null
+  let text = ''
+  let usedModel = baseModel
+  let lastError: unknown = null
 
-    if (provider.kind === 'anthropic') {
-      text = await callAnthropic(provider, resolved.key, model, messages, image)
-    } else if (provider.kind === 'gemini') {
-      text = await callGemini(provider, resolved.key, model, messages, image)
-    } else {
-      text = await callOpenAICompatible(
-        provider,
-        resolved.key,
-        model,
-        messages,
-        image
-      )
+  for (const candidate of candidates) {
+    const model = candidate.model || baseModel
+
+    try {
+      if (provider.kind === 'anthropic') {
+        text = await callAnthropic(provider, candidate.key, model, messages, image)
+      } else if (provider.kind === 'gemini') {
+        text = await callGemini(provider, candidate.key, model, messages, image)
+      } else {
+        text = await callOpenAICompatible(
+          provider,
+          candidate.key,
+          model,
+          messages,
+          image
+        )
+      }
+
+      if (!text || !text.trim()) {
+        throw new ProviderError('Sağlayıcı boş yanıt döndürdü.', 502)
+      }
+
+      if (candidate.keyId) {
+        await markPoolKeyUse(candidate.keyId, true)
+      }
+
+      used = candidate
+      usedModel = model
+      break
+    } catch (error) {
+      lastError = error
+
+      if (candidate.keyId) {
+        await markPoolKeyUse(
+          candidate.keyId,
+          false,
+          error instanceof ProviderError ? error.status : undefined,
+          error instanceof Error ? error.message : undefined
+        )
+      }
+
+      // İstek/model hatası anahtarla ilgili değil: sıradaki anahtarı denemek boşuna.
+      const retryable =
+        error instanceof ProviderError
+          ? [401, 403, 408, 429, 500, 502, 503, 504].includes(error.status)
+          : true
+
+      if (!retryable) break
     }
+  }
 
-    if (!text || !text.trim()) {
-      return fail(
-        'Yapay zekâ boş yanıt döndürdü. Tekrar dene.',
-        502,
-        'empty_response'
-      )
-    }
+  if (!used) {
+    const mapped = providerErrorMessage(lastError)
 
-    if (usesServerKey) {
-      await addUsage(userId)
-    }
-
-    const remaining =
-      usesServerKey && settings.dailyLimit > 0
-        ? Math.max(0, settings.dailyLimit - (await getUsage(userId)))
-        : null
-
-    return NextResponse.json({
-      text,
-      provider: provider.id,
-      model,
-      source: resolved.source,
-      remaining,
-    })
-  } catch (error) {
-    const mapped = providerErrorMessage(error)
-
-    console.error('AI chat error:', error)
+    console.error('AI chat error:', lastError)
 
     return fail(mapped.message, mapped.status, 'provider_error')
   }
+
+  if (used.source !== 'user') {
+    await addUsage(userId)
+  }
+
+  const remaining =
+    used.source !== 'user' && dailyLimit > 0
+      ? Math.max(0, dailyLimit - (await getUsage(userId)))
+      : null
+
+  return NextResponse.json({
+    text,
+    provider: provider.id,
+    model: usedModel,
+    source: used.source === 'pool' ? 'server' : used.source,
+    remaining,
+  })
 }

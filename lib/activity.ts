@@ -12,6 +12,9 @@ export type AdminAction =
   | 'security.ipban'
   | 'security.ipunban'
   | 'security.ack'
+  | 'ai.key.add'
+  | 'ai.key.delete'
+  | 'ai.user.access'
 
 type LogParams = {
   action: AdminAction
@@ -23,6 +26,7 @@ type LogParams = {
     | 'feedback'
     | 'ip_ban'
     | 'security'
+    | 'ai_key'
   targetId: string
   detail?: Record<string, unknown>
   ip?: string
