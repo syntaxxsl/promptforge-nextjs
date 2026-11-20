@@ -25,14 +25,21 @@ const groups: NavGroup[] = [
       { icon: 'overview', label: 'Genel Bakış', href: '/dashboard' },
       { icon: 'folder', label: 'Projelerim', href: '/dashboard#projects-section' },
       { icon: 'activity', label: 'Aktivite', href: '/activity' },
-      { icon: 'user', label: 'Profilim', href: '/profile' },
     ],
   },
   {
-    title: 'AI Araçları',
+    title: 'AI',
     items: [
       { icon: 'message', label: 'Sohbet', href: '/sohbet' },
       { icon: 'sparkles', label: 'Tüm araçlar', href: '/ai' },
+    ],
+  },
+  {
+    // İkincil araçların hepsi tek başlık altında toplanır.
+    title: 'Laboratuvar',
+    items: [
+      { icon: 'bug', label: 'Kod Denetimi', href: '/critic' },
+      { icon: 'vision', label: 'Görselden Kod', href: '/vision' },
     ],
   },
   {
@@ -41,12 +48,13 @@ const groups: NavGroup[] = [
       { icon: 'image', label: 'Galeri', href: '/gallery' },
       { icon: 'compass', label: 'Keşfet', href: '/explore' },
       { icon: 'bag', label: 'Pazaryeri', href: '/marketplace' },
-      { icon: 'sliders', label: 'Araçlar', href: '/tools' },
+      { icon: 'code', label: 'Kod Parçaları', href: '/snippets' },
     ],
   },
   {
     title: 'Hesap',
     items: [
+      { icon: 'user', label: 'Profilim', href: '/profile' },
       { icon: 'settings', label: 'Ayarlar', href: '/settings' },
       { icon: 'shield', label: 'Güvenlik', href: '/security' },
       { icon: 'headset', label: 'Destek', href: '/support' },

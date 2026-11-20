@@ -1467,7 +1467,7 @@ ${codeJs}`)
         setSaveStatus(`Proje kaydedildi! Görsel hazır.${versionMessage}`)
       } catch (thumbnailError) {
         console.error('Thumbnail oluşturulamadı:', thumbnailError)
-        setSaveStatus(`Proje kaydedildi, ancak görsel oluşturulamadı.${versionMessage}`)
+        setSaveStatus(`Proje kaydedildi.${versionMessage}`)
       }
 
       await fetchProjects(userId)
@@ -2850,8 +2850,11 @@ ${codeJs}`)
                             loading="lazy"
                           />
                         ) : (
-                          <div className="text-[#3b4150]">
-                            <Icon name="image" className="h-7 w-7" />
+                          <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#191233] via-[#111220] to-[#0b0d12]">
+                            <span className="absolute -right-6 -top-8 h-24 w-24 rounded-full bg-[#7c5cff]/20 blur-2xl" />
+                            <span className="text-[28px] font-black uppercase text-[#7c5cff]/50">
+                              {(project.title || 'P').slice(0, 1)}
+                            </span>
                           </div>
                         )}
                       </div>

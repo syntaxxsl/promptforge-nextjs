@@ -20,7 +20,8 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' blob: https://challenges.cloudflare.com",
+      // jsDelivr yalnızca 3D sahneler için Three.js'e izin verir; yol sabittir.
+      "script-src 'self' 'unsafe-inline' blob: https://challenges.cloudflare.com https://cdn.jsdelivr.net/npm/three@0.160.1/build/",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",

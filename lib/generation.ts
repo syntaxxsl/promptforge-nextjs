@@ -204,7 +204,7 @@ const QUALITY_BAR = `KALİTE ÇITASI (hepsi zorunlu):
 - Her buton ve menü bağlantısı gerçekten çalışsın; boş href bırakma.
 - Mobil, tablet ve masaüstünde kusursuz görünsün; yatay taşma ve kırılma olmasın.
 - Hareket olsun: hover efektleri, kaydırmada belirme (IntersectionObserver), geçişler. İstersen canvas ile 2D/3D sahne veya CSS 3D dönüşümler kullan.
-- Dış kütüphane, CDN ve dış görsel adresi kullanma (ağ erişimi kapalı). Görselleri CSS gradyan, SVG veya canvas ile üret.
+- Gerçek 3D sahne gerekiyorsa sadece Three.js'i şu adresten kullan: <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script> Başka dış kütüphane, CDN veya dış görsel adresi kullanma (ağ erişimi kapalı). Görselleri CSS gradyan, SVG veya canvas ile üret.
 - Erişilebilirlik: anlamlı başlık sırası, alt metinler, klavye ile kullanılabilir menü, yeterli kontrast.
 - Kodu kısaltma, "..." ile kesme; verdiğin dosyalar eksiksiz olsun.`
 
