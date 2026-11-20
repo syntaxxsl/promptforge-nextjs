@@ -24,7 +24,7 @@ const BAN_CACHE_MS = 60_000
 
 // API istekleri için IP başına dakikalık sınır.
 const API_WINDOW_MS = 60_000
-const API_LIMIT = 300
+const API_LIMIT = 120
 const apiHits = new Map<string, { count: number; reset: number }>()
 
 // Aynı olayın saniyeler içinde yüzlerce kez yazılmasını engeller.
