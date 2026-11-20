@@ -6,7 +6,7 @@ import QuickCommand from '../../components/QuickCommand'
 
 const tools: { href: string; icon: IconName; title: string; text: string; words: string }[] = [
   {
-    href: '/dashboard',
+    href: '/website-builder',
     icon: 'code',
     title: 'Website Builder',
     text: 'Tek cümleyle site üret, önizle, kaydet.',
@@ -67,6 +67,69 @@ const tools: { href: string; icon: IconName; title: string; text: string; words:
     title: 'Test Üretici',
     text: 'Metinden sorular ve cevap anahtarı.',
     words: 'test, quiz, sınav',
+  },
+  {
+    href: '/marka',
+    icon: 'sparkles',
+    title: 'Marka Stüdyosu',
+    text: 'İsim, slogan, marka sesi ve renkler.',
+    words: 'marka, isim, slogan, logo',
+  },
+  {
+    href: '/sosyal',
+    icon: 'message',
+    title: 'Sosyal Medya',
+    text: 'Haftalık gönderi metinleri.',
+    words: 'instagram, linkedin, gönderi',
+  },
+  {
+    href: '/seo',
+    icon: 'compass',
+    title: 'SEO Studio',
+    text: 'Başlık, açıklama, anahtar kelime.',
+    words: 'seo, google, anahtar kelime',
+  },
+  {
+    href: '/api',
+    icon: 'terminal',
+    title: 'API Studio',
+    text: 'Fetch, cURL ve Python istek kodu.',
+    words: 'api, endpoint, istek',
+  },
+  {
+    href: '/sql',
+    icon: 'terminal',
+    title: 'SQL Asistanı',
+    text: 'Doğal dilden sorguya.',
+    words: 'sql, sorgu, veritabanı',
+  },
+  {
+    href: '/prompt-muhendisi',
+    icon: 'sparkles',
+    title: 'Prompt Mühendisi',
+    text: 'Dağınık isteği net bir isteme çevirir.',
+    words: 'prompt, istem',
+  },
+  {
+    href: '/chatbot',
+    icon: 'message',
+    title: 'Chatbot Builder',
+    text: 'Karşılama metni ve hazır cevaplar.',
+    words: 'chatbot, bot, otomatik cevap',
+  },
+  {
+    href: '/matematik',
+    icon: 'pulse',
+    title: 'Matematik',
+    text: 'Adım adım çözüm.',
+    words: 'matematik, denklem, yüzde',
+  },
+  {
+    href: '/hikaye',
+    icon: 'pen',
+    title: 'Hikâye Stüdyosu',
+    text: 'Kısa hikâye, masal, senaryo.',
+    words: 'hikâye, masal, senaryo',
   },
 ]
 

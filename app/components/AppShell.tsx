@@ -42,10 +42,14 @@ const groups: NavGroup[] = [
   {
     title: 'Oluştur',
     items: [
-      { icon: 'code', label: 'Website Builder', href: '/dashboard' },
+      { icon: 'code', label: 'Website Builder', href: '/website-builder' },
       { icon: 'pen', label: 'AI Writer', href: '/writer' },
       { icon: 'layers', label: 'Sunum', href: '/sunum' },
       { icon: 'map', label: 'Zihin Haritası', href: '/zihin-haritasi' },
+      { icon: 'sparkles', label: 'Marka Stüdyosu', href: '/marka' },
+      { icon: 'message', label: 'Sosyal Medya', href: '/sosyal' },
+      { icon: 'compass', label: 'SEO', href: '/seo' },
+      { icon: 'pen', label: 'Hikâye', href: '/hikaye' },
     ],
   },
   {
@@ -53,6 +57,10 @@ const groups: NavGroup[] = [
     items: [
       { icon: 'bug', label: 'Code Studio', href: '/critic' },
       { icon: 'vision', label: 'Görselden Kod', href: '/vision' },
+      { icon: 'terminal', label: 'API Studio', href: '/api' },
+      { icon: 'terminal', label: 'SQL Asistanı', href: '/sql' },
+      { icon: 'sparkles', label: 'Prompt Mühendisi', href: '/prompt-muhendisi' },
+      { icon: 'message', label: 'Chatbot Builder', href: '/chatbot' },
     ],
   },
   {
@@ -61,6 +69,7 @@ const groups: NavGroup[] = [
       { icon: 'folder', label: 'Belge Analizi', href: '/belge' },
       { icon: 'compass', label: 'Dil Araçları', href: '/dil' },
       { icon: 'pulse', label: 'Test Üretici', href: '/test' },
+      { icon: 'pulse', label: 'Matematik', href: '/matematik' },
     ],
   },
   {
@@ -427,7 +436,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <QuickCommand compact />
           </div>
           <Link
-            href="/dashboard"
+            href="/website-builder"
             className="ml-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[#242a36] px-3 text-[12.5px] font-medium text-[#c7cad3] hover:border-[#7c5cff]/50 hover:text-white"
           >
             <Icon name="plus" className="h-3.5 w-3.5" strokeWidth={2} />

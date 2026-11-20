@@ -15,7 +15,7 @@ type Project = {
 
 const tools: { href: string; icon: IconName; title: string; text: string }[] = [
   {
-    href: '/dashboard',
+    href: '/website-builder',
     icon: 'code',
     title: 'Website Builder',
     text: 'Yaz, site hazır olsun; önizle, kaydet.',
@@ -183,7 +183,7 @@ export default function PanelPage() {
               Yukarıdaki kutuya ne yapmak istediğini yaz, ilk projeni birlikte kuralım.
             </p>
             <Link
-              href="/dashboard"
+              href="/website-builder"
               className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#7c5cff] px-3.5 py-2 text-[12.5px] font-semibold text-white hover:bg-[#8b6fff]"
             >
               <Icon name="plus" className="h-3.5 w-3.5" strokeWidth={2} />

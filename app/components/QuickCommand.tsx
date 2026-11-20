@@ -14,9 +14,51 @@ type Target = { label: string; href: string; icon: IconName; words: string[] }
 const targets: Target[] = [
   {
     label: 'Website Builder',
-    href: '/dashboard',
+    href: '/website-builder',
     icon: 'code',
     words: ['site', 'web sitesi', 'websitesi', 'landing', 'portfolyo', 'sayfa yap', 'html'],
+  },
+  {
+    label: 'SEO Studio',
+    href: '/seo',
+    icon: 'compass',
+    words: ['seo', 'anahtar kelime', 'başlık etiketi', 'google'],
+  },
+  {
+    label: 'Marka Stüdyosu',
+    href: '/marka',
+    icon: 'sparkles',
+    words: ['marka', 'isim bul', 'slogan', 'logo', 'renk paleti'],
+  },
+  {
+    label: 'Sosyal Medya',
+    href: '/sosyal',
+    icon: 'message',
+    words: ['instagram', 'sosyal medya', 'gönderi', 'linkedin', 'tiktok'],
+  },
+  {
+    label: 'API Studio',
+    href: '/api',
+    icon: 'terminal',
+    words: ['api', 'fetch', 'curl', 'istek', 'endpoint'],
+  },
+  {
+    label: 'SQL Asistanı',
+    href: '/sql',
+    icon: 'terminal',
+    words: ['sql', 'sorgu', 'veritabanı', 'tablo', 'postgres'],
+  },
+  {
+    label: 'Prompt Mühendisi',
+    href: '/prompt-muhendisi',
+    icon: 'sparkles',
+    words: ['prompt', 'istem', 'komut yaz'],
+  },
+  {
+    label: 'Chatbot Builder',
+    href: '/chatbot',
+    icon: 'message',
+    words: ['chatbot', 'bot', 'müşteri temsilcisi', 'otomatik cevap'],
   },
   {
     label: 'Code Studio',
@@ -53,6 +95,18 @@ const targets: Target[] = [
     href: '/test',
     icon: 'pulse',
     words: ['test', 'quiz', 'soru', 'sınav', 'sinav', 'alıştırma'],
+  },
+  {
+    label: 'Matematik',
+    href: '/matematik',
+    icon: 'pulse',
+    words: ['matematik', 'hesapla', 'denklem', 'yüzde', 'oran'],
+  },
+  {
+    label: 'Hikâye Stüdyosu',
+    href: '/hikaye',
+    icon: 'pen',
+    words: ['hikâye', 'hikaye', 'masal', 'senaryo', 'öykü'],
   },
   {
     label: 'AI Writer',
