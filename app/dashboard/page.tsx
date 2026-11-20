@@ -451,6 +451,8 @@ export default function Home() {
   const [codeCss, setCodeCss] = useState('')
   const [codeJs, setCodeJs] = useState('')
   const [activeTab, setActiveTab] = useState<'html' | 'css' | 'js'>('html')
+  // Varsayılan görünüm tek dosya; üç sekmeli görünüm "Gelişmiş" altında.
+  const [advancedEditor, setAdvancedEditor] = useState(false)
   const [copied, setCopied] = useState(false)
 
   // PROJE
@@ -1262,10 +1264,9 @@ ${codeJs}`)
       const JSZip = (await import('jszip')).default
       const zip = new JSZip()
 
-      const htmlFile = buildDocument(codeHtml, '', '', projectTitle)
+      // Tek dosya: stil ve script index.html içine gömülür.
+      const htmlFile = buildDocument(codeHtml, codeCss, codeJs, projectTitle)
       zip.file('index.html', htmlFile)
-      zip.file('styles.css', codeCss)
-      zip.file('script.js', codeJs)
 
       const content = await zip.generateAsync({
         type: 'blob',
@@ -1861,11 +1862,13 @@ ${codeJs}`)
 
   // KOD KOPYALA
   const handleCopy = async () => {
-    const value = activeTab === 'html'
-      ? codeHtml
-      : activeTab === 'css'
-        ? codeCss
-        : codeJs
+    const value = !advancedEditor
+      ? singleFileValue
+      : activeTab === 'html'
+        ? codeHtml
+        : activeTab === 'css'
+          ? codeCss
+          : codeJs
 
     if (!value) return
 
@@ -1913,6 +1916,11 @@ ${codeJs}`)
   const totalJs = projects.filter((project) => Boolean(project.js_code)).length
 
   const combinedCode = buildDocument(codeHtml, codeCss, codeJs, projectTitle)
+  // Tek dosya görünümü: CSS/JS ayrı duruyorsa belgeye gömülür, sonra hepsi HTML alanında tutulur.
+  const singleFileValue =
+    codeCss.trim() || codeJs.trim()
+      ? buildDocument(codeHtml, codeCss, codeJs, projectTitle)
+      : codeHtml
   const goTo = (path: string) => {
     setNavOpen(false)
     router.push(path)
@@ -3063,8 +3071,40 @@ ${codeJs}`)
 
                     {/* KOD EDİTÖRÜ */}
                     <div className={`rounded-2xl border overflow-hidden ${panelClass}`}>
-                      <div className="flex items-center justify-between p-3 border-b border-gray-500/20">
+                      <div className="flex flex-wrap items-center justify-between gap-2 p-3 border-b border-gray-500/20">
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => setAdvancedEditor(false)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold ${
+                              !advancedEditor
+                                ? 'bg-[#7c5cff] text-white'
+                                : 'text-gray-400 hover:bg-gray-500/10'
+                            }`}
+                          >
+                            Tek dosya
+                          </button>
+                          <button
+                            onClick={() => setAdvancedEditor(true)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold ${
+                              advancedEditor
+                                ? 'bg-[#7c5cff] text-white'
+                                : 'text-gray-400 hover:bg-gray-500/10'
+                            }`}
+                          >
+                            Gelişmiş
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={handleCopy}
+                          className="px-3 py-2 rounded-lg bg-gray-500/10 text-sm"
+                        >
+                          {copied ? '✓ Kopyalandı' : '📋 Kopyala'}
+                        </button>
+                      </div>
+
+                      {advancedEditor && (
+                        <div className="flex gap-2 px-3 pt-3">
                           {(['html', 'css', 'js'] as const).map((tab) => (
                             <button
                               key={tab}
@@ -3079,24 +3119,27 @@ ${codeJs}`)
                             </button>
                           ))}
                         </div>
-
-                        <button
-                          onClick={handleCopy}
-                          className="px-3 py-2 rounded-lg bg-gray-500/10 text-sm"
-                        >
-                          {copied ? '✓ Kopyalandı' : '📋 Kopyala'}
-                        </button>
-                      </div>
+                      )}
 
                       <textarea
                         value={
-                          activeTab === 'html'
-                            ? codeHtml
-                            : activeTab === 'css'
-                              ? codeCss
-                              : codeJs
+                          advancedEditor
+                            ? activeTab === 'html'
+                              ? codeHtml
+                              : activeTab === 'css'
+                                ? codeCss
+                                : codeJs
+                            : singleFileValue
                         }
                         onChange={(e) => {
+                          if (!advancedEditor) {
+                            // Tek dosyada tüm kod HTML alanında tutulur.
+                            setCodeHtml(e.target.value)
+                            if (codeCss) setCodeCss('')
+                            if (codeJs) setCodeJs('')
+                            return
+                          }
+
                           if (activeTab === 'html') setCodeHtml(e.target.value)
                           if (activeTab === 'css') setCodeCss(e.target.value)
                           if (activeTab === 'js') setCodeJs(e.target.value)
@@ -3104,6 +3147,13 @@ ${codeJs}`)
                         spellCheck={false}
                         className="w-full min-h-[500px] p-4 bg-[#090d16] text-green-300 font-mono text-xs md:text-sm outline-none resize-y"
                       />
+
+                      {!advancedEditor && (
+                        <p className="px-4 py-2 text-xs text-gray-500 border-t border-gray-500/20">
+                          HTML, stil ve script tek dosyada. Ayrı ayrı düzenlemek istersen
+                          Gelişmiş'e geç.
+                        </p>
+                      )}
                     </div>
 
                     {/* AI GELİŞTİRME SOHBETİ */}
