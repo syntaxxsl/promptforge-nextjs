@@ -72,13 +72,14 @@ const tools: { href: string; icon: IconName; title: string; text: string; words:
 
 export default function CommandPage() {
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-6 lg:px-10 lg:py-16">
+    <div className="relative mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-6 lg:px-10 lg:py-16">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[380px] pf-hero-glow" />
       <div className="pf-enter text-center">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[#7c5cff]/30 bg-[#7c5cff]/10 px-3 py-1 text-[11px] font-medium text-[#c0afff]">
           <Icon name="sparkles" className="h-3.5 w-3.5" />
           Command Center
         </span>
-        <h1 className="mt-4 text-[26px] font-semibold tracking-tight text-white sm:text-[34px]">
+        <h1 className="mt-4 bg-gradient-to-b from-white via-white to-[#b9a6ff] bg-clip-text text-[26px] font-semibold tracking-tight text-transparent sm:text-[38px]">
           Ne yapmak istersin?
         </h1>
         <p className="mx-auto mt-2 max-w-[560px] text-[13.5px] leading-relaxed text-[#878d9b]">
@@ -88,8 +89,8 @@ export default function CommandPage() {
 
       <div className="pf-enter relative mx-auto mt-7 max-w-[720px]">
         <div className="pointer-events-none absolute -inset-x-8 -top-8 h-40 rounded-full bg-[#7c5cff]/15 blur-3xl" />
-        <div className="relative rounded-3xl border border-[#242a36] bg-[#0b0d13] p-2.5">
-          <QuickCommand autoFocus />
+        <div className="pf-surface relative rounded-[22px] p-2.5 shadow-[0_24px_70px_-32px_rgba(124,92,255,0.6)]">
+          <QuickCommand autoFocus bare />
         </div>
       </div>
 

@@ -62,11 +62,59 @@ button:active:not(:disabled) {
   transform: translateY(1px);
 }
 
-/* Klavye kullanıcıları için görünür odak halkası */
-:focus-visible {
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: 'Inter', 'InterVariable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+::selection {
+  background: rgba(124, 92, 255, 0.35);
+  color: #ffffff;
+}
+
+/* Klavye kullanıcıları için görünür odak halkası.
+   Metin alanlarında çerçeve rengiyle geri bildirim verildiği için hariç tutulur. */
+:focus-visible:not(input):not(textarea):not(select) {
   outline: 2px solid #a855f7;
   outline-offset: 2px;
   border-radius: 6px;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+
+/* Yumuşak yüzey: referans tasarımlardaki ince üst ışığı taklit eder. */
+.pf-surface {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.035) 0%,
+    rgba(255, 255, 255, 0.012) 45%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  border: 1px solid #1b1f28;
+}
+
+.pf-hero-glow {
+  background: radial-gradient(
+      60% 60% at 50% 0%,
+      rgba(124, 92, 255, 0.22) 0%,
+      rgba(124, 92, 255, 0) 70%
+    ),
+    radial-gradient(
+      40% 40% at 80% 20%,
+      rgba(168, 85, 247, 0.12) 0%,
+      rgba(168, 85, 247, 0) 70%
+    );
 }
 
 /* İnce, koyu temaya uygun kaydırma çubuğu */
@@ -80,8 +128,12 @@ button:active:not(:disabled) {
 }
 
 .pf-scroll::-webkit-scrollbar-thumb {
-  background-color: #3b4354;
+  background-color: #2a3040;
   border-radius: 999px;
+}
+
+.pf-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #3b4354;
 }
 
 .pf-scroll::-webkit-scrollbar-track {

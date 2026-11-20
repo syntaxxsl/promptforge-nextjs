@@ -35,7 +35,7 @@ const groups: NavGroup[] = [
       { icon: 'message', label: 'AI Chat', href: '/sohbet' },
       { icon: 'sparkles', label: 'Command Center', href: '/komut' },
       { icon: 'pulse', label: 'AI Arena', href: '/arena', soon: true },
-      { icon: 'user', label: 'Kendi Asistanım', href: '/asistanim', soon: true },
+      { icon: 'user', label: 'Asistanım', href: '/asistanim', soon: true },
       { icon: 'users', label: 'AI Teams', href: '/teams', soon: true },
     ],
   },
@@ -208,8 +208,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const isActive = (href: string) => {
-    const base = href.split('#')[0]
-    return pathname === base
+    // Aynı sayfanın bölüm bağlantısı, sayfa bağlantısını da aktif göstermesin.
+    if (href.includes('#')) return false
+    return pathname === href
   }
 
   const adminItems: NavItem[] = [
@@ -427,7 +428,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <Link
             href="/dashboard"
-            className="ml-auto flex h-9 items-center gap-1.5 rounded-xl border border-[#242a36] px-3 text-[12.5px] font-medium text-[#c7cad3] hover:border-[#7c5cff]/50 hover:text-white"
+            className="ml-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[#242a36] px-3 text-[12.5px] font-medium text-[#c7cad3] hover:border-[#7c5cff]/50 hover:text-white"
           >
             <Icon name="plus" className="h-3.5 w-3.5" strokeWidth={2} />
             Yeni Proje

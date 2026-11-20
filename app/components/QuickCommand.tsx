@@ -88,9 +88,12 @@ function pick(text: string): Target {
 export default function QuickCommand({
   compact = false,
   autoFocus = false,
+  bare = false,
 }: {
   compact?: boolean
   autoFocus?: boolean
+  /** true ise kendi çerçevesini çizmez; kapsayıcı kart çerçeveyi verir. */
+  bare?: boolean
 }) {
   const router = useRouter()
   const [text, setText] = useState('')
@@ -114,9 +117,11 @@ export default function QuickCommand({
       className={compact ? 'w-full' : 'w-full'}
     >
       <div
-        className={`group flex items-center gap-2 rounded-2xl border border-[#242a36] bg-[#0b0d13] transition-colors focus-within:border-[#7c5cff]/60 ${
-          compact ? 'px-3 py-1.5' : 'px-4 py-3'
-        }`}
+        className={`group flex items-center gap-2 rounded-2xl transition-colors ${
+          bare
+            ? 'bg-transparent'
+            : 'border border-[#242a36] bg-[#0b0d13] focus-within:border-[#7c5cff]/60'
+        } ${compact ? 'px-3 py-1.5' : 'px-4 py-3'}`}
       >
         <Icon
           name="sparkles"
@@ -137,9 +142,15 @@ export default function QuickCommand({
               : 'Ne yapmak istiyorsun? Örn: portfolyo sitem için sade bir sayfa yap'
           }
           className={`min-w-0 flex-1 bg-transparent text-[#e7e9ee] outline-none placeholder:text-[#5b616f] ${
-            compact ? 'text-[13px]' : 'text-[14px]'
+            compact ? 'text-[13px]' : 'text-[15px]'
           }`}
         />
+
+        {!compact && !text && (
+          <kbd className="hidden items-center rounded-md border border-[#242a36] px-1.5 py-0.5 font-mono text-[10px] text-[#5f6573] sm:flex">
+            ⏎
+          </kbd>
+        )}
 
         {hint && !compact && (
           <span className="hidden items-center gap-1.5 rounded-full border border-[#7c5cff]/30 bg-[#7c5cff]/10 px-2.5 py-1 text-[11px] text-[#c0afff] sm:flex">

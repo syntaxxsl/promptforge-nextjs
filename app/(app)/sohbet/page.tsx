@@ -353,27 +353,17 @@ export default function ChatPage() {
   const attached = projects.find((project) => project.id === attachedId)
 
   return (
-    <div className="h-[calc(100dvh-3.5rem)] lg:h-dvh">
+    <div className="h-[calc(100dvh-3.5rem)]">
       <div className="mx-auto flex h-full w-full max-w-[1240px]">
         {/* SOL PANEL — MASAÜSTÜ */}
-        <aside className="hidden w-[268px] shrink-0 flex-col border-r border-[#1b1f28] px-4 py-5 lg:flex">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#7c5cff] to-[#4b31d6] text-white">
-              <Icon name="sparkles" className="h-[17px] w-[17px]" />
-            </span>
-            <div>
-              <p className="text-[14px] font-semibold tracking-tight text-white">Sohbet</p>
-              <p className="text-[11px] text-[#6f7686]">PromptForge yapay zekâsı</p>
-            </div>
-          </div>
-
+        <aside className="hidden w-[248px] shrink-0 flex-col border-r border-[#1b1f28] px-3.5 py-4 lg:flex">
           <button
             onClick={() => {
               setMessages([])
               setError('')
             }}
             disabled={loading || messages.length === 0}
-            className="mt-5 flex items-center justify-center gap-1.5 rounded-lg border border-[#2a3140] bg-white/[0.03] py-2 text-[12.5px] font-medium text-[#e7e9ee] transition hover:bg-white/[0.06] disabled:opacity-40"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-[#7c5cff] py-2 text-[12.5px] font-semibold text-white transition hover:bg-[#8b6fff] disabled:bg-white/[0.04] disabled:text-[#5f6573]"
           >
             <Icon name="plus" className="h-3.5 w-3.5" strokeWidth={2} />
             Yeni sohbet

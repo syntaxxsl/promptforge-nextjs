@@ -103,16 +103,18 @@ export default function PanelPage() {
   }, [])
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-4 py-8 sm:px-6 lg:px-10 lg:py-14">
+    <div className="relative mx-auto w-full max-w-[1180px] px-4 py-8 sm:px-6 lg:px-10 lg:py-14">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] pf-hero-glow" />
+
       <div className="pf-enter">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#7c5cff]">
           PromptForge
         </p>
-        <h1 className="mt-2 text-[26px] font-semibold tracking-tight text-white sm:text-[32px]">
+        <h1 className="mt-2 bg-gradient-to-b from-white via-white to-[#b9a6ff] bg-clip-text text-[26px] font-semibold tracking-tight text-transparent sm:text-[34px]">
           {greeting()}
           {name ? `, ${name}` : ''}
         </h1>
-        <p className="mt-1.5 text-[13.5px] text-[#878d9b]">
+        <p className="mt-2 text-[13.5px] text-[#878d9b]">
           Ne yapmak istediğini yaz; seni doğru araca götürüyorum.
         </p>
       </div>
@@ -120,8 +122,8 @@ export default function PanelPage() {
       <div className="pf-enter mt-6">
         <div className="relative">
           <div className="pointer-events-none absolute -inset-x-6 -top-10 h-40 rounded-full bg-[#7c5cff]/12 blur-3xl" />
-          <div className="relative rounded-3xl border border-[#242a36] bg-[#0b0d13] p-2.5">
-            <QuickCommand autoFocus />
+          <div className="pf-surface relative rounded-[22px] p-2.5 shadow-[0_20px_60px_-30px_rgba(124,92,255,0.55)]">
+            <QuickCommand autoFocus bare />
             <div className="flex flex-wrap gap-1.5 px-2 pb-1 pt-2">
               {['Portfolyo sitemi yap', 'PDF özetle', 'İngilizceye çevir', 'Blog yazısı yaz'].map(
                 (item) => (
