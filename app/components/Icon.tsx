@@ -32,6 +32,7 @@ export type IconName =
   | 'plus'
   | 'logout'
   | 'arrowRight'
+  | 'copy'
   | 'chevronLeft'
   | 'chevronRight'
 
@@ -46,6 +47,12 @@ const paths: Record<IconName, React.ReactNode> = {
   ),
   folder: (
     <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3l2 2.5h8A2.5 2.5 0 0 1 21 10v7.5A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5Z" />
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="11.5" height="11.5" rx="2.4" />
+      <path d="M15 5.6V5A2 2 0 0 0 13 3H5.4A2.4 2.4 0 0 0 3 5.4v7.6A2 2 0 0 0 5 15h.6" />
+    </>
   ),
   code: (
     <>
