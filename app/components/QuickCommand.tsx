@@ -20,7 +20,7 @@ const targets: Target[] = [
   },
   {
     label: 'SEO Studio',
-    href: '/seo',
+    href: '/seo-studio',
     icon: 'compass',
     words: ['seo', 'anahtar kelime', 'başlık etiketi', 'google'],
   },
@@ -38,7 +38,7 @@ const targets: Target[] = [
   },
   {
     label: 'API Studio',
-    href: '/api',
+    href: '/api-studio',
     icon: 'terminal',
     words: ['api', 'fetch', 'curl', 'istek', 'endpoint'],
   },

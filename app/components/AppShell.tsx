@@ -48,7 +48,7 @@ const groups: NavGroup[] = [
       { icon: 'map', label: 'Zihin Haritası', href: '/zihin-haritasi' },
       { icon: 'sparkles', label: 'Marka Stüdyosu', href: '/marka' },
       { icon: 'message', label: 'Sosyal Medya', href: '/sosyal' },
-      { icon: 'compass', label: 'SEO', href: '/seo' },
+      { icon: 'compass', label: 'SEO', href: '/seo-studio' },
       { icon: 'pen', label: 'Hikâye', href: '/hikaye' },
     ],
   },
@@ -57,7 +57,7 @@ const groups: NavGroup[] = [
     items: [
       { icon: 'bug', label: 'Code Studio', href: '/critic' },
       { icon: 'vision', label: 'Görselden Kod', href: '/vision' },
-      { icon: 'terminal', label: 'API Studio', href: '/api' },
+      { icon: 'terminal', label: 'API Studio', href: '/api-studio' },
       { icon: 'terminal', label: 'SQL Asistanı', href: '/sql' },
       { icon: 'sparkles', label: 'Prompt Mühendisi', href: '/prompt-muhendisi' },
       { icon: 'message', label: 'Chatbot Builder', href: '/chatbot' },

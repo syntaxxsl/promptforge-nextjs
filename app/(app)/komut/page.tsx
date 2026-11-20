@@ -83,14 +83,14 @@ const tools: { href: string; icon: IconName; title: string; text: string; words:
     words: 'instagram, linkedin, gönderi',
   },
   {
-    href: '/seo',
+    href: '/seo-studio',
     icon: 'compass',
     title: 'SEO Studio',
     text: 'Başlık, açıklama, anahtar kelime.',
     words: 'seo, google, anahtar kelime',
   },
   {
-    href: '/api',
+    href: '/api-studio',
     icon: 'terminal',
     title: 'API Studio',
     text: 'Fetch, cURL ve Python istek kodu.',
