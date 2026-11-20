@@ -79,8 +79,9 @@ export const PROVIDERS: Provider[] = [
     name: 'Google Gemini',
     kind: 'gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    defaultModel: 'gemini-2.5-flash',
-    visionModel: 'gemini-2.5-flash',
+    // Gemini 2.5 Flash yeni hesaplara kapatıldı; 3.8 Flash güncel model.
+    defaultModel: 'gemini-3.8-flash',
+    visionModel: 'gemini-3.8-flash',
     envKeys: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'],
     keyUrl: 'https://aistudio.google.com/app/apikey',
     note: 'Ücretsiz katman var; ücretsiz planda veriler eğitimde kullanılabilir.',
