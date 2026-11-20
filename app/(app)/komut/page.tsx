@@ -1,0 +1,122 @@
+'use client'
+
+import Link from 'next/link'
+import Icon, { type IconName } from '../../components/Icon'
+import QuickCommand from '../../components/QuickCommand'
+
+const tools: { href: string; icon: IconName; title: string; text: string; words: string }[] = [
+  {
+    href: '/dashboard',
+    icon: 'code',
+    title: 'Website Builder',
+    text: 'Tek cümleyle site üret, önizle, kaydet.',
+    words: 'site, web, portfolyo, html',
+  },
+  {
+    href: '/sohbet',
+    icon: 'message',
+    title: 'AI Chat',
+    text: 'Uzun uzun konuş, birlikte düşün.',
+    words: 'soru, sohbet, yardım',
+  },
+  {
+    href: '/critic',
+    icon: 'bug',
+    title: 'Code Studio',
+    text: 'Kodunu incele, hatasını bul, düzelt.',
+    words: 'kod, hata, javascript',
+  },
+  {
+    href: '/writer',
+    icon: 'pen',
+    title: 'AI Writer',
+    text: 'Blog, e-posta, CV, sosyal medya metni.',
+    words: 'yazı, blog, mail, cv',
+  },
+  {
+    href: '/belge',
+    icon: 'folder',
+    title: 'Belge Analizi',
+    text: 'Uzun metni özetle, içinde soru sor.',
+    words: 'pdf, belge, özet, rapor',
+  },
+  {
+    href: '/dil',
+    icon: 'compass',
+    title: 'Dil Araçları',
+    text: 'Çeviri, özet ve yazım düzeltme.',
+    words: 'çeviri, dilbilgisi',
+  },
+  {
+    href: '/sunum',
+    icon: 'layers',
+    title: 'Sunum',
+    text: 'Konundan slayt slayt taslak çıkar.',
+    words: 'slayt, sunum',
+  },
+  {
+    href: '/zihin-haritasi',
+    icon: 'map',
+    title: 'Zihin Haritası',
+    text: 'Fikrini dallara ayır, görselleştir.',
+    words: 'zihin, harita, plan',
+  },
+  {
+    href: '/test',
+    icon: 'pulse',
+    title: 'Test Üretici',
+    text: 'Metinden sorular ve cevap anahtarı.',
+    words: 'test, quiz, sınav',
+  },
+]
+
+export default function CommandPage() {
+  return (
+    <div className="mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-6 lg:px-10 lg:py-16">
+      <div className="pf-enter text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#7c5cff]/30 bg-[#7c5cff]/10 px-3 py-1 text-[11px] font-medium text-[#c0afff]">
+          <Icon name="sparkles" className="h-3.5 w-3.5" />
+          Command Center
+        </span>
+        <h1 className="mt-4 text-[26px] font-semibold tracking-tight text-white sm:text-[34px]">
+          Ne yapmak istersin?
+        </h1>
+        <p className="mx-auto mt-2 max-w-[560px] text-[13.5px] leading-relaxed text-[#878d9b]">
+          Yazdığın şeye göre seni doğru araca yönlendiriyorum. Menülerde aramana gerek yok.
+        </p>
+      </div>
+
+      <div className="pf-enter relative mx-auto mt-7 max-w-[720px]">
+        <div className="pointer-events-none absolute -inset-x-8 -top-8 h-40 rounded-full bg-[#7c5cff]/15 blur-3xl" />
+        <div className="relative rounded-3xl border border-[#242a36] bg-[#0b0d13] p-2.5">
+          <QuickCommand autoFocus />
+        </div>
+      </div>
+
+      <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {tools.map((tool) => (
+          <Link
+            key={tool.href}
+            href={tool.href}
+            className="group rounded-2xl border border-[#1b1f28] bg-[#0b0d13] p-4 transition-colors hover:border-[#7c5cff]/40 hover:bg-[#0e1017]"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="grid h-9 w-9 place-items-center rounded-lg border border-[#7c5cff]/25 bg-[#7c5cff]/10 text-[#a48bff]">
+                <Icon name={tool.icon} className="h-[18px] w-[18px]" />
+              </span>
+              <Icon
+                name="arrowRight"
+                className="mt-2 h-4 w-4 text-[#2f3441] group-hover:text-[#a48bff]"
+              />
+            </div>
+            <p className="mt-3 text-[13.5px] font-semibold text-white">{tool.title}</p>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-[#6f7686]">{tool.text}</p>
+            <p className="mt-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[#4e5462]">
+              {tool.words}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}

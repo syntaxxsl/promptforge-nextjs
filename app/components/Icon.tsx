@@ -35,6 +35,11 @@ export type IconName =
   | 'copy'
   | 'chevronLeft'
   | 'chevronRight'
+  | 'pen'
+  | 'map'
+  | 'layers'
+  | 'users'
+  | 'download'
 
 const paths: Record<IconName, React.ReactNode> = {
   overview: (
@@ -182,6 +187,39 @@ const paths: Record<IconName, React.ReactNode> = {
   arrowRight: <path d="M5 12h13M13 6l6 6-6 6" />,
   chevronLeft: <path d="M14 6l-6 6 6 6" />,
   chevronRight: <path d="M10 6l6 6-6 6" />,
+  pen: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </>
+  ),
+  map: (
+    <>
+      <path d="M9 4 3 6.2v13.6L9 17.6l6 2.2 6-2.2V4l-6 2.2Z" />
+      <path d="M9 4v13.6M15 6.2v13.6" />
+    </>
+  ),
+  layers: (
+    <>
+      <path d="M12 3 3 8l9 5 9-5Z" />
+      <path d="m3 12.5 9 5 9-5" />
+      <path d="m3 16.5 9 5 9-5" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8.5" r="3.2" />
+      <path d="M3 19.5c0-3 2.7-4.9 6-4.9s6 1.9 6 4.9" />
+      <path d="M16 5.6a3.2 3.2 0 0 1 0 6M17.5 14.9c2.1.4 3.5 1.9 3.5 4.6" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 4v11" />
+      <path d="m7.5 11 4.5 4.5 4.5-4.5" />
+      <path d="M4 20h16" />
+    </>
+  ),
 }
 
 export default function Icon({

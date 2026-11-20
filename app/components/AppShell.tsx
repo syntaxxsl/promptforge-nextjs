@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import Icon, { type IconName } from './Icon'
+import QuickCommand from './QuickCommand'
 import { normalizePermissions } from '../../lib/permissions'
 
 type NavItem = {
   icon: IconName
   label: string
   href: string
+  soon?: boolean
 }
 
 type NavGroup = {
@@ -20,45 +22,56 @@ type NavGroup = {
 
 const groups: NavGroup[] = [
   {
-    title: 'Çalışma Alanı',
+    title: 'Genel',
     items: [
-      { icon: 'overview', label: 'Genel Bakış', href: '/dashboard' },
-      { icon: 'folder', label: 'Projelerim', href: '/dashboard#projects-section' },
-      { icon: 'activity', label: 'Aktivite', href: '/activity' },
+      { icon: 'overview', label: 'Panel', href: '/panel' },
+      { icon: 'folder', label: 'Projeler', href: '/panel#projeler' },
+      { icon: 'activity', label: 'Geçmiş', href: '/activity' },
     ],
   },
   {
-    title: 'AI',
+    title: 'Asistanlar',
     items: [
-      { icon: 'message', label: 'Sohbet', href: '/sohbet' },
-      { icon: 'sparkles', label: 'Tüm araçlar', href: '/ai' },
+      { icon: 'message', label: 'AI Chat', href: '/sohbet' },
+      { icon: 'sparkles', label: 'Command Center', href: '/komut' },
+      { icon: 'pulse', label: 'AI Arena', href: '/arena', soon: true },
+      { icon: 'user', label: 'Kendi Asistanım', href: '/asistanim', soon: true },
+      { icon: 'users', label: 'AI Teams', href: '/teams', soon: true },
     ],
   },
   {
-    // İkincil araçların hepsi tek başlık altında toplanır.
-    title: 'Laboratuvar',
+    title: 'Oluştur',
     items: [
-      { icon: 'bug', label: 'Kod Denetimi', href: '/critic' },
+      { icon: 'code', label: 'Website Builder', href: '/dashboard' },
+      { icon: 'pen', label: 'AI Writer', href: '/writer' },
+      { icon: 'layers', label: 'Sunum', href: '/sunum' },
+      { icon: 'map', label: 'Zihin Haritası', href: '/zihin-haritasi' },
+    ],
+  },
+  {
+    title: 'Geliştir',
+    items: [
+      { icon: 'bug', label: 'Code Studio', href: '/critic' },
       { icon: 'vision', label: 'Görselden Kod', href: '/vision' },
     ],
   },
   {
-    title: 'Keşfet',
+    title: 'Araçlar',
     items: [
-      { icon: 'image', label: 'Galeri', href: '/gallery' },
-      { icon: 'compass', label: 'Keşfet', href: '/explore' },
-      { icon: 'bag', label: 'Pazaryeri', href: '/marketplace' },
-      { icon: 'code', label: 'Kod Parçaları', href: '/snippets' },
+      { icon: 'folder', label: 'Belge Analizi', href: '/belge' },
+      { icon: 'compass', label: 'Dil Araçları', href: '/dil' },
+      { icon: 'pulse', label: 'Test Üretici', href: '/test' },
     ],
+  },
+  {
+    title: 'Yakında',
+    items: [{ icon: 'image', label: 'Stüdyolar', href: '/studios' }],
   },
   {
     title: 'Hesap',
     items: [
-      { icon: 'user', label: 'Profilim', href: '/profile' },
       { icon: 'settings', label: 'Ayarlar', href: '/settings' },
-      { icon: 'shield', label: 'Güvenlik', href: '/security' },
-      { icon: 'headset', label: 'Destek', href: '/support' },
-      { icon: 'message', label: 'Geri Bildirim', href: '/feedback' },
+      { icon: 'user', label: 'Profil', href: '/profile' },
     ],
   },
 ]
@@ -202,18 +215,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const adminItems: NavItem[] = [
     { icon: 'terminal', label: 'Admin Paneli', href: '/admin' },
     ...(canHealth
-      ? [
-          {
-            icon: 'pulse' as IconName,
-            label: 'Sistem Sağlığı',
-            href: '/health',
-          },
-        ]
+      ? [{ icon: 'pulse' as IconName, label: 'Sistem Sağlığı', href: '/health' }]
       : []),
   ]
 
   const renderItem = (item: NavItem, isCollapsed: boolean) => {
     const active = isActive(item.href)
+
+    if (item.soon) {
+      return (
+        <div
+          key={item.label}
+          title={`${item.label} — yakında`}
+          className={`flex cursor-default items-center gap-2.5 rounded-lg py-[7px] text-[13px] font-medium text-[#4e5462] ${
+            isCollapsed ? 'justify-center px-0' : 'px-2.5'
+          }`}
+        >
+          <Icon name={item.icon} className="h-[17px] w-[17px] shrink-0" />
+          {!isCollapsed && (
+            <>
+              <span className="truncate">{item.label}</span>
+              <span className="ml-auto rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#6f7686] ring-1 ring-[#242a36]">
+                yakında
+              </span>
+            </>
+          )}
+        </div>
+      )
+    }
 
     return (
       <Link
@@ -224,7 +253,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           isCollapsed ? 'justify-center px-0' : 'px-2.5'
         } ${
           active
-            ? 'bg-white/[0.055] text-white'
+            ? 'bg-[#7c5cff]/12 text-white'
             : 'text-[#8b909d] hover:bg-white/[0.035] hover:text-[#e7e9ee]'
         }`}
       >
@@ -257,8 +286,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           isCollapsed ? 'flex-col gap-2 px-2 py-3' : 'h-16 gap-2.5 px-4'
         }`}
       >
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#7c5cff] text-[13px] font-black text-white">
+        <Link href="/panel" className="flex items-center gap-2.5">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-[#7c5cff] to-[#a855f7] text-[13px] font-black text-white">
             P
           </span>
           {!isCollapsed && (
@@ -285,7 +314,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className={isCollapsed ? 'px-2 pb-1' : 'px-3 pb-1'}>
         <Link
-          href="/dashboard"
+          href="/komut"
           title="Yeni Proje"
           className={`flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#7c5cff] py-2 text-[13px] font-semibold text-white hover:bg-[#8b6fff] ${
             isCollapsed ? 'px-0' : 'px-3'
@@ -374,15 +403,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Icon name="menu" className="h-[18px] w-[18px]" />
         </button>
 
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-md bg-[#7c5cff] text-[11px] font-black text-white">
+        <Link href="/panel" className="flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-[#7c5cff] to-[#a855f7] text-[11px] font-black text-white">
             P
           </span>
           <span className="text-[14px] font-semibold tracking-tight">PromptForge</span>
         </Link>
 
         <Link
-          href="/dashboard"
+          href="/komut"
           className="ml-auto flex h-9 items-center gap-1 rounded-lg bg-[#7c5cff] px-3 text-[12px] font-semibold text-white"
         >
           <Icon name="plus" className="h-3.5 w-3.5" strokeWidth={2} />
@@ -390,7 +419,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
       </header>
 
-      <main className={collapsed ? 'lg:pl-[68px]' : 'lg:pl-[236px]'}>{children}</main>
+      <div className={collapsed ? 'lg:pl-[68px]' : 'lg:pl-[236px]'}>
+        {/* MASAÜSTÜ ÜST BAR — tek komut kutusu */}
+        <header className="sticky top-0 z-30 hidden h-14 items-center gap-4 border-b border-[#1b1f28] bg-[#08090d]/85 px-6 backdrop-blur-xl lg:flex">
+          <div className="w-full max-w-2xl">
+            <QuickCommand compact />
+          </div>
+          <Link
+            href="/dashboard"
+            className="ml-auto flex h-9 items-center gap-1.5 rounded-xl border border-[#242a36] px-3 text-[12.5px] font-medium text-[#c7cad3] hover:border-[#7c5cff]/50 hover:text-white"
+          >
+            <Icon name="plus" className="h-3.5 w-3.5" strokeWidth={2} />
+            Yeni Proje
+          </Link>
+        </header>
+
+        <main>{children}</main>
+      </div>
     </div>
   )
 }
