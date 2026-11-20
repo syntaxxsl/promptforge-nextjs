@@ -10,6 +10,7 @@ import {
   loadAISettings,
   saveAISettings,
 } from '../../../../lib/ai/settings'
+import { listPoolKeys } from '../../../../lib/ai/keys'
 
 export const runtime = 'nodejs'
 
@@ -19,6 +20,10 @@ export async function GET(request: NextRequest) {
   if ('response' in access) return access.response
 
   const settings = await loadAISettings()
+  const { keys: poolKeys } = await listPoolKeys()
+  const poolProviders = new Set(
+    poolKeys.filter((item) => item.active).map((item) => item.provider)
+  )
 
   return NextResponse.json({
     settings,
@@ -29,7 +34,7 @@ export async function GET(request: NextRequest) {
       defaultModel: provider.defaultModel,
       visionModel: provider.visionModel || null,
       keyUrl: provider.keyUrl,
-      keySet: Boolean(providerEnvKey(provider)),
+      keySet: Boolean(providerEnvKey(provider)) || poolProviders.has(provider.id),
       model: settings.models[provider.id] || provider.defaultModel,
     })),
   })
