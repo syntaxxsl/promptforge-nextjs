@@ -29,6 +29,7 @@ const SEVERITY_BY_KIND: Record<SecurityEventKind, SecuritySeverity> = {
   'admin.denied': 'warning',
   'permission.change': 'warning',
   'ip.ban': 'critical',
+  'request.blocked': 'warning',
 }
 
 /**

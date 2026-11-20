@@ -34,7 +34,67 @@ const reported = new Map<string, number>()
 const SCANNER_PATH =
   /^\/(?:\.env|\.git|\.svn|\.aws|\.ssh|\.DS_Store|wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php|phpmyadmin|phpMyAdmin|pma|myadmin|cgi-bin|vendor\/|actuator|server-status|config\.json|config\.php|admin\.php|shell\.php|eval-stdin\.php|\.well-known\/(?!security\.txt))/i
 
+// Bilinen saldırı araçlarının kullanıcı ajanı imzaları.
+const BAD_USER_AGENT =
+  /(sqlmap|nikto|nmap|masscan|zgrab|nuclei|wpscan|gobuster|dirbuster|ffuf|feroxbuster|wfuzz|hydra|medusa|metasploit|acunetix|netsparker|nessus|openvas|commix|evil-winrm|havij|jndi|ysoserial)/i
+
+// Adres içinde saldırı kalıpları: yol aşımı, SQL enjeksiyonu, XSS, komut denemesi.
+const SUSPICIOUS_QUERY =
+  /(\.\.\/|%2e%2e|%00|\/etc\/passwd|union\s+select|information_schema|base64_decode|<script|javascript:|onerror\s*=|\$\{jndi:|;--|sleep\(\s*\d|benchmark\(|pg_sleep)/i
+
+const MAX_URL_LENGTH = 2048
+const MAX_BODY_BYTES = 2 * 1024 * 1024
+const ALLOWED_METHODS = new Set([
+  'GET',
+  'HEAD',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'OPTIONS',
+])
+
+function badRequestPage(message: string) {
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>İstek reddedildi</title></head>
+    <body style="margin:0;display:grid;place-items:center;height:100vh;background:#08090d;color:#e7e9ee;font-family:system-ui,sans-serif">
+      <div style="text-align:center;max-width:420px;padding:0 24px">
+        <div style="width:40px;height:40px;border-radius:10px;margin:0 auto 18px;background:#7c5cff"></div>
+        <h1 style="font-size:19px;margin:0 0 8px">Bu istek kabul edilmedi</h1>
+        <p style="color:#8b909d;font-size:13.5px;line-height:1.65;margin:0">${message}</p>
+      </div>
+    </body></html>`
+}
+
+function rejectRequest(
+  request: NextRequest,
+  ip: string,
+  reason: string,
+  status: number,
+  message: string
+) {
+  reportEvent(
+    request,
+    `guard:${ip}:${reason}`,
+    { kind: 'request.blocked', severity: 'warning', detail: { reason } },
+    120_000
+  )
+
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: message }, { status })
+  }
+
+  return htmlResponse(badRequestPage(message), status)
+}
+
 function getClientIp(request: NextRequest): string {
+  // Cloudflare arkasına geçilirse gerçek istemci IP'si burada olur.
+  // (Başlık yalnızca açıkça güvenildiğinde okunur, yoksa taklit edilebilir.)
+  if (process.env.TRUST_CLOUDFLARE_HEADERS === 'true') {
+    const cf = request.headers.get('cf-connecting-ip')
+
+    if (cf) return cf.trim()
+  }
+
   const forwarded = request.headers.get('x-forwarded-for')
 
   if (forwarded) return forwarded.split(',')[0].trim()
@@ -189,6 +249,77 @@ export async function middleware(request: NextRequest) {
     return htmlResponse(
       '<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Bulunamadı</title></head><body></body></html>',
       404
+    )
+  }
+
+  // --- İstek hijyeni: bozuk ve saldırı amaçlı istekleri kapıda kes ---
+
+  if (!ALLOWED_METHODS.has(request.method)) {
+    return rejectRequest(
+      request,
+      ip,
+      `method:${request.method}`,
+      405,
+      'Bu istek yöntemi desteklenmiyor.'
+    )
+  }
+
+  // Not: Next'in nextUrl.search alanı bazı sürümlerde boş gelebiliyor;
+  // bu yüzden ham adresin kendisi kontrol edilir.
+  const rawUrl = request.url
+  const queryStart = rawUrl.indexOf('?', rawUrl.indexOf('//') + 2)
+  const fullUrl = queryStart === -1 ? path : path + rawUrl.slice(queryStart)
+
+  if (fullUrl.length > MAX_URL_LENGTH) {
+    return rejectRequest(
+      request,
+      ip,
+      'long-url',
+      414,
+      'Adres çok uzun görünüyor.'
+    )
+  }
+
+  // Hem ham hem çözülmüş hâle bak: saldırganlar kalıpları kodlayarak saklar.
+  let decodedUrl = fullUrl
+
+  try {
+    decodedUrl = decodeURIComponent(fullUrl).replace(/\+/g, ' ')
+  } catch {
+    decodedUrl = fullUrl
+  }
+
+  if (SUSPICIOUS_QUERY.test(fullUrl) || SUSPICIOUS_QUERY.test(decodedUrl)) {
+    return rejectRequest(
+      request,
+      ip,
+      'suspicious-url',
+      400,
+      'Adres güvenlik kontrolünden geçemedi.'
+    )
+  }
+
+  const userAgent = request.headers.get('user-agent') || ''
+
+  if (BAD_USER_AGENT.test(userAgent)) {
+    return rejectRequest(
+      request,
+      ip,
+      'bad-agent',
+      403,
+      'Bu istemciye erişim kapalı.'
+    )
+  }
+
+  const contentLength = Number(request.headers.get('content-length') || 0)
+
+  if (contentLength > MAX_BODY_BYTES) {
+    return rejectRequest(
+      request,
+      ip,
+      'large-body',
+      413,
+      'Gönderilen veri çok büyük.'
     )
   }
 

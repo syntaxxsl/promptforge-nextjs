@@ -15,6 +15,7 @@ export type SecurityEventKind =
   | 'admin.denied'
   | 'permission.change'
   | 'ip.ban'
+  | 'request.blocked'
 
 export type SecuritySeverity = 'info' | 'warning' | 'critical'
 
@@ -30,6 +31,7 @@ export const SECURITY_EVENT_KINDS: SecurityEventKind[] = [
   'admin.denied',
   'permission.change',
   'ip.ban',
+  'request.blocked',
 ]
 
 export const SECURITY_EVENT_LABELS: Record<string, string> = {
@@ -44,6 +46,7 @@ export const SECURITY_EVENT_LABELS: Record<string, string> = {
   'admin.denied': 'Yetkisiz yönetim denemesi',
   'permission.change': 'Yetki değişikliği',
   'ip.ban': 'IP engellendi',
+  'request.blocked': 'Şüpheli istek engellendi',
 }
 
 export function securityEventLabel(kind: string) {

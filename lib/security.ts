@@ -48,6 +48,13 @@ export function rateLimit(
 }
 
 export function clientIp(request: NextRequest): string {
+  // Cloudflare arkasına geçilirse gerçek IP'yi Cloudflare yazar.
+  if (process.env.TRUST_CLOUDFLARE_HEADERS === 'true') {
+    const cf = request.headers.get('cf-connecting-ip')
+
+    if (cf) return cf.trim()
+  }
+
   const forwarded = request.headers.get('x-forwarded-for')
 
   if (forwarded) return forwarded.split(',')[0].trim()

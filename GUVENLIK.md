@@ -74,3 +74,36 @@ Bunlar kodla çözülmez, hesap/panel ayarı ister:
 - **GitHub token'ı çerezde** (30 gün). Öneri: token'ı `user_api_keys` benzeri şekilde şifreli saklayıp Supabase kullanıcısına bağlamak.
 - **Next.js 14.1.0** bilinen güvenlik açıkları olan bir sürüm. Güncelleme ayrı bir iş olarak yapılmalı.
 - **Güvenli dosya yükleme ve tarama** — uygulamada kullanıcı dosyası yükleme akışı yok; eklendiğinde MIME/boyut doğrulaması ve antivirüs taraması gerekir.
+
+## İstek hijyeni ve bot koruması (20 Kasım 2026)
+
+Middleware artık her isteği şu kapılardan geçirir:
+
+- **Yöntem beyaz listesi:** GET/HEAD/POST/PUT/PATCH/DELETE/OPTIONS dışındaki
+  yöntemler (TRACE, TRACK, CONNECT) 405 ile reddedilir.
+- **Adres uzunluğu:** 2048 karakteri geçen adresler 414 döner.
+- **Saldırı kalıbı:** yol aşımı (`../`, `%2e%2e`), SQL enjeksiyonu
+  (`union select`, `information_schema`, `sleep(`), XSS (`<script`,
+  `javascript:`, `onerror=`), komut/log4j denemeleri 400 ile kesilir ve
+  `request.blocked` olayı olarak admine raporlanır.
+- **Saldırı aracı imzası:** sqlmap, nikto, nuclei, wpscan, gobuster, ffuf,
+  hydra, metasploit, acunetix vb. kullanıcı ajanları 403 alır.
+- **Gövde boyutu:** 2 MB üzeri istekler 413 ile reddedilir.
+
+### Cloudflare Turnstile (opsiyonel bot doğrulaması)
+
+Giriş, kayıt ve şifre sıfırlama formuna "robot değilim" kontrolü eklenir.
+İki ortam değişkeni tanımlanınca kendiliğinden devreye girer, tanımlı değilse
+site eskisi gibi çalışır:
+
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — Cloudflare panelindeki site anahtarı
+- `TURNSTILE_SECRET_KEY` — gizli anahtar (yalnızca sunucu)
+
+Cloudflare'e ulaşılamazsa giriş kilitlenmesin diye istek geçirilir.
+
+### Cloudflare arkasına geçilirse
+
+`TRUST_CLOUDFLARE_HEADERS=true` yapılmalıdır. Aksi halde tüm ziyaretçiler
+Cloudflare IP'si gibi görünür ve hız sınırı/otomatik ban yanlış çalışır.
+Cloudflare panelinde ayrıca **Bot Fight Mode** ve **Security Level: High**
+açılması önerilir.

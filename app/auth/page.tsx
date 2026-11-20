@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -10,10 +10,78 @@ export default function AuthPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const turnstileRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''
+
+  // Bot doğrulaması: anahtar tanımlıysa Cloudflare Turnstile kutusunu bas.
+  useEffect(() => {
+    if (!turnstileSiteKey) return
+
+    const renderWidget = () => {
+      const turnstile = (window as any).turnstile
+      const holder = turnstileRef.current
+
+      if (!turnstile || !holder || holder.dataset.rendered === '1') return
+
+      turnstile.render(holder, {
+        sitekey: turnstileSiteKey,
+        theme: 'dark',
+        callback: (token: string) => setTurnstileToken(token),
+        'expired-callback': () => setTurnstileToken(''),
+        'error-callback': () => setTurnstileToken(''),
+      })
+
+      holder.dataset.rendered = '1'
+    }
+
+    if ((window as any).turnstile) {
+      renderWidget()
+      return
+    }
+
+    const existing = document.querySelector(
+      'script[data-pf-turnstile]'
+    ) as HTMLScriptElement | null
+
+    if (existing) {
+      existing.addEventListener('load', renderWidget)
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src =
+      'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+    script.async = true
+    script.dataset.pfTurnstile = '1'
+    script.onload = renderWidget
+    document.head.appendChild(script)
+  }, [turnstileSiteKey])
+
+  const resetTurnstile = () => {
+    try {
+      ;(window as any).turnstile?.reset(turnstileRef.current)
+    } catch {}
+    setTurnstileToken('')
+  }
+
+  // Form gönderilmeden önce doğrulama kutusu doldurulmuş olmalı.
+  const assertHuman = () => {
+    if (turnstileSiteKey && !turnstileToken) {
+      setMessage('Lütfen robot olmadığını doğrula.')
+      return false
+    }
+
+    return true
+  }
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!assertHuman()) return
+
     setLoading(true)
     setMessage('')
 
@@ -22,7 +90,10 @@ export default function AuthPage() {
         // Giriş Yap — sunucu tarafındaki brute force koruması üzerinden.
         const response = await fetch('/api/auth/login', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-pf-turnstile': turnstileToken,
+          },
           body: JSON.stringify({ email, password }),
           cache: 'no-store',
         })
@@ -77,7 +148,10 @@ export default function AuthPage() {
         // Kayıt Ol — sunucu tarafındaki sınır üzerinden.
         const response = await fetch('/api/auth/signup', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-pf-turnstile': turnstileToken,
+          },
           body: JSON.stringify({ email, password }),
           cache: 'no-store',
         })
@@ -89,10 +163,12 @@ export default function AuthPage() {
         }
 
         setMessage('Kayıt başarılı! Admin onayı bekleniyor. Onaylandığında giriş yapabilirsiniz.')
+        resetTurnstile()
         setIsLogin(true)
       }
     } catch (error: any) {
       setMessage(error.message)
+      resetTurnstile()
     } finally {
       setLoading(false)
     }
@@ -104,13 +180,18 @@ export default function AuthPage() {
       return
     }
 
+    if (!assertHuman()) return
+
     setResetLoading(true)
     setMessage('')
 
     try {
       const response = await fetch('/api/auth/reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-pf-turnstile': turnstileToken,
+        },
         body: JSON.stringify({ email }),
         cache: 'no-store',
       })
@@ -122,8 +203,10 @@ export default function AuthPage() {
       }
 
       setMessage('Sıfırlama bağlantısı e-postana gönderildi. Gelen kutunu kontrol et.')
+      resetTurnstile()
     } catch (error: any) {
       setMessage(error.message)
+      resetTurnstile()
     } finally {
       setResetLoading(false)
     }
@@ -165,6 +248,10 @@ export default function AuthPage() {
             />
           </div>
           
+          {turnstileSiteKey && (
+            <div ref={turnstileRef} className="flex justify-center" />
+          )}
+
           <button 
             type="submit" 
             disabled={loading}

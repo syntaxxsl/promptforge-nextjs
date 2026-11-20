@@ -8,6 +8,7 @@ import {
   clearLoginFailures,
   registerLoginFailure,
 } from '../../../../lib/login-guard'
+import { verifyTurnstile } from '../../../../lib/turnstile'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,6 +63,32 @@ export async function POST(
   const action = params.action
   const ip = clientIp(request)
   const userAgent = request.headers.get('user-agent') || ''
+
+  if (action !== 'login' && action !== 'signup' && action !== 'reset') {
+    return genericError('Bulunamadı.', 404)
+  }
+
+  // Bot doğrulaması (Cloudflare Turnstile). Anahtarlar tanımlı değilse atlanır.
+  const turnstileOk = await verifyTurnstile(
+    request.headers.get('x-pf-turnstile'),
+    ip
+  )
+
+  if (!turnstileOk) {
+    void reportSecurityEvent(adminClient, {
+      kind: 'request.blocked',
+      severity: 'warning',
+      ip,
+      path: `/api/auth/${action}`,
+      userAgent,
+      detail: { reason: 'turnstile' },
+    })
+
+    return genericError(
+      'Robot doğrulaması tamamlanmadı. Sayfayı yenileyip tekrar dene.',
+      403
+    )
+  }
 
   if (action === 'login') {
     const limit = rateLimit(`auth-login:${ip}`, 30, 60_000)
