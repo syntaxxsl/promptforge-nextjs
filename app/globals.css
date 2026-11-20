@@ -120,7 +120,7 @@ select:focus {
 /* İnce, koyu temaya uygun kaydırma çubuğu */
 .pf-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #3b4354 transparent;
+  scrollbar-color: #2a3040 transparent;
 }
 
 .pf-scroll::-webkit-scrollbar {
