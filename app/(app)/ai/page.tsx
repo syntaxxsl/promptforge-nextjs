@@ -13,6 +13,14 @@ type Tool = {
 
 const tools: Tool[] = [
   {
+    icon: 'message',
+    title: 'Sohbet',
+    description:
+      'ChatGPT gibi konuş: fikrini yaz, kodunu iste, takıldığın yeri sor. İstersen projeni bağla, kodunu da görsün.',
+    href: '/sohbet',
+    tag: 'Sohbet',
+  },
+  {
     icon: 'sparkles',
     title: 'Kod Sihirbazı',
     description:

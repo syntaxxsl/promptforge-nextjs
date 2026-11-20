@@ -30,7 +30,10 @@ const groups: NavGroup[] = [
   },
   {
     title: 'AI Araçları',
-    items: [{ icon: 'sparkles', label: 'Tüm araçlar', href: '/ai' }],
+    items: [
+      { icon: 'message', label: 'Sohbet', href: '/sohbet' },
+      { icon: 'sparkles', label: 'Tüm araçlar', href: '/ai' },
+    ],
   },
   {
     title: 'Keşfet',
