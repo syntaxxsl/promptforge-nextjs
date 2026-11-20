@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { decryptSecret } from '../../../../lib/crypto'
 import { isSameOrigin, rateLimit, tooMany } from '../../../../lib/security'
 import {
+  PROVIDERS,
   getProvider,
   providerEnvKey,
   type Provider,
@@ -103,7 +104,7 @@ async function callOpenAICompatible(
       model,
       messages: payloadMessages,
       temperature: 0.7,
-      max_tokens: 4096,
+      max_tokens: 8192,
     }),
     signal: AbortSignal.timeout(55_000),
   })
@@ -344,7 +345,7 @@ export async function POST(request: NextRequest) {
     return fail('Bu yapay zekâ sağlayıcısı şu anda kapalı.', 403, 'provider_disabled')
   }
 
-  const provider = getProvider(providerId)
+  let provider = getProvider(providerId)
 
   if (!provider) {
     return fail('Bilinmeyen yapay zekâ sağlayıcısı.', 400, 'provider_unknown')
@@ -391,11 +392,24 @@ export async function POST(request: NextRequest) {
     }
 
     if (!provider.visionModel && !body?.model) {
-      return fail(
-        `${provider.name} görsel analizi desteklemiyor. Ayarlardan başka bir sağlayıcı seç.`,
-        400,
-        'vision_unsupported'
+      // Görseli destekleyen ve sunucu anahtarı hazır olan bir sağlayıcıya geç.
+      const fallback = PROVIDERS.find(
+        (item) =>
+          item.visionModel &&
+          item.id !== provider!.id &&
+          settings.enabledProviders.includes(item.id) &&
+          Boolean(providerEnvKey(item))
       )
+
+      if (!fallback) {
+        return fail(
+          `${provider.name} görsel analizi desteklemiyor. Ayarlar > Yapay Zekâ Anahtarların bölümünden Gemini veya OpenAI anahtarı ekleyerek görsel analizini kullanabilirsin.`,
+          400,
+          'vision_unsupported'
+        )
+      }
+
+      provider = fallback
     }
   }
 

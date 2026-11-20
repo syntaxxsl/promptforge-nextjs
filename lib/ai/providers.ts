@@ -44,11 +44,11 @@ export const PROVIDERS: Provider[] = [
     kind: 'openai',
     baseUrl: 'https://api.groq.com/openai/v1',
     defaultModel: 'openai/gpt-oss-120b',
-    visionModel: 'meta-llama/llama-4-scout-17b-16e-instruct',
     envKeys: ['GROQ_API_KEY'],
     keyPrefix: 'gsk_',
     keyUrl: 'https://console.groq.com/keys',
-    note: 'Ücretsiz katman: günde 1.000 istek. Varsayılan sağlayıcı.',
+    note:
+      'Ücretsiz katman: günde 1.000 istek. Varsayılan sağlayıcı. Görsel analizi desteklemez; görsel yüklenirse Gemini/OpenAI anahtarı varsa otomatik ona geçilir.',
   },
   {
     id: 'openai',
