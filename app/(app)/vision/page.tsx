@@ -3,12 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-
-declare global {
-  interface Window {
-    puter?: any
-  }
-}
+import { askAI, fileToDataUrl } from '../../../lib/ai-client'
 
 type CodeResult = {
   html: string
@@ -100,11 +95,6 @@ export default function VisionPage() {
       return
     }
 
-    if (!window.puter?.ai?.chat) {
-      setError('Puter.js henüz yüklenmedi. Sayfayı yenileyip tekrar dene.')
-      return
-    }
-
     setLoading(true)
     setError('')
     setResult({ html: '', css: '', js: '' })
@@ -151,18 +141,10 @@ JavaScript kodu
 - Açıklama veya Markdown kod blokları ekleme.
 `
 
-      const response = await window.puter.ai.chat(
-        prompt,
-        file,
-        { model: 'gpt-4o-mini' }
-      )
+      const image = await fileToDataUrl(file)
+      const raw = await askAI({ prompt, image })
 
-      const raw =
-        response?.message?.content ||
-        response?.text ||
-        String(response)
-
-      if (typeof raw !== 'string') {
+      if (typeof raw !== 'string' || !raw.trim()) {
         throw new Error('AI yanıtı okunamadı.')
       }
 

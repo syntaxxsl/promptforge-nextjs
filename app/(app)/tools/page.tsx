@@ -166,20 +166,80 @@ function formatBasic(code: string, type: string) {
       .join('\n')
   }
 
-  // JavaScript için temel satır ve girinti düzenlemesi.
+  // JavaScript: dizge ve şablon dizgeleri içindeki süslü parantezlere dokunma.
+  let out = ''
   let indent = 0
-  return code
-    .replace(/\s*([{}])/g, '\n$1\n')
+  let quote = ''
+  let i = 0
+
+  const pad = () => '  '.repeat(indent)
+  const skipSpaces = () => {
+    while (i < code.length && /[ \t]/.test(code[i])) i++
+  }
+
+  while (i < code.length) {
+    const ch = code[i]
+
+    if (quote) {
+      out += ch
+
+      if (ch === '\\' && i + 1 < code.length) {
+        out += code[i + 1]
+        i += 2
+        continue
+      }
+
+      if (ch === quote) quote = ''
+      i++
+      continue
+    }
+
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch
+      out += ch
+      i++
+      continue
+    }
+
+    if (ch === '{') {
+      indent++
+      out = out.replace(/[ \t]+$/, '') + ' {\n' + pad()
+      i++
+      skipSpaces()
+      continue
+    }
+
+    if (ch === '}') {
+      indent = Math.max(0, indent - 1)
+      out = out.replace(/[ \t]+$/, '').replace(/\n$/, '')
+      out += '\n' + pad() + '}\n' + pad()
+      i++
+      skipSpaces()
+      continue
+    }
+
+    if (ch === ';') {
+      out += ';\n' + pad()
+      i++
+      skipSpaces()
+      continue
+    }
+
+    if (ch === '\n' || ch === '\r') {
+      out += '\n' + pad()
+      i++
+      skipSpaces()
+      continue
+    }
+
+    out += ch
+    i++
+  }
+
+  return out
     .split('\n')
-    .map((line) => {
-      const value = line.trim()
-      if (!value) return ''
-      if (value.startsWith('}')) indent = Math.max(0, indent - 1)
-      const result = '  '.repeat(indent) + value
-      if (value.endsWith('{')) indent++
-      return result
-    })
-    .filter(Boolean)
+    .map((line) => line.replace(/\s+$/, ''))
+    .filter((line) => line.trim())
     .join('\n')
 }
 
@@ -352,7 +412,18 @@ body, p, button {
             <label className="block text-sm font-bold mb-2">Düzenlenecek kod</label>
             <textarea value={formatCode} onChange={(e) => setFormatCode(e.target.value)} spellCheck={false} placeholder="Kodunu buraya yapıştır..." className="min-h-64 w-full rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-sm text-green-300 outline-none" />
             <div className="flex flex-wrap gap-3 mt-4">
-              <button onClick={() => setFormatResult(formatBasic(formatCode, formatType))} className="rounded-lg bg-purple-600 px-5 py-3 font-bold">
+              <button
+                onClick={() => {
+                  const result = formatBasic(formatCode, formatType)
+                  setFormatResult(result)
+                  setMessage(
+                    result
+                      ? 'Kod biçimlendirildi.'
+                      : 'Önce biçimlendirilecek kodu yapıştır.'
+                  )
+                }}
+                className="rounded-lg bg-purple-600 px-5 py-3 font-bold"
+              >
                 ✨ Biçimlendir
               </button>
               <button onClick={() => copy(formatResult, 'Düzenlenmiş kod')} disabled={!formatResult} className="rounded-lg bg-white/10 px-5 py-3 font-bold disabled:opacity-40">
@@ -365,7 +436,12 @@ body, p, button {
             {formatResult && (
               <div className="mt-6">
                 <p className="font-bold mb-2">Düzenlenmiş sonuç</p>
-                <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-[#090b10] p-4 text-xs text-green-300">{formatResult}</pre>
+                <textarea
+                  value={formatResult}
+                  onChange={(event) => setFormatResult(event.target.value)}
+                  spellCheck={false}
+                  className="min-h-64 w-full rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-xs text-green-300 outline-none"
+                />
                 <p className="text-xs text-amber-300 mt-3">Not: Bu temel bir biçimlendiricidir; karmaşık JavaScript kodlarında tam bir Prettier alternatifi değildir.</p>
               </div>
             )}

@@ -3,12 +3,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-
-declare global {
-  interface Window {
-    puter?: any
-  }
-}
+import { askAI } from '../../../lib/ai-client'
 
 type CriticResult = {
   score: number
@@ -49,11 +44,6 @@ export default function CriticPage() {
   const analyze = async () => {
     if (!html.trim() && !css.trim() && !js.trim()) {
       setError('Analiz için en az bir kod alanını doldurmalısın.')
-      return
-    }
-
-    if (!window.puter?.ai?.chat) {
-      setError('Puter.js yüklenmedi. Sayfayı yenileyip tekrar dene.')
       return
     }
 
@@ -141,15 +131,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
 `
 
     try {
-      const response = await window.puter.ai.chat(
-        prompt,
-        { model: 'gpt-4o-mini' }
-      )
-
-      const raw =
-        response?.message?.content ||
-        response?.text ||
-        ''
+      const raw = await askAI({ prompt })
 
       if (typeof raw !== 'string' || !raw.trim()) {
         throw new Error('AI yanıtı alınamadı.')

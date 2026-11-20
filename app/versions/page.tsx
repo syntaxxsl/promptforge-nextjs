@@ -79,11 +79,22 @@ export default function VersionsPage() {
     setSelectedVersion(null)
     setMessage('')
 
+    if (!projectId) return
+
+    // userId state'i ilk yüklemede henüz boş olabiliyor; oturumdan oku.
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser()
+
+    if (authError || !authData.user) {
+      setMessage('Oturum bulunamadı. Tekrar giriş yapmalısın.')
+      return
+    }
+
     const { data, error } = await supabase
       .from('project_versions')
       .select('*')
       .eq('project_id', projectId)
-      .eq('user_id', userId)
+      .eq('user_id', authData.user.id)
       .order('created_at', { ascending: false })
 
     if (error) {

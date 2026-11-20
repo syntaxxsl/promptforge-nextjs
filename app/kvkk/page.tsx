@@ -19,7 +19,7 @@ const sections = [
   },
   {
     title: 'Üçüncü taraflar',
-    body: 'Kimlik doğrulama ve veri saklama için Supabase, barındırma için Vercel, önizleme görseli oluşturma için ScreenshotOne ve yapay zeka üretimi için Puter altyapısı kullanılır. Bu servisler yalnızca işlem için gereken veriyi alır.',
+    body: 'Kimlik doğrulama ve veri saklama için Supabase, barındırma için Vercel, önizleme görseli oluşturma için ScreenshotOne ve yapay zekâ üretimi için seçilen sağlayıcı (varsayılan olarak Groq) kullanılır. Kendi API anahtarını eklediğinde istekler doğrudan o sağlayıcıya iletilir; anahtar şifreli saklanır. Bu servisler yalnızca işlem için gereken veriyi alır.',
   },
   {
     title: 'Haklarınız',

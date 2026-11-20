@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { askAI as askAIServer } from '../../lib/ai-client'
 import Icon, { type IconName } from '../components/Icon'
 
 type Notification = {
@@ -42,26 +43,6 @@ type Project = {
   deleted_at?: string | null
   updated_at?: string
   [key: string]: any
-}
-
-declare global {
-  interface Window {
-    puter?: any
-  }
-}
-
-function getAIText(response: any): string {
-  if (typeof response === 'string') return response
-
-  const content = response?.message?.content
-
-  if (typeof content === 'string') return content
-
-  if (Array.isArray(content)) {
-    return content.map((item: any) => item?.text || '').join('\n')
-  }
-
-  return response?.text || ''
 }
 
 function parseCode(raw: string) {
@@ -547,17 +528,9 @@ export default function Home() {
     })
   }, [])
 
-  // AI ÇAĞRISI
+  // AI ÇAĞRISI (sunucu üzerinden; Groq varsayılan)
   const askAI = async (promptText: string) => {
-    if (!window.puter?.ai?.chat) {
-      throw new Error('AI servisi henüz yüklenmedi. Birkaç saniye sonra tekrar dene.')
-    }
-
-    const response = await window.puter.ai.chat(promptText, {
-      model: 'gpt-4o-mini',
-    })
-
-    return getAIText(response)
+    return askAIServer({ prompt: promptText })
   }
 
   // TEMA

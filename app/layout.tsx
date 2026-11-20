@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import Script from 'next/script'
 import KvkkBanner from '../components/KvkkBanner'
 
 export const metadata: Metadata = {
@@ -37,7 +36,6 @@ export default function RootLayout({
       <body style={{ margin: 0 }}>
         {children}
         <KvkkBanner />
-        <Script src="https://js.puter.com/v2/" strategy="beforeInteractive" />
       </body>
     </html>
   )

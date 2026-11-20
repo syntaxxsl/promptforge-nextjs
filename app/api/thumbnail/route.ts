@@ -102,9 +102,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Gerçek ekran görüntüsünü oluştur
-    const screenshotResponse = await fetch(
-      'https://api.screenshotone.com/take',
-      {
+    const takeScreenshot = (waitUntil: string) =>
+      fetch('https://api.screenshotone.com/take', {
         method: 'POST',
         headers: {
           'X-Access-Key': screenshotKey,
@@ -119,19 +118,52 @@ export async function POST(request: NextRequest) {
           image_quality: 80,
           block_ads: true,
           block_cookie_banners: true,
-          wait_until: ['load']
+          wait_until: [waitUntil]
         }),
-        signal: AbortSignal.timeout(90000)
-      }
-    )
+        signal: AbortSignal.timeout(60000)
+      })
+
+    let screenshotResponse = await takeScreenshot('load')
+
+    // "load" beklemesi büyük projelerde zaman aşımına düşebiliyor:
+    // 5xx/504 cevabında bir kez daha, daha erken hazır olan eşikle dene.
+    if (!screenshotResponse.ok && screenshotResponse.status >= 500) {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      screenshotResponse = await takeScreenshot('domcontentloaded')
+    }
 
     if (!screenshotResponse.ok) {
       const errorText = await screenshotResponse.text()
 
-      console.error('ScreenshotOne error:', errorText)
+      console.error('ScreenshotOne error:', screenshotResponse.status, errorText)
+
+      const status = screenshotResponse.status
+
+      if (status === 401 || status === 403) {
+        return NextResponse.json(
+          {
+            error:
+              'Ekran görüntüsü servisinin anahtarı geçersiz. SCREENSHOTONE_ACCESS_KEY ayarını kontrol et.'
+          },
+          { status: 502 }
+        )
+      }
+
+      if (status === 402 || status === 429) {
+        return NextResponse.json(
+          {
+            error:
+              'Ekran görüntüsü kotası doldu. Bir süre sonra tekrar dene.'
+          },
+          { status: 429 }
+        )
+      }
 
       return NextResponse.json(
-        { error: 'Ekran görüntüsü oluşturulamadı.' },
+        {
+          error:
+            'Ekran görüntüsü oluşturulamadı. Proje çok büyükse kodu kısaltıp tekrar dene.'
+        },
         { status: 502 }
       )
     }

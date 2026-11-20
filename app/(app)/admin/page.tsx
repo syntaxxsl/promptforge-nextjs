@@ -476,9 +476,14 @@ export default function AdminPanel() {
       { key: 'support', label: 'Destek', permission: 'support' },
       { key: 'reports', label: 'Raporlar', permission: 'reports' },
       { key: 'security', label: 'Güvenlik', permission: 'security' },
+      { key: 'ai', label: 'Yapay Zekâ', permission: null },
       { key: 'logs', label: 'Kayıtlar', permission: 'logs' },
     ] as { key: string; label: string; permission: PermissionKey | null }[]
-  ).filter((item) => !item.permission || canAccess(item.permission))
+  ).filter(
+    (item) =>
+      (!item.permission || canAccess(item.permission)) &&
+      (item.key !== 'ai' || me.role === 'admin')
+  )
 
   const fetchIpBans = async () => {
     try {
@@ -637,6 +642,90 @@ export default function AdminPanel() {
       setMessage('Engel kaldırıldı.')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Engel kaldırılamadı.')
+    }
+  }
+
+  // YAPAY ZEKÂ AYARLARI
+  const [aiSettings, setAiSettings] = useState<{
+    defaultProvider: string
+    dailyLimit: number
+    enabledProviders: string[]
+    models: Record<string, string>
+    needsSetup: boolean
+  } | null>(null)
+  const [aiProviders, setAiProviders] = useState<
+    {
+      id: string
+      name: string
+      note: string
+      defaultModel: string
+      visionModel: string | null
+      keyUrl: string
+      keySet: boolean
+      model: string
+    }[]
+  >([])
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiSaving, setAiSaving] = useState(false)
+  const [aiNote, setAiNote] = useState('')
+
+  const fetchAISettings = async () => {
+    setAiLoading(true)
+    setAiNote('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/ai-settings', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Yapay zekâ ayarları alınamadı.')
+      }
+
+      setAiSettings(result.settings)
+      setAiProviders(result.providers || [])
+    } catch (error) {
+      setAiNote(
+        error instanceof Error ? error.message : 'Yapay zekâ ayarları alınamadı.'
+      )
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const saveAI = async () => {
+    if (!aiSettings) return
+
+    setAiSaving(true)
+    setAiNote('')
+
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/admin/ai-settings', {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(aiSettings),
+      })
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Ayarlar kaydedilemedi.')
+      }
+
+      setAiNote('Yapay zekâ ayarları kaydedildi.')
+      await fetchAISettings()
+    } catch (error) {
+      setAiNote(
+        error instanceof Error ? error.message : 'Ayarlar kaydedilemedi.'
+      )
+    } finally {
+      setAiSaving(false)
     }
   }
 
@@ -1114,7 +1203,10 @@ export default function AdminPanel() {
           {tabs.map((item) => (
             <button
               key={item.key}
-              onClick={() => setTab(item.key)}
+              onClick={() => {
+                setTab(item.key)
+                if (item.key === 'ai' && !aiSettings) fetchAISettings()
+              }}
               className={`rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
                 tab === item.key
                   ? 'bg-white/[0.07] text-white'
@@ -2501,6 +2593,214 @@ export default function AdminPanel() {
             </div>
           </div>
         )}
+
+        {/* YAPAY ZEKÂ */}
+        <section
+          className={`${tab === 'ai' ? '' : 'hidden'} bg-[#11141d] border border-white/10 rounded-2xl p-5 mb-8`}
+        >
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold">Yapay Zekâ</h2>
+              <p className="mt-1 max-w-2xl text-sm text-gray-400">
+                Varsayılan sağlayıcı, model ve günlük ücretsiz istek hakkı.
+                Kullanıcı kendi anahtarını eklerse bu sınıra takılmaz.
+              </p>
+            </div>
+
+            <button
+              onClick={fetchAISettings}
+              disabled={aiLoading}
+              className="rounded-lg border border-white/10 px-4 py-2.5 text-[13px] font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
+            >
+              {aiLoading ? 'Yükleniyor...' : 'Yenile'}
+            </button>
+          </div>
+
+          {aiNote && (
+            <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-yellow-300">
+              {aiNote}
+            </div>
+          )}
+
+          {aiSettings?.needsSetup && (
+            <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+              <p className="font-semibold">Veritabanı kurulumu eksik</p>
+              <p className="mt-1 text-amber-200/80">
+                Ayarları kaydedebilmek için Supabase SQL Editor üzerinde{' '}
+                <span className="font-mono">db/ai.sql</span> dosyasını bir kez
+                çalıştırman gerekiyor.
+              </p>
+            </div>
+          )}
+
+          {aiLoading && !aiSettings ? (
+            <p className="py-8 text-center text-sm text-gray-400">
+              Yapay zekâ ayarları yükleniyor...
+            </p>
+          ) : aiSettings ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm text-gray-400">
+                    Varsayılan sağlayıcı
+                  </span>
+                  <select
+                    value={aiSettings.defaultProvider}
+                    onChange={(event) =>
+                      setAiSettings({
+                        ...aiSettings,
+                        defaultProvider: event.target.value,
+                      })
+                    }
+                    className="w-full rounded-xl border border-gray-700 bg-[#090b10] p-3 text-white outline-none focus:border-purple-500"
+                  >
+                    {aiSettings.enabledProviders.map((id) => (
+                      <option key={id} value={id}>
+                        {aiProviders.find((item) => item.id === id)?.name || id}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-sm text-gray-400">
+                    Günlük ücretsiz istek hakkı
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={10000}
+                    value={aiSettings.dailyLimit}
+                    onChange={(event) =>
+                      setAiSettings({
+                        ...aiSettings,
+                        dailyLimit: Math.max(0, Number(event.target.value) || 0),
+                      })
+                    }
+                    className="w-full rounded-xl border border-gray-700 bg-[#090b10] p-3 text-white outline-none focus:border-purple-500"
+                  />
+                  <span className="mt-1 block text-xs text-gray-500">
+                    0 = sınırsız. Yalnızca sitenin kendi anahtarıyla yapılan
+                    istekler sayılır.
+                  </span>
+                </label>
+              </div>
+
+              <div className="mt-6">
+                <p className="mb-3 text-sm font-semibold">Sağlayıcılar</p>
+
+                <div className="space-y-3">
+                  {aiProviders.map((provider) => {
+                    const enabled = aiSettings.enabledProviders.includes(
+                      provider.id
+                    )
+
+                    return (
+                      <div
+                        key={provider.id}
+                        className="rounded-xl border border-white/10 bg-[#090b10] p-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <label className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={enabled}
+                              onChange={(event) =>
+                                setAiSettings({
+                                  ...aiSettings,
+                                  enabledProviders: event.target.checked
+                                    ? [...aiSettings.enabledProviders, provider.id]
+                                    : aiSettings.enabledProviders.filter(
+                                        (item) => item !== provider.id
+                                      ),
+                                })
+                              }
+                              className="mt-1 accent-purple-600"
+                            />
+                            <span>
+                              <span className="font-semibold">
+                                {provider.name}
+                              </span>
+                              <span
+                                className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                  provider.keySet
+                                    ? 'bg-green-500/15 text-green-300'
+                                    : 'bg-white/10 text-gray-400'
+                                }`}
+                              >
+                                {provider.keySet
+                                  ? 'sunucu anahtarı var'
+                                  : 'sunucu anahtarı yok'}
+                              </span>
+                              <span className="mt-1 block text-xs text-gray-500">
+                                {provider.note}
+                              </span>
+                            </span>
+                          </label>
+
+                          <a
+                            href={provider.keyUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-purple-300 hover:text-purple-200"
+                          >
+                            Anahtar al ↗
+                          </a>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <span className="text-xs text-gray-500">Model</span>
+                          <input
+                            value={
+                              aiSettings.models[provider.id] ?? provider.model
+                            }
+                            onChange={(event) =>
+                              setAiSettings({
+                                ...aiSettings,
+                                models: {
+                                  ...aiSettings.models,
+                                  [provider.id]: event.target.value,
+                                },
+                              })
+                            }
+                            placeholder={provider.defaultModel}
+                            className="min-w-[240px] flex-1 rounded-lg border border-gray-700 bg-[#05060a] px-3 py-2 font-mono text-xs text-gray-200 outline-none focus:border-purple-500"
+                          />
+                          {provider.visionModel && (
+                            <span className="text-[11px] text-gray-500">
+                              görsel: {provider.visionModel}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-gray-500">
+                  Sunucu anahtarları Vercel ortam değişkenlerinden okunur:{' '}
+                  <span className="font-mono">GROQ_API_KEY</span>,{' '}
+                  <span className="font-mono">OPENAI_API_KEY</span>,{' '}
+                  <span className="font-mono">GEMINI_API_KEY</span>...
+                </p>
+
+                <button
+                  onClick={saveAI}
+                  disabled={aiSaving}
+                  className="rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-purple-500 disabled:opacity-50"
+                >
+                  {aiSaving ? 'Kaydediliyor...' : 'Ayarları kaydet'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="py-8 text-center text-sm text-gray-400">
+              Ayarları görmek için Yenile'ye bas.
+            </p>
+          )}
+        </section>
       </div>
     </main>
   )

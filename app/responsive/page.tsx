@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const devices = [
@@ -21,6 +21,17 @@ export default function ResponsivePage() {
   const [customWidth, setCustomWidth] = useState('375')
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
+  const [sameHost, setSameHost] = useState(false)
+
+  // Kendi sitemiz önizlenirken sandbox içinde same-origin'e izin verilir;
+  // aksi halde Next.js chunk'ları CORS/CORP nedeniyle yüklenmiyor.
+  useEffect(() => {
+    try {
+      setSameHost(new URL(previewUrl).host === window.location.host)
+    } catch {
+      setSameHost(false)
+    }
+  }, [previewUrl])
 
   const changeWidth = (value: number) => {
     const safeWidth = Math.min(1920, Math.max(280, value))
@@ -178,7 +189,11 @@ export default function ResponsivePage() {
                   width: `${width}px`,
                   height: '750px'
                 }}
-                sandbox="allow-scripts allow-forms"
+                sandbox={
+                  sameHost
+                    ? 'allow-scripts allow-same-origin allow-forms'
+                    : 'allow-scripts allow-forms'
+                }
                 referrerPolicy="no-referrer"
               />
             </div>
