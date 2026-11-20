@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -213,74 +214,134 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-[#090b10] text-white font-sans">
-      <div className="w-full max-w-md p-8 bg-[#11141d] border border-[#1e2431] rounded-xl shadow-[0_0_40px_rgba(168,85,247,0.18)]">
-        <h1 className="text-2xl font-bold text-center text-[#a855f7] mb-2">PromptForge</h1>
-        <p className="text-center text-gray-400 text-sm mb-6">
-          {isLogin ? 'Hesabınıza giriş yapın' : 'Yeni bir hesap oluşturun'}
-        </p>
-
-        {message && (
-          <div className="p-3 mb-4 text-sm text-center bg-[#1e2431] rounded border border-[#a855f7] text-[#a855f7]">
-            {message}
-          </div>
-        )}
-
-        <form onSubmit={handleAuth} className="flex flex-col gap-4">
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">E-POSTA</label>
-            <input 
-              type="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 bg-[#090b10] border border-[#1e2431] rounded-lg text-white outline-none focus:border-[#a855f7]"
-              required 
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">ŞİFRE</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 bg-[#090b10] border border-[#1e2431] rounded-lg text-white outline-none focus:border-[#a855f7]"
-              required 
-            />
-          </div>
-          
-          {turnstileSiteKey && (
-            <div ref={turnstileRef} className="flex justify-center" />
-          )}
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full py-3 mt-2 bg-[#a855f7] text-white font-bold rounded-lg hover:bg-purple-400 transition disabled:opacity-50"
-          >
-            {loading ? 'İşleniyor...' : (isLogin ? 'GİRİŞ YAP' : 'KAYIT OL')}
-          </button>
-
-          {isLogin && (
-            <button
-              type="button"
-              onClick={handlePasswordReset}
-              disabled={resetLoading}
-              className="text-xs text-gray-400 hover:text-[#a855f7] transition disabled:opacity-50"
-            >
-              {resetLoading ? 'Gönderiliyor...' : 'Şifremi unuttum'}
-            </button>
-          )}
-        </form>
-
-        <div className="mt-6 text-center">
-          <button 
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-gray-400 hover:text-[#a855f7] transition"
-          >
-            {isLogin ? 'Hesabınız yok mu? Kayıt Olun' : 'Zaten hesabınız var mı? Giriş Yapın'}
-          </button>
-        </div>
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#05060f] px-4 py-10 font-sans text-white">
+      {/* Arka plan ışıkları — ana sayfayla aynı */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-40 -top-48 h-[560px] w-[560px] rounded-full bg-[#7c3aed]/25 blur-[150px]" />
+        <div className="absolute -right-24 top-10 h-[420px] w-[420px] rounded-full bg-[#2563eb]/20 blur-[140px]" />
+        <div className="absolute -bottom-40 left-1/3 h-[380px] w-[620px] rounded-full bg-[#4f46e5]/10 blur-[150px]" />
       </div>
-    </div>
+
+      <div className="relative w-full max-w-[430px]">
+        <Link href="/" className="mb-5 flex items-center justify-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#a855f7] to-[#4f46e5] text-lg font-black shadow-[0_0_20px_rgba(124,58,237,0.7)]">
+            P
+          </span>
+          <span className="text-lg font-extrabold tracking-tight">
+            Prompt
+            <span className="bg-gradient-to-r from-[#c4b5fd] to-[#60a5fa] bg-clip-text text-transparent">
+              Forge
+            </span>
+          </span>
+        </Link>
+
+        <div className="rounded-2xl border border-white/10 bg-[#080a13]/95 p-6 shadow-[0_40px_120px_-40px_rgba(109,40,217,0.9)] backdrop-blur sm:p-7">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#7c3aed]/40 bg-[#7c3aed]/10 px-3 py-1 text-[11px] font-semibold tracking-wide text-[#c4b5fd]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#a855f7]" />
+            {isLogin ? 'Hesap Girişi' : 'Yeni Hesap'}
+          </span>
+
+          <h1 className="mt-4 text-2xl font-extrabold tracking-tight">
+            {isLogin ? 'Tekrar hoş geldin' : 'Hesabını oluştur'}
+          </h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-gray-400">
+            {isLogin
+              ? 'Hesabına giriş yap, kaldığın yerden devam et.'
+              : 'Hesabını aç, admin onayından sonra kullanmaya başla.'}
+          </p>
+
+          {message && (
+            <div className="mt-5 rounded-xl border border-[#7c3aed]/40 bg-[#7c3aed]/10 px-3.5 py-3 text-sm leading-relaxed text-[#ddd6fe]">
+              {message}
+            </div>
+          )}
+
+          <form onSubmit={handleAuth} className="mt-5 flex flex-col gap-4">
+            <div>
+              <label htmlFor="pf-email" className="mb-1.5 block text-[11px] font-semibold tracking-[0.08em] text-gray-500">
+                E-POSTA
+              </label>
+              <input
+                id="pf-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                placeholder="ornek@mail.com"
+                className="w-full rounded-xl bg-white/[0.03] px-3.5 py-3 text-sm text-white outline-none ring-1 ring-inset ring-white/10 transition placeholder:text-gray-600 focus:bg-white/[0.05] focus:ring-2 focus:ring-[#7c3aed]"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="pf-password" className="mb-1.5 block text-[11px] font-semibold tracking-[0.08em] text-gray-500">
+                ŞİFRE
+              </label>
+              <input
+                id="pf-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                placeholder="••••••••"
+                className="w-full rounded-xl bg-white/[0.03] px-3.5 py-3 text-sm text-white outline-none ring-1 ring-inset ring-white/10 transition placeholder:text-gray-600 focus:bg-white/[0.05] focus:ring-2 focus:ring-[#7c3aed]"
+                required
+              />
+            </div>
+
+            {turnstileSiteKey && (
+              <div className="flex min-h-[66px] items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.02] px-2 py-1.5">
+                <div ref={turnstileRef} />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7c3aed] via-[#6366f1] to-[#3b82f6] py-3.5 text-sm font-semibold text-white shadow-[0_12px_40px_-12px_rgba(124,58,237,1)] transition hover:brightness-110 disabled:opacity-60"
+            >
+              {loading ? 'İşleniyor...' : isLogin ? 'Giriş Yap' : 'Kayıt Ol'}
+              {!loading && (
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              )}
+            </button>
+
+            {isLogin && (
+              <button
+                type="button"
+                onClick={handlePasswordReset}
+                disabled={resetLoading}
+                className="mt-1 self-center text-xs text-gray-500 transition hover:text-[#c4b5fd] disabled:opacity-50"
+              >
+                {resetLoading ? 'Gönderiliyor...' : 'Şifremi unuttum'}
+              </button>
+            )}
+          </form>
+
+          <div className="mt-6 flex items-center gap-3">
+            <span className="h-px flex-1 bg-white/10" />
+            <span className="text-[11px] font-medium text-gray-600">veya</span>
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
+
+          <Link
+            href={isLogin ? '/auth?mode=signup' : '/auth'}
+            onClick={(e) => {
+              e.preventDefault()
+              setMessage('')
+              setIsLogin(!isLogin)
+            }}
+            className="mt-4 flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] py-3 text-sm font-medium text-gray-200 transition hover:bg-white/[0.07]"
+          >
+            {isLogin ? 'Hesabın yok mu? Kayıt ol' : 'Zaten hesabın var mı? Giriş yap'}
+          </Link>
+        </div>
+
+        <p className="mt-5 text-center text-[11px] leading-relaxed text-gray-600">
+          Robotlara karşı Cloudflare doğrulaması ile korunuyor.
+        </p>
+      </div>
+    </main>
   )
 }
