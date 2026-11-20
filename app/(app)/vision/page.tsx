@@ -197,10 +197,7 @@ JavaScript kodu
   }
 
   const copyCode = async () => {
-    const code =
-      activeTab === 'html' ? result.html :
-      activeTab === 'css' ? result.css :
-      result.js
+    const code = getPreview()
 
     try {
       await navigator.clipboard.writeText(code)
@@ -351,9 +348,7 @@ JavaScript kodu
             <div className="mb-4 flex flex-wrap gap-2">
               {[
                 ['preview', 'Önizleme'],
-                ['html', 'HTML'],
-                ['css', 'CSS'],
-                ['js', 'JavaScript']
+                ['code', 'Tek dosya kod']
               ].map(([key, label]) => (
                 <button
                   key={key}
@@ -392,9 +387,7 @@ JavaScript kodu
               ) : (
                 <div className="relative min-h-[420px]">
                   <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words p-4 text-xs leading-6 text-green-300">
-                    {activeTab === 'html' ? result.html :
-                     activeTab === 'css' ? result.css :
-                     result.js || 'Henüz kod oluşturulmadı.'}
+                    {getPreview() || 'Henüz kod oluşturulmadı.'}
                   </pre>
                 </div>
               )}

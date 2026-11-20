@@ -40,6 +40,34 @@ export function asProjectFiles(value: unknown): ProjectFile[] | null {
   return files.length ? files : null
 }
 
+/** Tek bir HTML belgesini HTML/CSS/JS parçalarına ayırır. */
+export function splitDocument(documentText: string) {
+  let html = String(documentText || '').trim()
+  let css = ''
+  let js = ''
+
+  const style = /<style[^>]*>([\s\S]*?)<\/style>/i.exec(html)
+
+  if (style) {
+    css = style[1].trim()
+    html = html.replace(style[0], '')
+  }
+
+  const scripts: string[] = []
+
+  html = html.replace(
+    /<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi,
+    (_match, body) => {
+      if (String(body).trim()) scripts.push(String(body).trim())
+      return ''
+    }
+  )
+
+  js = scripts.join('\n\n')
+
+  return { html: html.trim(), css, js }
+}
+
 export function entryFile(files: ProjectFile[]): ProjectFile | null {
   return (
     files.find((file) => /^index\.html?$/i.test(file.path)) ||

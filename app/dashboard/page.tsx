@@ -640,7 +640,15 @@ export default function Home() {
 
       setPrompt(job.prompt)
       setProjectTitle(job.title)
-      setProjectFiles(null)
+      // Üretilen proje doğrudan dosyalara bölünür: index.html + style.css + app.js
+      const generatedFiles = splitToFiles(
+        job.html || '',
+        job.css || '',
+        job.js || '',
+        job.title
+      )
+      setProjectFiles(generatedFiles)
+      setActiveFile(entryFile(generatedFiles)?.path || 'index.html')
       setCodeHtml(job.html || '')
       setCodeCss(job.css || '')
       setCodeJs(job.js || '')
@@ -670,7 +678,14 @@ export default function Home() {
       if (restored.kind === 'variants') {
         setDesignVariants(restored.variants || [])
       } else {
-        setProjectFiles(null)
+        const restoredFiles = splitToFiles(
+          restored.html || '',
+          restored.css || '',
+          restored.js || '',
+          restored.title
+        )
+        setProjectFiles(restoredFiles)
+        setActiveFile(entryFile(restoredFiles)?.path || 'index.html')
         setCodeHtml(restored.html || '')
         setCodeCss(restored.css || '')
         setCodeJs(restored.js || '')
@@ -1067,7 +1082,14 @@ export default function Home() {
   }
 
   const handleSelectVariation = (variant: DesignVariant) => {
-    setProjectFiles(null)
+    const variantFiles = splitToFiles(
+      variant.html,
+      variant.css,
+      variant.js,
+      `${prompt.slice(0, 25)} - ${variant.name}`
+    )
+    setProjectFiles(variantFiles)
+    setActiveFile(entryFile(variantFiles)?.path || 'index.html')
     setCodeHtml(variant.html)
     setCodeCss(variant.css)
     setCodeJs(variant.js)

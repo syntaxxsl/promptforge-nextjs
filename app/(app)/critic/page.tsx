@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { askAI } from '../../../lib/ai-client'
+import { splitDocument } from '../../../lib/project-files'
 
 type CriticResult = {
   score: number
@@ -33,19 +34,21 @@ const initialResult: CriticResult = {
 }
 
 export default function CriticPage() {
-  const [html, setHtml] = useState('')
-  const [css, setCss] = useState('')
-  const [js, setJs] = useState('')
+  // Tek alan: kullanıcı kodu bir bütün olarak yapıştırır.
+  const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<CriticResult | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
 
   const analyze = async () => {
-    if (!html.trim() && !css.trim() && !js.trim()) {
-      setError('Analiz için en az bir kod alanını doldurmalısın.')
+    if (!code.trim()) {
+      setError('Analiz için kodunu yapıştırmalısın.')
       return
     }
+
+    // Stil ve script etiketleri belgeden ayrılıp modele ayrı ayrı verilir.
+    const { html, css, js } = splitDocument(code)
 
     setLoading(true)
     setError('')
@@ -245,60 +248,26 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
 
           <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5 sm:p-7">
             <div className="mb-6">
-              <h2 className="font-semibold">01. Kodlarını Ekle</h2>
+              <h2 className="font-semibold">01. Kodunu Ekle</h2>
               <p className="mt-2 text-sm text-gray-500">
-                Analiz edilmesini istediğin kodları ilgili alanlara yapıştır.
+                Kodunu bir bütün olarak yapıştır. Stil ve script etiketleri otomatik ayrılır.
               </p>
             </div>
 
             <div className="mb-5">
               <label className="mb-2 block text-sm font-medium text-gray-300">
-                HTML
+                Kodun
               </label>
               <textarea
-                value={html}
-                onChange={e => setHtml(e.target.value)}
-                rows={8}
-                maxLength={15000}
-                placeholder="HTML kodunu buraya yapıştır..."
+                value={code}
+                onChange={e => setCode(e.target.value)}
+                rows={18}
+                maxLength={40000}
+                placeholder="HTML, CSS ve script kodunu bir arada buraya yapıştır..."
                 className="w-full resize-y rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-xs leading-6 text-green-300 outline-none transition focus:border-purple-500"
               />
               <p className="mt-1 text-right text-xs text-gray-600">
-                {html.length}/15000
-              </p>
-            </div>
-
-            <div className="mb-5">
-              <label className="mb-2 block text-sm font-medium text-gray-300">
-                CSS
-              </label>
-              <textarea
-                value={css}
-                onChange={e => setCss(e.target.value)}
-                rows={8}
-                maxLength={15000}
-                placeholder="CSS kodunu buraya yapıştır..."
-                className="w-full resize-y rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-xs leading-6 text-purple-300 outline-none transition focus:border-purple-500"
-              />
-              <p className="mt-1 text-right text-xs text-gray-600">
-                {css.length}/15000
-              </p>
-            </div>
-
-            <div className="mb-5">
-              <label className="mb-2 block text-sm font-medium text-gray-300">
-                JavaScript
-              </label>
-              <textarea
-                value={js}
-                onChange={e => setJs(e.target.value)}
-                rows={7}
-                maxLength={10000}
-                placeholder="JavaScript kodunu buraya yapıştır..."
-                className="w-full resize-y rounded-xl border border-white/10 bg-[#090b10] p-4 font-mono text-xs leading-6 text-yellow-300 outline-none transition focus:border-purple-500"
-              />
-              <p className="mt-1 text-right text-xs text-gray-600">
-                {js.length}/10000
+                {code.length}/40000
               </p>
             </div>
 
@@ -310,7 +279,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
 
             <button
               onClick={analyze}
-              disabled={loading || (!html.trim() && !css.trim() && !js.trim())}
+              disabled={loading || !code.trim()}
               className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-4 font-semibold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? '✦ Kodların İnceleniyor...' : '✦ AI ile Tasarımı Analiz Et'}
