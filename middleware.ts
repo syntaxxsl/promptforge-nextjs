@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimitDistributed } from './lib/security'
 
 /**
  * Güvenlik duvarının uygulama tarafındaki katmanı.
@@ -163,20 +164,11 @@ async function checkDatabaseBan(ip: string, origin: string) {
   }
 }
 
-function apiLimit(ip: string) {
-  const now = Date.now()
-  const existing = apiHits.get(ip)
-
-  if (!existing || existing.reset <= now) {
-    if (apiHits.size > 5000) apiHits.clear()
-    apiHits.set(ip, { count: 1, reset: now + API_WINDOW_MS })
-    return true
-  }
-
-  if (existing.count >= API_LIMIT) return false
-
-  existing.count += 1
-  return true
+async function apiLimit(ip: string) {
+  // UPSTASH_REDIS_REST_URL/TOKEN tanımlıysa sayaç örnekler arası paylaşılır,
+  // tanımlı değilse bellek içi sayaca düşer.
+  const limit = await rateLimitDistributed(`api:${ip}`, API_LIMIT, API_WINDOW_MS)
+  return limit.ok
 }
 
 /**
@@ -341,7 +333,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // API için dakikalık sınır.
-    if (path.startsWith('/api/') && !apiLimit(ip)) {
+    if (path.startsWith('/api/') && !(await apiLimit(ip))) {
       reportEvent(request, `api-rate:${ip}`, { kind: 'api.rate', severity: 'warning' }, 300_000)
 
       return NextResponse.json(

@@ -1,9 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { askAIResult } from '../../lib/ai-client'
+import {
+  getGenerationJob,
+  loadGenerationJob,
+  startGeneration,
+  subscribeGeneration,
+  type GenerationJob,
+} from '../../lib/generation'
 import Icon, { type IconName } from '../components/Icon'
 
 type Notification = {
@@ -418,6 +425,7 @@ export default function Home() {
   const [navOpen, setNavOpen] = useState(false)
   const [navCollapsed, setNavCollapsed] = useState(false)
   const [error, setError] = useState('')
+  const appliedJobRef = useRef<string | null>(null)
   const [saveStatus, setSaveStatus] = useState('')
 
   // AI ÜRETİM
@@ -572,6 +580,97 @@ export default function Home() {
       return [notification, ...previous].slice(0, 50)
     })
   }, [])
+
+  // ÜRETİM KUYRUĞU: sayfadan çıkılsa bile devam eder, dönünce sonucu geri yükler
+  useEffect(() => {
+    if (!userId) return
+
+    const applyJob = (job: GenerationJob | null) => {
+      if (!job || job.userId !== userId) return
+
+      if (job.status === 'running') {
+        if (job.kind === 'variants') {
+          setVariationLoading(true)
+          setDesignVariants(job.variants || [])
+        } else if (job.kind === 'wizard') {
+          setWizardLoading(true)
+        } else {
+          setLoading(true)
+        }
+        return
+      }
+
+      if (appliedJobRef.current === job.id) return
+      appliedJobRef.current = job.id
+
+      setLoading(false)
+      setVariationLoading(false)
+      setWizardLoading(false)
+
+      if (typeof job.remaining === 'number') setQuotaLeft(job.remaining)
+
+      if (job.status === 'error') {
+        setError(job.error || 'Site oluşturulurken hata oluştu.')
+        return
+      }
+
+      if (job.kind === 'variants') {
+        setDesignVariants(job.variants || [])
+        setPrompt(job.prompt)
+        addNotification(
+          'Tasarım seçenekleri hazır',
+          'Üç farklı tasarım oluşturuldu.'
+        )
+        return
+      }
+
+      setPrompt(job.prompt)
+      setProjectTitle(job.title)
+      setCodeHtml(job.html || '')
+      setCodeCss(job.css || '')
+      setCodeJs(job.js || '')
+      setCurrentProjectId(null)
+      setSelectedTags([])
+      setChatMessages([])
+      setReviewResult('')
+      setDesignSuggestions('')
+      setDesignVariants([])
+      setActiveTab('html')
+      setActiveView('editor')
+      setShowWizard(false)
+      addNotification(
+        job.kind === 'wizard' ? 'Code Wizard tamamlandı' : 'Proje oluşturuldu',
+        job.kind === 'wizard'
+          ? 'Yeni web siten hazır.'
+          : 'AI web sitesi kodlarını hazırladı.'
+      )
+    }
+
+    // Sayfaya dönüldüğünde yarım kalan işi sessizce geri yükle
+    const restored = loadGenerationJob(userId)
+
+    if (restored && restored.status === 'done') {
+      appliedJobRef.current = restored.id
+
+      if (restored.kind === 'variants') {
+        setDesignVariants(restored.variants || [])
+      } else {
+        setCodeHtml(restored.html || '')
+        setCodeCss(restored.css || '')
+        setCodeJs(restored.js || '')
+        setProjectTitle(restored.title)
+      }
+    }
+
+    if (restored && restored.status === 'error') {
+      appliedJobRef.current = restored.id
+      setError(restored.error || 'Site oluşturulurken hata oluştu.')
+    }
+
+    applyJob(getGenerationJob())
+
+    return subscribeGeneration(applyJob)
+  }, [userId, addNotification])
 
   // AI ÇAĞRISI (sunucu üzerinden; Groq varsayılan)
   const askAI = async (promptText: string) => {
@@ -871,177 +970,82 @@ export default function Home() {
     setShowWizard(false)
   }
 
-  // AI WEB SİTESİ OLUŞTUR
-  const handleGenerate = async () => {
+  // AI WEB SİTESİ OLUŞTUR (sayfadan bağımsız üretim kuyruğu)
+  const handleGenerate = () => {
     if (!prompt.trim()) {
       alert('Lütfen oluşturmak istediğin siteyi açıkla.')
       return
     }
 
-    setLoading(true)
+    if (!userId) {
+      setError('Oturum bulunamadı. Sayfayı yenileyip tekrar dene.')
+      return
+    }
+
     setError('')
-    setCodeHtml('')
-    setCodeCss('')
-    setCodeJs('')
     setDesignVariants([])
     setCurrentProjectId(null)
     setProjectTitle(prompt.trim().slice(0, 45))
     setChatMessages([])
     setSelectedTags([])
+    setLoading(true)
 
-    try {
-      const result = await askAI(`Sen kıdemli bir front-end geliştiricisin.
-Kullanıcının fikrine göre eksiksiz, modern ve responsive bir web sitesi oluştur.
-HTML, CSS ve JavaScript kodlarını ayrı döndür.
-Açıklama yazma. Kodları kısaltma.
-
-ÇIKTI FORMATI:
----HTML---
-HTML kodu
----CSS---
-CSS kodu
----JS---
-JavaScript kodu
-
-KULLANICI FİKRİ:
-${prompt}`)
-
-      const parsed = parseCode(result)
-      if (!parsed.html) throw new Error('AI geçerli HTML kodu döndürmedi.')
-
-      setCodeHtml(parsed.html)
-      setCodeCss(parsed.css)
-      setCodeJs(parsed.js)
-      setActiveTab('html')
-      setActiveView('editor')
-      addNotification('Proje oluşturuldu', 'AI web sitesi kodlarını hazırladı.')
-    } catch (err: any) {
-      setError(err.message || 'Site oluşturulurken hata oluştu.')
-    } finally {
-      setLoading(false)
-    }
+    startGeneration({
+      userId,
+      kind: 'site',
+      prompt,
+      title: prompt.trim().slice(0, 45),
+    })
   }
 
   // CODE WIZARD
-  const handleWizardGenerate = async () => {
+  const handleWizardGenerate = () => {
     if (!wizardDescription.trim()) {
       alert('Lütfen oluşturmak istediğin siteyi açıkla.')
       return
     }
 
-    setWizardLoading(true)
-    setError('')
-
-    try {
-      const result = await askAI(`Sen uzman bir UI/UX tasarımcısı ve front-end geliştiricisin.
-
-Proje türü: ${wizardType}
-Tasarım stili: ${wizardStyle}
-İstenen özellikler: ${wizardFeatures.join(', ')}
-Ek açıklama: ${wizardDescription}
-
-Eksiksiz, profesyonel ve responsive web sitesi oluştur.
-Butonlar ve etkileşimler çalışsın.
-HTML, CSS ve JavaScript ayrı olsun.
-Açıklama yazma.
-
----HTML---
-HTML kodu
----CSS---
-CSS kodu
----JS---
-JavaScript kodu`)
-
-      const parsed = parseCode(result)
-      if (!parsed.html) throw new Error('AI geçerli HTML oluşturmadı.')
-
-      setPrompt(`${wizardType}: ${wizardDescription}`)
-      setProjectTitle(wizardType)
-      setCodeHtml(parsed.html)
-      setCodeCss(parsed.css)
-      setCodeJs(parsed.js)
-      setCurrentProjectId(null)
-      setSelectedTags([])
-      setChatMessages([])
-      setReviewResult('')
-      setDesignSuggestions('')
-      setDesignVariants([])
-      setActiveTab('html')
-      setActiveView('editor')
-      setShowWizard(false)
-      addNotification('Code Wizard tamamlandı', 'Yeni web siten hazır.')
-    } catch (err: any) {
-      setError(err.message || 'Code Wizard sırasında hata oluştu.')
-    } finally {
-      setWizardLoading(false)
+    if (!userId) {
+      setError('Oturum bulunamadı. Sayfayı yenileyip tekrar dene.')
+      return
     }
+
+    setError('')
+    setWizardLoading(true)
+
+    startGeneration({
+      userId,
+      kind: 'wizard',
+      prompt: wizardDescription,
+      title: wizardType,
+      wizardType,
+      wizardStyle,
+      wizardFeatures,
+    })
   }
 
   // 3 TASARIM VARYASYONU
-  const handleGenerateVariations = async () => {
+  const handleGenerateVariations = () => {
     if (!prompt.trim()) {
       alert('Önce site fikrini yazmalısın.')
       return
     }
 
-    setVariationLoading(true)
+    if (!userId) {
+      setError('Oturum bulunamadı. Sayfayı yenileyip tekrar dene.')
+      return
+    }
+
     setDesignVariants([])
     setError('')
+    setVariationLoading(true)
 
-    const styles = [
-      {
-        name: 'Modern Minimal',
-        description: 'Sade, ferah ve profesyonel.',
-      },
-      {
-        name: 'Dark Premium',
-        description: 'Koyu arka plan, güçlü kontrast ve premium görünüm.',
-      },
-      {
-        name: 'Creative Colorful',
-        description: 'Canlı renkler ve yaratıcı tasarım.',
-      },
-    ]
-
-    try {
-      const results: DesignVariant[] = []
-
-      for (const style of styles) {
-        const result = await askAI(`Sen uzman bir UI/UX tasarımcısı ve front-end geliştiricisin.
-Kullanıcının fikri: ${prompt}
-Tasarım adı: ${style.name}
-Tasarım açıklaması: ${style.description}
-
-Eksiksiz, responsive ve çalışan web sitesi oluştur.
-HTML, CSS ve JavaScript ayrı olsun.
-Açıklama yazma.
-
----HTML---
-HTML kodu
----CSS---
-CSS kodu
----JS---
-JavaScript kodu`)
-
-        const parsed = parseCode(result)
-        if (!parsed.html) throw new Error(`${style.name} oluşturulamadı.`)
-
-        results.push({
-          ...style,
-          html: parsed.html,
-          css: parsed.css,
-          js: parsed.js,
-        })
-
-        setDesignVariants([...results])
-      }
-
-      addNotification('Tasarım seçenekleri hazır', 'Üç farklı tasarım oluşturuldu.')
-    } catch (err: any) {
-      setError(err.message || 'Tasarım varyasyonları oluşturulamadı.')
-    } finally {
-      setVariationLoading(false)
-    }
+    startGeneration({
+      userId,
+      kind: 'variants',
+      prompt,
+      title: prompt.trim().slice(0, 45),
+    })
   }
 
   const handleSelectVariation = (variant: DesignVariant) => {
@@ -2564,7 +2568,7 @@ ${codeJs}`)
                     disabled={loading || variationLoading}
                     className="flex-1 py-3 rounded-xl bg-[#7c5cff] text-white font-bold disabled:opacity-50"
                   >
-                    {loading ? 'Site oluşturuluyor...' : 'Site Oluştur'}
+                    {loading ? 'Oluşturuluyor… sayfadan çıksan da devam eder' : 'Site Oluştur'}
                   </button>
 
                   <button
