@@ -718,8 +718,9 @@ export default function AdminPanel() {
         throw new Error(result.error || 'Ayarlar kaydedilemedi.')
       }
 
-      setAiNote('Yapay zekâ ayarları kaydedildi.')
+      // fetchAISettings notu temizlediği için mesaj yenilemeden sonra yazılır.
       await fetchAISettings()
+      setAiNote('Yapay zekâ ayarları kaydedildi.')
     } catch (error) {
       setAiNote(
         error instanceof Error ? error.message : 'Ayarlar kaydedilemedi.'
