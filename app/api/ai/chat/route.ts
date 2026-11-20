@@ -139,6 +139,13 @@ async function callOpenAICompatible(
     headers: {
       Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
+      // OpenRouter istekleri uygulama adıyla işaretlenir (sıralama/istatistik için).
+      ...(provider.id === 'openrouter'
+        ? {
+            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://promptforge-nextjs.vercel.app',
+            'X-Title': 'PromptForge',
+          }
+        : {}),
     },
     body: JSON.stringify({
       model,

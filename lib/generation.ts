@@ -198,11 +198,23 @@ const VARIANT_STYLES = [
   },
 ]
 
+const QUALITY_BAR = `KALİTE ÇITASI (hepsi zorunlu):
+- Yer tutucu metin yazma: lorem ipsum, "başlık buraya", "örnek yazı" gibi şeyler yok. Konuya uygun, gerçek Türkçe içerik üret.
+- Sayfa 5-8 bölümden oluşsun: hero, özellikler/hizmetler, galeri veya ürünler, hakkında, yorumlar, SSS, iletişim, footer gibi.
+- Her buton ve menü bağlantısı gerçekten çalışsın; boş href bırakma.
+- Mobil, tablet ve masaüstünde kusursuz görünsün; yatay taşma ve kırılma olmasın.
+- Hareket olsun: hover efektleri, kaydırmada belirme (IntersectionObserver), geçişler. İstersen canvas ile 2D/3D sahne veya CSS 3D dönüşümler kullan.
+- Dış kütüphane, CDN ve dış görsel adresi kullanma (ağ erişimi kapalı). Görselleri CSS gradyan, SVG veya canvas ile üret.
+- Erişilebilirlik: anlamlı başlık sırası, alt metinler, klavye ile kullanılabilir menü, yeterli kontrast.
+- Kodu kısaltma, "..." ile kesme; verdiğin dosyalar eksiksiz olsun.`
+
 function siteInstruction(prompt: string) {
   return `Sen kıdemli bir front-end geliştiricisin.
 Kullanıcının fikrine göre eksiksiz, modern ve responsive bir web sitesi oluştur.
 HTML, CSS ve JavaScript kodlarını ayrı döndür.
 Açıklama yazma. Kodları kısaltma.
+
+${QUALITY_BAR}
 
 ÇIKTI FORMATI:
 ---HTML---
@@ -229,6 +241,8 @@ Butonlar ve etkileşimler çalışsın.
 HTML, CSS ve JavaScript ayrı olsun.
 Açıklama yazma.
 
+${QUALITY_BAR}
+
 ---HTML---
 HTML kodu
 ---CSS---
@@ -246,6 +260,8 @@ Tasarım açıklaması: ${description}
 Eksiksiz, responsive ve çalışan web sitesi oluştur.
 HTML, CSS ve JavaScript ayrı olsun.
 Açıklama yazma.
+
+${QUALITY_BAR}
 
 ---HTML---
 HTML kodu

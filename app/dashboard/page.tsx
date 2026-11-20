@@ -443,6 +443,7 @@ export default function Home() {
   const [wizardFeatures, setWizardFeatures] = useState<string[]>([
     'Mobil uyumluluk',
     'Animasyonlar',
+    'Kaydırma efektleri',
   ])
   const [wizardDescription, setWizardDescription] = useState('')
 
@@ -2442,6 +2443,9 @@ ${codeJs}`)
                         'Yorum alanı',
                         'Açılır menü',
                         'Koyu ve açık tema',
+                        '3D sahne',
+                        'Canvas animasyon',
+                        'Kaydırma efektleri',
                       ].map((feature) => (
                         <label
                           key={feature}
