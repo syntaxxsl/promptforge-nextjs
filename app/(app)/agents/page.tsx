@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Icon from '../../components/Icon'
+import { Rich } from '../../components/ui/ToolWorkspace'
 import { askAI } from '../../../lib/ai-client'
 
 /**
@@ -292,13 +293,13 @@ export default function AgentsPage() {
               )}
 
               {step.output && step.status !== 'run' && (
-                <p
-                  className={`mt-3 whitespace-pre-wrap text-[13px] leading-relaxed ${
-                    step.status === 'error' ? 'text-[#fca5a5]' : 'text-[#c3c7d1]'
-                  }`}
-                >
-                  {step.output}
-                </p>
+                <div className={`mt-3 ${step.status === 'error' ? 'text-[13px] text-[#fca5a5]' : ''}`}>
+                  {step.status === 'error' ? (
+                    <p className="text-[13px] leading-relaxed text-[#fca5a5]">{step.output}</p>
+                  ) : (
+                    <Rich text={step.output} />
+                  )}
+                </div>
               )}
             </div>
           </section>

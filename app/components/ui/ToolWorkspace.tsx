@@ -63,7 +63,7 @@ function inline(text: string, keyPrefix: string) {
 }
 
 /** Modelin düz metnini başlık, liste ve kod bloğu olarak gösterir. */
-function Rich({ text }: { text: string }) {
+export function Rich({ text }: { text: string }) {
   const lines = text.replace(/\r/g, '').split('\n')
   const blocks: React.ReactNode[] = []
   let code: string[] | null = null

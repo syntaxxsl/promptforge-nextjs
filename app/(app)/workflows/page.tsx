@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Icon from '../../components/Icon'
+import { Rich } from '../../components/ui/ToolWorkspace'
 import { askAI } from '../../../lib/ai-client'
 
 /**
@@ -355,15 +356,12 @@ export default function WorkflowsPage() {
                   </div>
                 )}
 
-                {state.output && state.status !== 'run' && (
-                  <p
-                    className={`whitespace-pre-wrap text-[12.5px] leading-relaxed ${
-                      state.status === 'error' ? 'text-[#fca5a5]' : 'text-[#c3c7d1]'
-                    }`}
-                  >
-                    {state.output}
-                  </p>
-                )}
+                {state.output && state.status !== 'run' &&
+                  (state.status === 'error' ? (
+                    <p className="text-[12.5px] leading-relaxed text-[#fca5a5]">{state.output}</p>
+                  ) : (
+                    <Rich text={state.output} />
+                  ))}
 
                 {!state.output && state.status === 'wait' && (
                   <p className="text-[12px] text-[#5f6573]">

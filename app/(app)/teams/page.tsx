@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Icon from '../../components/Icon'
+import { Rich } from '../../components/ui/ToolWorkspace'
 import { askAI } from '../../../lib/ai-client'
 
 /**
@@ -250,9 +251,9 @@ export default function TeamsPage() {
                     {error}
                   </p>
                 ) : outputs[stage.id] ? (
-                  <p className="pf-enter whitespace-pre-wrap text-[12.5px] leading-relaxed text-[#c3c7d1]">
-                    {outputs[stage.id]}
-                  </p>
+                  <div className="pf-enter">
+                    <Rich text={outputs[stage.id]} />
+                  </div>
                 ) : isActive ? (
                   <div className="space-y-2">
                     {[90, 72, 84, 60].map((width, skeleton) => (
