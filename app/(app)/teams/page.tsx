@@ -207,7 +207,7 @@ export default function TeamsPage() {
         </p>
       </section>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         {STAGES.map((stage, index) => {
           const isActive = activeStage === stage.id
           const isDone = Boolean(outputs[stage.id])
@@ -216,7 +216,7 @@ export default function TeamsPage() {
           return (
             <section
               key={stage.id}
-              className={`flex min-h-[260px] flex-col rounded-2xl border bg-[#0b0d13] transition-colors ${
+              className={`flex min-h-[260px] min-w-0 flex-col rounded-2xl border bg-[#0b0d13] transition-colors ${
                 isActive
                   ? 'border-[#7c5cff]/60 shadow-[0_0_0_1px_rgba(124,92,255,0.3)]'
                   : isDone

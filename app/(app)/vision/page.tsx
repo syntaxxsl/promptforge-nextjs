@@ -235,7 +235,7 @@ JavaScript kodu
         </div>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
         <section className="space-y-4">
           <div className="rounded-2xl border border-[#1b1f28] bg-[#0b0d13] p-4">
             <div className="mb-2.5 flex items-center justify-between gap-3">

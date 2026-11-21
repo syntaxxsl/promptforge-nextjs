@@ -225,7 +225,7 @@ En fazla 8 sorun, 8 güçlü yön ve 8 öneri yaz.
         </div>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <section className="rounded-2xl border border-[#1b1f28] bg-[#0b0d13] p-4 sm:p-5">
           <div className="mb-2.5 flex items-center justify-between gap-3">
             <label htmlFor="critic-code" className="text-[12px] font-medium text-[#9aa0ae]">

@@ -127,7 +127,7 @@ export default function MindMapPage() {
         </div>
       </header>
 
-      <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
         <section className="rounded-2xl border border-[#1b1f28] bg-[#0b0d13] p-4">
           <label className="mb-2 block text-[12px] font-medium text-[#9aa0ae]" htmlFor="konu">
             Konu

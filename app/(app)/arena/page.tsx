@@ -331,7 +331,7 @@ export default function ArenaPage() {
         </p>
       </section>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {sideCard(left, 'A', leftModel, setLeftModel, 'left')}
         {sideCard(right, 'B', rightModel, setRightModel, 'right')}
       </div>

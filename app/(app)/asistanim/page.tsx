@@ -119,7 +119,7 @@ export default function MyAssistantPage() {
   }
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-3.5rem)] w-full max-w-[1200px] flex-col px-4 py-5 sm:px-6">
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col px-4 py-5 sm:px-6 lg:h-[calc(100dvh-3.5rem)]">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#7c5cff]/30 bg-gradient-to-br from-[#7c5cff]/25 to-[#a855f7]/15 text-[15px] font-bold text-[#c9b8ff]">
@@ -158,9 +158,9 @@ export default function MyAssistantPage() {
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_300px]">
         {/* SOHBET */}
-        <section className="flex min-h-0 flex-col rounded-2xl border border-[#1b1f28] bg-[#0b0d13]">
+        <section className="flex min-h-[380px] min-w-0 flex-col rounded-2xl border border-[#1b1f28] bg-[#0b0d13] lg:min-h-0">
           <div ref={scrollRef} className="pf-scroll min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {messages.length === 0 && !loading && (
               <div className="flex h-full flex-col items-center justify-center px-6 text-center">
