@@ -1,8 +1,7 @@
-
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Icon from '../../components/Icon'
 import { askAI, fileToDataUrl } from '../../../lib/ai-client'
 
 type CodeResult = {
@@ -208,66 +207,56 @@ JavaScript kodu
     }
   }
 
+  const download = () => {
+    const blob = new Blob([getPreview()], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'index.html'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const hasCode = Boolean(result.html || result.css || result.js)
+
   return (
-    <main className="min-h-screen bg-[#090b10] text-white">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+    <div className="relative mx-auto w-full max-w-[1400px] px-4 py-7 sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[320px] pf-hero-glow" />
 
-        <header className="mb-10 flex items-center justify-between rounded-2xl border border-white/10 bg-[#11141d] px-5 py-4">
-          <Link href="/dashboard" className="text-lg font-bold">
-            <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-              PromptForge
-            </span>
-          </Link>
-
-          <Link
-            href="/dashboard"
-            className="text-sm text-gray-400 transition hover:text-white"
-          >
-            ← Ana Sayfa
-          </Link>
-        </header>
-
-        <section className="mb-10 text-center">
-          <div className="mb-4 inline-flex rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-xs text-purple-300">
-            <span className="mr-2">✦</span>
-            AI VISION TECHNOLOGY
-          </div>
-
-          <h1 className="mb-4 text-3xl font-bold sm:text-5xl">
-            Görselini <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Koda Dönüştür.</span>
-          </h1>
-
-          <p className="mx-auto max-w-2xl text-sm leading-7 text-gray-400 sm:text-base">
-            Bir web sitesi tasarımının ekran görüntüsünü yükle.
-            Yapay zekâ tasarımı analiz etsin ve HTML, CSS ve JavaScript
-            kodlarını senin için oluştursun.
+      <header className="pf-enter mb-6 flex items-start gap-3.5">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[#7c5cff]/30 bg-[#7c5cff]/12 text-[#a48bff]">
+          <Icon name="vision" className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-semibold tracking-tight text-white">Görselden Kod</h1>
+          <p className="mt-0.5 text-[13px] text-[#878d9b]">
+            Bir tasarımın ekran görüntüsünü yükle; HTML, CSS ve JS olarak geri al.
           </p>
-        </section>
+        </div>
+      </header>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-
-          <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5 sm:p-7">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-semibold">01. Tasarım Görseli</h2>
-              <span className="text-xs text-gray-500">PNG / JPG / WEBP</span>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+        <section className="space-y-4">
+          <div className="rounded-2xl border border-[#1b1f28] bg-[#0b0d13] p-4">
+            <div className="mb-2.5 flex items-center justify-between gap-3">
+              <p className="text-[12px] font-medium text-[#9aa0ae]">Tasarım görseli</p>
+              <span className="text-[11px] text-[#5b616f]">PNG · JPG · WEBP</span>
             </div>
 
-            <label className="flex min-h-64 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-purple-500/40 bg-[#090b10] p-4 text-center transition hover:border-purple-500">
+            <label className="flex min-h-[190px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-[#7c5cff]/35 bg-[#080a0f] p-3 text-center transition hover:border-[#7c5cff]/70">
               {imageUrl ? (
                 <img
                   src={imageUrl}
                   alt="Yüklenen tasarım"
-                  className="max-h-80 max-w-full rounded-xl object-contain"
+                  className="max-h-64 max-w-full rounded-lg object-contain"
                 />
               ) : (
                 <>
-                  <div className="mb-4 text-5xl">🖼️</div>
-                  <p className="mb-2 font-medium">
-                    Görselini buraya yükle
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Dosya seçmek için dokun
-                  </p>
+                  <span className="mb-3 grid h-10 w-10 place-items-center rounded-xl border border-[#242a36] bg-[#0f1219] text-[#8b909d]">
+                    <Icon name="image" className="h-4 w-4" />
+                  </span>
+                  <p className="text-[12.5px] font-medium text-white">Görseli buraya ekle</p>
+                  <p className="mt-0.5 text-[11.5px] text-[#5b616f]">Dosya seçmek için dokun</p>
                 </>
               )}
 
@@ -280,83 +269,87 @@ JavaScript kodu
             </label>
 
             {file && (
-              <div className="mt-3 flex items-center justify-between rounded-xl bg-white/5 p-3">
+              <div className="mt-2.5 flex items-center justify-between gap-3 rounded-lg border border-[#1b1f28] bg-white/[0.02] px-2.5 py-1.5">
                 <div className="min-w-0">
-                  <p className="truncate text-sm">{file.name}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="truncate text-[12px] text-[#e7e9ee]">{file.name}</p>
+                  <p className="text-[11px] text-[#5b616f]">
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setFile(null)}
-                  className="ml-3 text-sm text-red-400 hover:text-red-300"
+                  className="shrink-0 text-[11.5px] text-[#fca5a5] hover:text-[#f87171]"
                 >
                   Kaldır
                 </button>
               </div>
             )}
 
-            <div className="mt-6">
-              <label className="mb-3 block text-sm font-medium">
-                Ek talimatlar (isteğe bağlı)
-              </label>
-
-              <textarea
-                value={instructions}
-                onChange={e => setInstructions(e.target.value)}
-                maxLength={1000}
-                rows={4}
-                placeholder="Örn: Tasarımı daha modern yap, mobil menü ekle, butonlara animasyon ekle..."
-                className="w-full resize-y rounded-xl border border-white/10 bg-[#090b10] p-4 text-sm outline-none transition focus:border-purple-500"
-              />
-
-              <p className="mt-2 text-right text-xs text-gray-600">
-                {instructions.length}/1000
-              </p>
-            </div>
+            <label
+              htmlFor="vision-note"
+              className="mb-1.5 mt-4 block text-[12px] font-medium text-[#9aa0ae]"
+            >
+              Ek talimat (isteğe bağlı)
+            </label>
+            <textarea
+              id="vision-note"
+              value={instructions}
+              onChange={e => setInstructions(e.target.value)}
+              maxLength={1000}
+              rows={3}
+              placeholder="Örn: daha modern olsun, mobil menü ekle, butonlara animasyon koy…"
+              className="pf-scroll w-full resize-y rounded-xl border border-[#1b1f28] bg-[#080a0f] p-3 text-[13px] leading-relaxed text-[#e7e9ee] outline-none placeholder:text-[#5b616f] focus:border-[#7c5cff]/60"
+            />
+            <p className="mt-1 text-right text-[11px] text-[#5b616f]">{instructions.length}/1000</p>
 
             <button
+              type="button"
               onClick={generateCode}
               disabled={!file || loading}
-              className="mt-5 w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-4 font-semibold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#7c5cff] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#8b6fff] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? '✦ Tasarım Analiz Ediliyor...' : '✦ AI ile Kod Oluştur'}
+              <Icon name={loading ? 'pulse' : 'sparkles'} className="h-4 w-4" />
+              {loading ? 'Kod yazılıyor…' : 'Kodu oluştur'}
             </button>
 
-            {loading && (
-              <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
-              </div>
-            )}
-
             {error && (
-              <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+              <p className="mt-3 rounded-lg border border-[#f87171]/30 bg-[#f87171]/10 px-3 py-2 text-[12.5px] text-[#fca5a5]">
                 {error}
-              </div>
+              </p>
             )}
-          </section>
 
-          <section className="rounded-2xl border border-white/10 bg-[#11141d] p-5 sm:p-7">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-semibold">02. Kod ve Önizleme</h2>
-              <span className="rounded-full bg-purple-600/10 px-3 py-1 text-xs text-purple-300">
-                LIVE PREVIEW
-              </span>
-            </div>
+            <p className="mt-3 text-[11.5px] leading-relaxed text-[#5b616f]">
+              Görsel yalnızca kod üretmek için AI servisine gönderilir.
+            </p>
+          </div>
 
-            <div className="mb-4 flex flex-wrap gap-2">
+          <div className="rounded-2xl border border-[#1b1f28] bg-[#0b0d13] p-4">
+            <p className="mb-2 text-[12px] font-medium text-[#9aa0ae]">İpucu</p>
+            <ul className="space-y-1.5 text-[12px] leading-relaxed text-[#6f7686]">
+              <li>· Tam sayfa ekran görüntüsü, kırpılmış parçadan daha iyi sonuç verir.</li>
+              <li>· Net ve büyük yazılı görsellerde hizalama daha tutarlı çıkar.</li>
+              <li>· Çıkan kodu Website Builder’da açıp üzerine devam edebilirsin.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="min-w-0 rounded-2xl border border-[#1b1f28] bg-[#0b0d13]">
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#1b1f28] px-3 py-2.5">
+            <div className="flex rounded-lg border border-[#242a36] p-0.5">
               {[
                 ['preview', 'Önizleme'],
                 ['code', 'Tek dosya kod']
               ].map(([key, label]) => (
                 <button
                   key={key}
+                  type="button"
                   onClick={() => setActiveTab(key)}
-                  className={`rounded-lg px-4 py-2 text-xs transition ${
+                  className={`rounded-md px-2.5 py-1 text-[11.5px] ${
                     activeTab === key
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      ? 'bg-white/[0.08] text-white'
+                      : 'text-[#8b909d] hover:text-white'
                   }`}
                 >
                   {label}
@@ -364,71 +357,60 @@ JavaScript kodu
               ))}
             </div>
 
-            <div className="min-h-[420px] overflow-hidden rounded-xl border border-white/10 bg-[#090b10]">
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={copyCode}
+                disabled={!hasCode}
+                className="flex items-center gap-1.5 rounded-lg border border-[#242a36] px-2.5 py-1.5 text-[11.5px] text-[#a7acb8] hover:text-white disabled:opacity-40"
+              >
+                <Icon name="copy" className="h-3.5 w-3.5" />
+                {copied ? 'Kopyalandı' : 'Kopyala'}
+              </button>
+              <button
+                type="button"
+                onClick={download}
+                disabled={!hasCode}
+                className="flex items-center gap-1.5 rounded-lg border border-[#242a36] px-2.5 py-1.5 text-[11.5px] text-[#a7acb8] hover:text-white disabled:opacity-40"
+              >
+                <Icon name="download" className="h-3.5 w-3.5" />
+                index.html
+              </button>
+            </div>
+          </div>
+
+          <div className="p-3">
+            <div className="min-h-[460px] overflow-hidden rounded-xl border border-[#1b1f28] bg-[#080a0f]">
               {activeTab === 'preview' ? (
-                result.html || result.css ? (
+                hasCode ? (
                   <iframe
-                    title="Vision-to-Code Önizleme"
+                    title="Görselden kod önizleme"
                     srcDoc={getPreview()}
                     sandbox="allow-scripts"
-                    className="h-[420px] w-full bg-white"
+                    className="h-[min(68vh,720px)] w-full bg-white"
                   />
                 ) : (
-                  <div className="flex min-h-[420px] flex-col items-center justify-center p-6 text-center">
-                    <div className="mb-4 text-5xl opacity-50">⌘</div>
-                    <p className="font-medium text-gray-300">
-                      Henüz önizleme yok
-                    </p>
-                    <p className="mt-2 text-sm text-gray-500">
-                      Bir görsel yükleyip kod oluşturduğunda burada göreceksin.
-                    </p>
+                  <div className="grid h-[460px] place-items-center px-6 text-center">
+                    <div className="max-w-[340px]">
+                      <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-[#242a36] bg-[#0f1219] text-[#6f7686]">
+                        <Icon name="code" className="h-5 w-5" />
+                      </span>
+                      <p className="text-[13.5px] font-medium text-white">Henüz önizleme yok</p>
+                      <p className="mt-1 text-[12.5px] leading-relaxed text-[#6f7686]">
+                        Soldan bir tasarım görseli yükle; çıkan site burada çalışır hâliyle görünecek.
+                      </p>
+                    </div>
                   </div>
                 )
               ) : (
-                <div className="relative min-h-[420px]">
-                  <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words p-4 text-xs leading-6 text-green-300">
-                    {getPreview() || 'Henüz kod oluşturulmadı.'}
-                  </pre>
-                </div>
+                <pre className="pf-scroll h-[min(68vh,720px)] overflow-auto whitespace-pre-wrap break-words p-4 text-[12px] leading-relaxed text-[#d7dae2]">
+                  <code>{hasCode ? getPreview() : '// Henüz kod oluşturulmadı.'}</code>
+                </pre>
               )}
             </div>
-
-            <button
-              onClick={copyCode}
-              disabled={
-                !result.html && !result.css && !result.js ||
-                activeTab === 'preview'
-              }
-              className="mt-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              {copied ? '✓ Kopyalandı' : '📋 Seçili Kodu Kopyala'}
-            </button>
-          </section>
-        </div>
-
-        <section className="mt-8 grid gap-4 sm:grid-cols-3">
-          {[
-            ['01', 'Görsel Analizi', 'AI tasarımını inceler ve detayları belirler.'],
-            ['02', 'Kod Oluşturma', 'HTML, CSS ve JavaScript kodlarını üretir.'],
-            ['03', 'Canlı Önizleme', 'Oluşturulan tasarımı anında görüntüle.']
-          ].map(([number, title, description]) => (
-            <div
-              key={number}
-              className="rounded-2xl border border-white/10 bg-[#11141d] p-5"
-            >
-              <span className="text-sm text-purple-400">{number}</span>
-              <h3 className="mt-3 font-semibold">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-gray-500">
-                {description}
-              </p>
-            </div>
-          ))}
+          </div>
         </section>
-
-        <footer className="mt-10 border-t border-white/10 py-6 text-center text-xs text-gray-600">
-          PromptForge · Vision-to-Code
-        </footer>
       </div>
-    </main>
+    </div>
   )
 }
