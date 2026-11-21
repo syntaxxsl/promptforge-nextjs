@@ -34,9 +34,9 @@ const groups: NavGroup[] = [
     items: [
       { icon: 'message', label: 'AI Chat', href: '/sohbet' },
       { icon: 'sparkles', label: 'Command Center', href: '/komut' },
-      { icon: 'pulse', label: 'AI Arena', href: '/arena', soon: true },
-      { icon: 'user', label: 'Asistanım', href: '/asistanim', soon: true },
-      { icon: 'users', label: 'AI Teams', href: '/teams', soon: true },
+      { icon: 'pulse', label: 'AI Arena', href: '/arena' },
+      { icon: 'user', label: 'Asistanım', href: '/asistanim' },
+      { icon: 'users', label: 'AI Teams', href: '/teams' },
     ],
   },
   {
