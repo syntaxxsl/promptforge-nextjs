@@ -123,7 +123,7 @@ const fallback: Target = {
   words: [],
 }
 
-function pick(text: string): Target {
+export function pick(text: string): Target {
   const lower = text.toLocaleLowerCase('tr')
 
   const scored = targets

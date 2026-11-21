@@ -1,443 +1,261 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import Icon, { type IconName } from './components/Icon'
+import { pick } from './components/QuickCommand'
 
-export const metadata = {
-  title: 'PromptForge — Hayal Et, Kodla',
-  description:
-    'Yapay zeka destekli web geliştirme platformu. Fikrini yaz, profesyonel web sitene dönüştür. Kodlama bilgisi gerekmez.',
-}
-
-const features = [
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="m12 3 2.2 5.1L19 10.5l-4.8 2.4L12 18l-2.2-5.1L5 10.5l4.8-2.4L12 3Z" />
-      </svg>
-    ),
-    accent: 'from-[#7c3aed] to-[#4f46e5]',
-    title: 'Kod Sihirbazı',
-    description: 'Doğal dil ile web sitesi oluşturun.',
-    href: '/dashboard',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="16" rx="2.5" />
-        <circle cx="8.5" cy="9.5" r="1.6" />
-        <path d="m4 17 4.5-4.5 3.5 3.5 3-3L20 18" />
-      </svg>
-    ),
-    accent: 'from-[#2563eb] to-[#0ea5e9]',
-    title: 'Vision-to-Code',
-    description: 'Görselden kod üretin.',
-    href: '/vision',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 8.5v7a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 15.5v-7a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8.5Z" />
-        <path d="m3.3 7.3 8.7 5 8.7-5M12 21.5v-9.2" />
-      </svg>
-    ),
-    accent: 'from-[#7c3aed] to-[#a855f7]',
-    title: 'Önizleme Modu',
-    description: 'Projelerinizi anında görün.',
-    href: '/dashboard',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l0-8Z" />
-      </svg>
-    ),
-    accent: 'from-[#4f46e5] to-[#2563eb]',
-    title: 'Hızlı Düzenleyici',
-    description: 'Kodlarınızı anında düzenleyin.',
-    href: '/dashboard',
-  },
+const quick = [
+  'Portfolyo sitem için sade bir sayfa yap',
+  'PDF özetle',
+  'İngilizceye çevir',
+  'Blog yazısı yaz',
 ]
 
-const stats = [
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-[#60a5fa]" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20" />
-        <circle cx="9" cy="7" r="3.2" />
-        <path d="M22 20v-1.5a4 4 0 0 0-3-3.85M16.5 4.2a3.2 3.2 0 0 1 0 5.9" />
-      </svg>
-    ),
-    value: '50.000+',
-    label: 'Aktif Kullanıcı',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-[#a855f7]" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 8.5v7a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 15.5v-7a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8.5Z" />
-        <path d="m3.3 7.3 8.7 5 8.7-5M12 21.5v-9.2" />
-      </svg>
-    ),
-    value: '1M+',
-    label: 'Oluşturulan Proje',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-[#8b5cf6]" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l0-8Z" />
-      </svg>
-    ),
-    value: '%99.9',
-    label: 'Uptime Oranı',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6 text-[#8b5cf6]">
-        <path d="m12 2.6 2.9 6 6.6.9-4.8 4.7 1.2 6.6-5.9-3.2-5.9 3.2 1.2-6.6L2.5 9.5l6.6-.9 2.9-6Z" />
-      </svg>
-    ),
-    value: '4.9/5',
-    label: 'Kullanıcı Memnuniyeti',
-  },
+type Card = { icon: IconName; title: string; text: string; href: string }
+
+const tools: Card[] = [
+  { icon: 'message', title: 'AI Chat', text: 'Takıldığın her şeyi sor; birlikte çöz.', href: '/sohbet' },
+  { icon: 'code', title: 'Website Builder', text: 'Yaz, site hazır olsun. Önizle, kaydet.', href: '/website-builder' },
+  { icon: 'map', title: 'Zihin Haritası', text: 'Bir konuyu dallandır, planını çıkar.', href: '/zihin-haritasi' },
+  { icon: 'pen', title: 'AI Writer', text: 'Metin, başlık, e-posta, açıklama yaz.', href: '/writer' },
+  { icon: 'layers', title: 'Sunum', text: 'Slayt akışını ve içeriğini hazırla.', href: '/sunum' },
+  { icon: 'vision', title: 'Görselden Kod', text: 'Ekran görüntüsünü HTML’e çevir.', href: '/vision' },
+]
+
+const fresh: Card[] = [
+  { icon: 'pulse', title: 'AI Arena', text: 'Aynı isteği iki modele gönder, cevapları yan yana oku.', href: '/arena' },
+  { icon: 'user', title: 'Asistanım', text: 'Kendi asistanını tanımla: adı, tonu, kuralları senin.', href: '/asistanim' },
+  { icon: 'users', title: 'AI Teams', text: 'Planlayıcı, yazar ve kontrolcü sırayla çalışsın.', href: '/teams' },
+]
+
+const steps = [
+  ['01', 'Ne istediğini yaz', 'Tek satır yeter. “Kafem için menü sayfası” gibi.'],
+  ['02', 'Araç kendisi seçilir', 'Komut kutusu isteğini doğru araca yönlendirir.'],
+  ['03', 'Sonucu al, düzenle, kaydet', 'Çıktıyı kopyala, indir ya da projeye kaydet.'],
 ]
 
 export default function LandingPage() {
+  const router = useRouter()
+  const [command, setCommand] = useState('')
+
+  // Komut kutusu, paneldeki kutunun aynısı: isteği en yakın araca yönlendirir.
+  const start = (text?: string) => {
+    const value = (text ?? command).trim()
+    if (!value) return
+    window.sessionStorage.setItem('pf-draft', value)
+    router.push(pick(value).href)
+  }
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#05060f] text-white">
-      {/* Arka plan ışıkları ve dalga formları */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-48 h-[560px] w-[560px] rounded-full bg-[#7c3aed]/25 blur-[150px]" />
-        <div className="absolute -right-24 top-10 h-[420px] w-[420px] rounded-full bg-[#2563eb]/20 blur-[140px]" />
-        <div className="absolute bottom-0 left-1/3 h-[380px] w-[620px] rounded-full bg-[#4f46e5]/10 blur-[150px]" />
-        <div className="absolute -bottom-40 -right-32 h-[520px] w-[520px] rotate-12 rounded-[45%] border border-[#3b82f6]/20 bg-gradient-to-tr from-transparent via-[#4f46e5]/10 to-transparent blur-2xl" />
-        <div className="absolute -left-24 bottom-24 h-[380px] w-[380px] -rotate-12 rounded-[45%] border border-[#7c3aed]/20 blur-2xl" />
-      </div>
+    <main className="relative min-h-screen overflow-hidden bg-[#08090d] text-[#e7e9ee]">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[520px] pf-hero-glow" />
 
-      {/* ÜST MENÜ */}
-      <header className="relative z-20 px-4 pt-6 sm:px-6">
-        <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#080a14]/80 px-4 py-3 shadow-[0_10px_50px_-20px_rgba(124,58,237,0.6)] backdrop-blur-xl">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#a855f7] to-[#4f46e5] text-lg font-black shadow-[0_0_20px_rgba(124,58,237,0.7)]">
-              P
-            </span>
-            <span className="text-lg font-extrabold tracking-tight">
-              Prompt<span className="bg-gradient-to-r from-[#a855f7] to-[#3b82f6] bg-clip-text text-transparent">Forge</span>
-            </span>
+      <header className="relative z-20 mx-auto flex w-full max-w-[1180px] items-center justify-between gap-4 px-4 py-5 sm:px-6">
+        <Link href="/" className="flex items-center gap-2.5">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#7c5cff] text-[13px] font-bold text-white">
+            P
+          </span>
+          <span className="text-[15px] font-semibold tracking-tight text-white">PromptForge</span>
+        </Link>
+
+        <nav className="hidden items-center gap-1 md:flex">
+          <Link href="/komut" className="rounded-lg px-3 py-1.5 text-[13px] text-[#9aa0ae] hover:text-white">
+            Araçlar
           </Link>
+          <a href="#ozellikler" className="rounded-lg px-3 py-1.5 text-[13px] text-[#9aa0ae] hover:text-white">
+            Özellikler
+          </a>
+          <a href="#nasil" className="rounded-lg px-3 py-1.5 text-[13px] text-[#9aa0ae] hover:text-white">
+            Nasıl çalışır
+          </a>
+        </nav>
 
-          <nav className="hidden items-center gap-1 lg:flex">
-            <Link
-              href="/"
-              className="flex items-center gap-2 rounded-xl bg-white/[0.07] px-3.5 py-2 text-sm font-semibold text-white ring-1 ring-inset ring-white/10"
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5" />
-              </svg>
-              Ana Sayfa
-            </Link>
-            <a href="#ozellikler" className="rounded-xl px-3.5 py-2 text-sm font-medium text-gray-400 transition hover:text-white">
-              Özellikler
-            </a>
-            <Link href="/tools" className="rounded-xl px-3.5 py-2 text-sm font-medium text-gray-400 transition hover:text-white">
-              Araçlar
-            </Link>
-            <Link href="/explore" className="rounded-xl px-3.5 py-2 text-sm font-medium text-gray-400 transition hover:text-white">
-              Keşfet
-            </Link>
-            <Link href="/changelog" className="rounded-xl px-3.5 py-2 text-sm font-medium text-gray-400 transition hover:text-white">
-              Blog
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="Tema"
-              className="grid h-9 w-9 place-items-center rounded-xl text-gray-300 transition hover:bg-white/5 hover:text-white"
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="h-4.5 w-4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" />
-              </svg>
-            </button>
-            <Link
-              href="/auth"
-              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#8b5cf6] to-[#6366f1] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(139,92,246,0.9)] transition hover:brightness-110"
-            >
-              Başla
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h13M13 6l6 6-6 6" />
-              </svg>
-            </Link>
-          </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/auth"
+            className="rounded-lg border border-[#242a36] px-3 py-1.5 text-[12.5px] text-[#c7cad3] hover:text-white"
+          >
+            Giriş yap
+          </Link>
+          <Link
+            href="/auth"
+            className="rounded-lg bg-[#7c5cff] px-3.5 py-1.5 text-[12.5px] font-semibold text-white hover:bg-[#8b6fff]"
+          >
+            Ücretsiz başla
+          </Link>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative z-10 mx-auto grid max-w-[1180px] items-center gap-16 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.02fr_1fr] lg:pb-24 lg:pt-20">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-gray-300">
-            <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 text-[#a855f7]" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l0-8Z" />
-            </svg>
-            Geleceğin Web Geliştirme Platformu
-          </span>
+      <section className="relative z-10 mx-auto w-full max-w-[880px] px-4 pb-14 pt-10 text-center sm:px-6 sm:pt-16">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[#242a36] bg-white/[0.03] px-3 py-1 text-[11.5px] text-[#9aa0ae]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#7c5cff]" />
+          Yeni arayüz · AI Arena, Asistanım ve AI Teams yayında
+        </span>
 
-          <h1 className="mt-6 text-[2.75rem] font-black leading-[1.04] tracking-tight sm:text-6xl xl:text-[4.25rem]">
-            PromptForge ile
-            <br />
-            Hayal Et,{' '}
-            <span className="bg-gradient-to-r from-[#a855f7] via-[#7c7cf6] to-[#3b82f6] bg-clip-text text-transparent">
-              Koda.
-            </span>
-          </h1>
+        <h1 className="mt-5 text-[34px] font-semibold leading-[1.1] tracking-tight text-white sm:text-[52px]">
+          Yaz, gerisini
+          <br className="sm:hidden" /> <span className="text-[#a48bff]">PromptForge</span> halletsin.
+        </h1>
 
-          <p className="mt-6 max-w-md text-[15px] leading-relaxed text-gray-400">
-            Yapay zeka destekli güçlü araçlarımızla fikirlerinizi profesyonel web
-            sitelerine dönüştürün. Kodlama bilginiz olmasa bile, sadece hayal
-            gücünüz yeter.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href="/auth"
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7c3aed] via-[#6366f1] to-[#3b82f6] px-6 py-3.5 text-sm font-semibold shadow-[0_12px_40px_-12px_rgba(124,58,237,1)] transition hover:brightness-110"
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-                <path d="M12 2.5c.5 4.6 3.4 7.5 8 8-4.6.5-7.5 3.4-8 8-.5-4.6-3.4-7.5-8-8 4.6-.5 7.5-3.4 8-8Z" />
-              </svg>
-              Hemen Başla
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h13M13 6l6 6-6 6" />
-              </svg>
-            </Link>
-
-            <a
-              href="#ozellikler"
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-6 py-3.5 text-sm font-medium text-gray-200 transition hover:bg-white/[0.07]"
-            >
-              <span className="grid h-5 w-5 place-items-center rounded-full border border-white/25">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="ml-px h-2.5 w-2.5">
-                  <path d="M8 5.5v13l11-6.5-11-6.5Z" />
-                </svg>
-              </span>
-              Nasıl Çalışır?
-            </a>
-          </div>
-
-          <div className="mt-10 flex flex-wrap items-center gap-5">
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2.5">
-                {[
-                  'from-[#f472b6] to-[#a855f7]',
-                  'from-[#60a5fa] to-[#4f46e5]',
-                  'from-[#fbbf24] to-[#f97316]',
-                  'from-[#34d399] to-[#0ea5e9]',
-                ].map((gradient, index) => (
-                  <span
-                    key={gradient}
-                    className={`grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br ${gradient} text-[10px] font-bold text-white ring-2 ring-[#05060f]`}
-                  >
-                    {['EY', 'MK', 'SD', 'AY'][index]}
-                  </span>
-                ))}
-              </div>
-              <div className="text-sm">
-                <p className="font-bold">50.000+</p>
-                <p className="text-xs text-gray-500">Aktif Kullanıcı</p>
-              </div>
-            </div>
-
-            <span className="hidden h-9 w-px bg-white/10 sm:block" />
-
-            <div className="flex items-center gap-2.5">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-[#8b5cf6]">
-                <path d="m12 2.6 2.9 6 6.6.9-4.8 4.7 1.2 6.6-5.9-3.2-5.9 3.2 1.2-6.6L2.5 9.5l6.6-.9 2.9-6Z" />
-              </svg>
-              <div className="text-sm">
-                <p className="font-bold">4.9/5</p>
-                <p className="text-xs text-gray-500">Kullanıcı Puanı</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* KOD EDİTÖRÜ GÖRSELİ */}
-        <div className="relative mx-auto w-full max-w-[560px] lg:max-w-none">
-          <div aria-hidden className="absolute left-1/2 top-1/2 h-[115%] w-[118%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-[#7c3aed]/40 blur-[2px]" />
-          <div aria-hidden className="absolute inset-0 -z-10 rounded-[50%] bg-[#6d28d9]/25 blur-[90px]" />
-
-          <div className="relative rounded-2xl border border-white/10 bg-[#080a13]/95 shadow-[0_40px_120px_-40px_rgba(109,40,217,0.9)] backdrop-blur-sm">
-            <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3">
-              <div className="flex gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-              </div>
-              <div className="ml-2 flex items-center gap-1">
-                <span className="rounded-md bg-[#131a2e] px-3 py-1 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/10">
-                  HTML
-                </span>
-                <span className="px-3 py-1 text-[11px] font-medium text-gray-500">CSS</span>
-                <span className="px-3 py-1 text-[11px] font-medium text-gray-500">JS</span>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.85]">
-              {[
-                <>
-                  <span className="text-[#64748b]">&lt;!</span>
-                  <span className="text-[#c084fc]">DOCTYPE</span> <span className="text-[#93c5fd]">html</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-                <>
-                  <span className="text-[#64748b]">&lt;</span><span className="text-[#c084fc]">html</span>{' '}
-                  <span className="text-[#60a5fa]">lang</span>
-                  <span className="text-[#64748b]">=</span>
-                  <span className="text-[#4ade80]">&quot;tr&quot;</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-                <>
-                  {'  '}
-                  <span className="text-[#64748b]">&lt;</span><span className="text-[#c084fc]">head</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-                <>
-                  {'    '}
-                  <span className="text-[#64748b]">&lt;</span><span className="text-[#c084fc]">meta</span>{' '}
-                  <span className="text-[#60a5fa]">charset</span>
-                  <span className="text-[#64748b]">=</span>
-                  <span className="text-[#4ade80]">&quot;UTF-8&quot;</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-                <>
-                  {'    '}
-                  <span className="text-[#64748b]">&lt;</span><span className="text-[#c084fc]">title</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                  <span className="text-gray-200">PromptForge</span>
-                  <span className="text-[#64748b]">&lt;/</span><span className="text-[#c084fc]">title</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-                <>
-                  {'  '}
-                  <span className="text-[#64748b]">&lt;/</span><span className="text-[#c084fc]">head</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-                <>
-                  {'  '}
-                  <span className="text-[#64748b]">&lt;</span><span className="text-[#c084fc]">body</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-                <>
-                  {'    '}
-                  <span className="text-[#64748b]">&lt;</span><span className="text-[#c084fc]">h1</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                  <span className="text-gray-200">Hayal Et, Kodla!</span>
-                  <span className="text-[#64748b]">&lt;/</span><span className="text-[#c084fc]">h1</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-                <>
-                  {'  '}
-                  <span className="text-[#64748b]">&lt;/</span><span className="text-[#c084fc]">body</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-                <>
-                  <span className="text-[#64748b]">&lt;/</span><span className="text-[#c084fc]">html</span>
-                  <span className="text-[#64748b]">&gt;</span>
-                </>,
-              ].map((line, index) => (
-                <div key={index} className="flex gap-4 whitespace-pre">
-                  <span className="w-4 select-none text-right text-[#3b4257]">{index + 1}</span>
-                  <span>{line}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Yüzen logo kutusu */}
-          <div className="absolute right-1 -top-9 grid h-20 w-20 rotate-3 place-items-center rounded-3xl border border-white/15 bg-gradient-to-br from-[#1b1035] to-[#0a0a16] shadow-[0_20px_60px_-20px_rgba(168,85,247,0.9)] sm:-right-2 sm:h-24 sm:w-24">
-            <span className="text-4xl font-black">
-              <span className="bg-gradient-to-br from-[#c084fc] to-[#3b82f6] bg-clip-text text-transparent">P</span>
-            </span>
-          </div>
-
-          {/* Yüzen AI kartı */}
-          <div className="absolute -bottom-7 right-1 flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0b0d18]/95 px-4 py-3 shadow-[0_20px_60px_-20px_rgba(59,130,246,0.7)] backdrop-blur sm:-right-2">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#1a1330] ring-1 ring-inset ring-[#7c3aed]/40">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-[#a855f7]">
-                <path d="M12 2.5c.5 4.6 3.4 7.5 8 8-4.6.5-7.5 3.4-8 8-.5-4.6-3.4-7.5-8-8 4.6-.5 7.5-3.4 8-8Z" />
-              </svg>
-            </span>
-            <div className="text-[13px] leading-tight">
-              <p className="text-gray-400">AI ile</p>
-              <p className="font-semibold">Kod Üretimi</p>
-            </div>
-            <span className="ml-2 grid h-7 w-7 place-items-center rounded-full bg-[#2a1a4d] text-[#c4b5fd]">
-              <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 17 17 7M9 7h8v8" />
-              </svg>
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* ÖZELLİKLER */}
-      <section id="ozellikler" className="relative z-10 mx-auto max-w-[1180px] px-4 pb-16 pt-6 sm:px-6">
-        <div className="mx-auto flex max-w-xl items-center gap-4">
-          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-white/15" />
-          <span className="whitespace-nowrap rounded-full border border-[#7c3aed]/40 bg-[#7c3aed]/10 px-4 py-1.5 text-[11px] font-semibold tracking-wide text-[#c4b5fd]">
-            Tüm İhtiyaçlarınız İçin Tek Platform
-          </span>
-          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-white/15" />
-        </div>
-
-        <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight sm:text-4xl">
-          Güçlü Özellikler
-        </h2>
-        <p className="mx-auto mt-3 max-w-lg text-center text-sm text-gray-400">
-          PromptForge ile geliştirme sürecinizi hızlandırın ve yaratıcılığınızı
-          konuşturun.
+        <p className="mx-auto mt-4 max-w-[520px] text-[14px] leading-relaxed text-[#878d9b] sm:text-[15px]">
+          Site, metin, kod, özet, çeviri… Ne yapmak istediğini yaz; doğru araca yönlensin.
+          Kodlama bilmene gerek yok.
         </p>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature) => (
-            <Link
-              key={feature.title}
-              href={feature.href}
-              className="group rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-5 transition hover:border-[#7c3aed]/40 hover:from-[#7c3aed]/10"
+        <div className="mx-auto mt-8 max-w-[720px] rounded-2xl border border-[#1b1f28] bg-[#0b0d13] p-3 text-left shadow-[0_30px_80px_-50px_rgba(124,92,255,0.8)]">
+          <div className="flex items-center gap-2">
+            <Icon name="sparkles" className="ml-1 h-4 w-4 shrink-0 text-[#a48bff]" />
+            <input
+              value={command}
+              onChange={(event) => setCommand(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') start()
+              }}
+              placeholder="Ne yapmak istiyorsun? Örn: kafem için menü sayfası yap"
+              className="min-w-0 flex-1 bg-transparent py-2 text-[13.5px] text-[#e7e9ee] outline-none placeholder:text-[#5b616f]"
+            />
+            <button
+              type="button"
+              onClick={() => start()}
+              aria-label="Başla"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#7c5cff] text-white hover:bg-[#8b6fff]"
             >
-              <div className="flex items-start justify-between gap-3">
-                <span
-                  className={`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${feature.accent} text-white shadow-[0_10px_30px_-10px_rgba(124,58,237,0.9)]`}
-                >
-                  {feature.icon}
+              <Icon name="arrowRight" className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-1.5 border-t border-[#1b1f28] pt-2.5">
+            {quick.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => start(item)}
+                className="rounded-full border border-[#242a36] px-2.5 py-1 text-[11.5px] text-[#a7acb8] hover:border-[#7c5cff]/50 hover:text-white"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-3 text-[11.5px] text-[#5b616f]">
+          Ücretsiz hesap; çıktılarını projeye kaydedip sonra devam edebilirsin.
+        </p>
+      </section>
+
+      <section className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-6 sm:px-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {fresh.map((item) => (
+            <Link
+              key={item.title}
+              href={item.href}
+              className="group rounded-2xl border border-[#7c5cff]/25 bg-gradient-to-b from-[#7c5cff]/10 to-transparent p-4 transition hover:border-[#7c5cff]/50"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="grid h-8 w-8 place-items-center rounded-lg border border-[#7c5cff]/30 bg-[#7c5cff]/12 text-[#a48bff]">
+                  <Icon name={item.icon} className="h-4 w-4" />
                 </span>
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-white/[0.05] text-gray-400 transition group-hover:bg-[#7c3aed]/20 group-hover:text-white">
-                  <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h13M13 6l6 6-6 6" />
-                  </svg>
+                <p className="text-[13.5px] font-semibold text-white">{item.title}</p>
+                <span className="ml-auto rounded-full border border-[#7c5cff]/40 px-2 py-0.5 text-[10px] text-[#c0afff]">
+                  yeni
                 </span>
               </div>
-              <h3 className="mt-5 text-sm font-bold">{feature.title}</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-gray-400">
-                {feature.description}
-              </p>
+              <p className="mt-2.5 text-[12.5px] leading-relaxed text-[#878d9b]">{item.text}</p>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* İSTATİSTİKLER */}
-      <section className="relative z-10 mx-auto max-w-[1180px] px-4 pb-20 sm:px-6">
-        <div className="grid gap-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-7 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.08]">
-          {stats.map((stat) => (
-            <div key={stat.label} className="flex items-center gap-4 lg:justify-center lg:px-2">
-              {stat.icon}
-              <div>
-                <p className="text-xl font-extrabold tracking-tight">{stat.value}</p>
-                <p className="text-xs text-gray-500">{stat.label}</p>
+      <section id="ozellikler" className="relative z-10 mx-auto w-full max-w-[1180px] px-4 py-12 sm:px-6">
+        <h2 className="text-[22px] font-semibold tracking-tight text-white sm:text-[26px]">
+          Panelde seni ne bekliyor
+        </h2>
+        <p className="mt-1.5 max-w-[520px] text-[13px] leading-relaxed text-[#878d9b]">
+          Hepsi tek yerde: yazı, kod, görselden kod, zihin haritası ve daha fazlası.
+        </p>
+
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {tools.map((item) => (
+            <Link
+              key={item.title}
+              href={item.href}
+              className="group flex items-start gap-3 rounded-2xl border border-[#1b1f28] bg-[#0b0d13] p-4 transition hover:border-[#242a36] hover:bg-[#0e1017]"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#242a36] bg-[#0f1219] text-[#a48bff]">
+                <Icon name={item.icon} className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[13.5px] font-medium text-white">{item.title}</p>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-[#6f7686]">{item.text}</p>
               </div>
-            </div>
+              <Icon
+                name="arrowRight"
+                className="ml-auto h-3.5 w-3.5 shrink-0 translate-y-1 text-[#3a4050] transition group-hover:translate-x-0.5 group-hover:text-[#a48bff]"
+              />
+            </Link>
           ))}
         </div>
+
+        <Link
+          href="/komut"
+          className="mt-3 flex items-center justify-center gap-1.5 rounded-2xl border border-[#1b1f28] bg-[#0b0d13] px-4 py-3 text-[12.5px] text-[#a7acb8] hover:border-[#242a36] hover:text-white"
+        >
+          Tüm araçları gör
+          <Icon name="chevronRight" className="h-3.5 w-3.5" />
+        </Link>
       </section>
+
+      <section id="nasil" className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-12 sm:px-6">
+        <div className="rounded-2xl border border-[#1b1f28] bg-[#0b0d13] p-5 sm:p-6">
+          <h2 className="text-[16px] font-semibold text-white">Nasıl çalışır?</h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {steps.map(([number, title, text]) => (
+              <div key={number} className="border-t border-[#1b1f28] pt-3 md:border-t-0 md:border-l md:pl-4 md:pt-0">
+                <span className="text-[11px] font-medium text-[#7c5cff]">{number}</span>
+                <p className="mt-1 text-[13px] font-medium text-white">{title}</p>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-[#6f7686]">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto w-full max-w-[1180px] px-4 pb-16 sm:px-6">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#7c5cff]/25 bg-gradient-to-br from-[#7c5cff]/12 to-transparent px-6 py-9 text-center">
+          <h2 className="text-[20px] font-semibold tracking-tight text-white sm:text-[24px]">
+            Bir cümleyle başla
+          </h2>
+          <p className="max-w-[440px] text-[13px] leading-relaxed text-[#9aa0ae]">
+            Ücretsiz hesapla aç, kendi asistanını kur, ilk siteni ya da metnini üret.
+          </p>
+          <Link
+            href="/auth"
+            className="mt-2 flex items-center gap-2 rounded-xl bg-[#7c5cff] px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-[#8b6fff]"
+          >
+            Ücretsiz başla
+            <Icon name="arrowRight" className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
+      <footer className="relative z-10 border-t border-[#1b1f28]">
+        <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-3 px-4 py-5 text-[11.5px] text-[#5b616f] sm:px-6">
+          <p>© {new Date().getFullYear()} PromptForge</p>
+          <div className="flex items-center gap-4">
+            <Link href="/tools" className="hover:text-[#a7acb8]">
+              Araçlar
+            </Link>
+            <Link href="/auth" className="hover:text-[#a7acb8]">
+              Giriş
+            </Link>
+            <Link href="/support" className="hover:text-[#a7acb8]">
+              Destek
+            </Link>
+          </div>
+        </div>
+      </footer>
     </main>
   )
 }
