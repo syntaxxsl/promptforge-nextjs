@@ -40,6 +40,14 @@ const groups: NavGroup[] = [
     ],
   },
   {
+    title: 'Otomasyon',
+    items: [
+      { icon: 'activity', label: 'AI Agents', href: '/agents' },
+      { icon: 'layers', label: 'Workflows', href: '/workflows' },
+      { icon: 'terminal', label: 'Playground', href: '/playground' },
+    ],
+  },
+  {
     title: 'Oluştur',
     items: [
       { icon: 'code', label: 'Website Builder', href: '/website-builder' },
@@ -56,9 +64,11 @@ const groups: NavGroup[] = [
     title: 'Geliştir',
     items: [
       { icon: 'bug', label: 'Code Studio', href: '/critic' },
+      { icon: 'bug', label: 'AI Debugger', href: '/debugger' },
       { icon: 'vision', label: 'Görselden Kod', href: '/vision' },
       { icon: 'terminal', label: 'API Studio', href: '/api-studio' },
       { icon: 'terminal', label: 'SQL Asistanı', href: '/sql' },
+      { icon: 'layers', label: 'Database Designer', href: '/db-designer' },
       { icon: 'sparkles', label: 'Prompt Mühendisi', href: '/prompt-muhendisi' },
       { icon: 'message', label: 'Chatbot Builder', href: '/chatbot' },
     ],
@@ -70,6 +80,15 @@ const groups: NavGroup[] = [
       { icon: 'compass', label: 'Dil Araçları', href: '/dil' },
       { icon: 'pulse', label: 'Test Üretici', href: '/test' },
       { icon: 'pulse', label: 'Matematik', href: '/matematik' },
+      { icon: 'user', label: 'CV Oluşturucu', href: '/cv' },
+      { icon: 'compass', label: 'Research AI', href: '/research' },
+    ],
+  },
+  {
+    title: 'Kitaplık',
+    items: [
+      { icon: 'folder', label: 'Şablonlar', href: '/sablonlar' },
+      { icon: 'sparkles', label: 'Prompt Kütüphanesi', href: '/prompts' },
     ],
   },
   {

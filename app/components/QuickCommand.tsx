@@ -116,6 +116,59 @@ const targets: Target[] = [
   },
 ]
 
+const extraTargets: Target[] = [
+  {
+    label: 'AI Agents',
+    href: '/agents',
+    icon: 'activity',
+    words: ['ajan', 'agent', 'adım adım yap', 'otomatik halled'],
+  },
+  {
+    label: 'Workflows',
+    href: '/workflows',
+    icon: 'layers',
+    words: ['akış', 'workflow', 'zincirle'],
+  },
+  {
+    label: 'Playground',
+    href: '/playground',
+    icon: 'terminal',
+    words: ['playground', 'model dene', 'sistem istemi'],
+  },
+  {
+    label: 'AI Debugger',
+    href: '/debugger',
+    icon: 'bug',
+    words: ['hata mesajı', 'stack trace', 'exception', 'debug'],
+  },
+  {
+    label: 'Database Designer',
+    href: '/db-designer',
+    icon: 'layers',
+    words: ['veritabanı', 'şema', 'database', 'tablo tasarla'],
+  },
+  {
+    label: 'CV Oluşturucu',
+    href: '/cv',
+    icon: 'user',
+    words: ['cv', 'özgeçmiş', 'resume', 'iş başvurusu'],
+  },
+  {
+    label: 'Research AI',
+    href: '/research',
+    icon: 'compass',
+    words: ['araştır', 'research', 'kaynak bul'],
+  },
+  {
+    label: 'Şablonlar',
+    href: '/sablonlar',
+    icon: 'folder',
+    words: ['şablon', 'template'],
+  },
+]
+
+targets.push(...extraTargets)
+
 const fallback: Target = {
   label: 'AI Chat',
   href: '/sohbet',

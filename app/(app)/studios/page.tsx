@@ -31,6 +31,16 @@ const studios: { icon: IconName; title: string; text: string }[] = [
     title: '3D Studio',
     text: 'Basit 3D obje ve sahne üretimi.',
   },
+  {
+    icon: 'image',
+    title: 'Thumbnail Studio',
+    text: 'YouTube ve sosyal medya kapak görselleri.',
+  },
+  {
+    icon: 'vision',
+    title: 'Photo Editor',
+    text: 'Görsel düzenleme, arka plan temizleme ve iyileştirme.',
+  },
 ]
 
 export default function StudiosPage() {
