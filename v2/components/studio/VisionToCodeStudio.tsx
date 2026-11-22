@@ -25,7 +25,7 @@ export default function VisionToCodeStudio() {
  }
  function generate(){
   if(!preview||busy){if(!preview)setNotice('Önce bir görsel yükle.');return}
-  if(model.provider==='gemini'||model.provider==='anthropic'){setNotice('Görsel girişi bu sürümde OpenAI uyumlu sağlayıcılarda destekleniyor.');return}
+  if(!model.provider||model.provider==='gemini'||model.provider==='anthropic'){setNotice('Görsel girişi bu sürümde OpenAI uyumlu sağlayıcılarda destekleniyor.');return}
   const controller=new AbortController();abort.current=controller;setBusy(true);setResult('');setNotice('')
   const prompt=`Ekteki arayüz görselini analiz et ve ${framework} ile kodla. Yaklaşım: ${style}. Ek istek: ${description||'Yok'}. Önce kısa tasarım çözümlemesi, sonra dosya adlarıyla kod ver. Responsive ve erişilebilir olsun; çalıştırdığını iddia etme.`
   void streamChat({messages:[{role:'system',content:'Sen ekran görüntüsünden frontend kodu üreten deneyimli bir mühendissin. Türkçe yanıtla. Görseldeki düzen, boşluk, tipografi, renk ve bileşenleri incele; maintainable ve responsive kod üret. Test ettiğini iddia etme.'},{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:preview,detail:'low'}}]}],provider:model.provider,model:model.model,temperature:.25,maxTokens:6500,signal:controller.signal,onDelta:d=>setResult(old=>old+d),onDone:()=>{setBusy(false);abort.current=null},onError:m=>{setBusy(false);abort.current=null;setNotice(m)}})
