@@ -288,7 +288,7 @@ describe('Gemini adapter', () => {
     expect(result.usage?.totalTokens).toBe(3)
   })
 
-  it('maps assistant turns to the model role', async () => {  it('converts base64 image URLs to Gemini inlineData parts', async () => {
+  it('converts base64 image URLs to Gemini inlineData parts', async () => {
     const { captured } = captureFetch({ candidates: [{ content: { parts: [{ text: 'seen' }] } }] })
     await new GeminiAdapter(getProvider('gemini')).complete({
       ...baseRequest,
@@ -305,7 +305,7 @@ describe('Gemini adapter', () => {
     ])
   })
 
-
+  it('maps assistant turns to the model role', async () => {
     const { captured } = captureFetch({ candidates: [{ content: { parts: [{ text: 'x' }] } }] })
     await new GeminiAdapter(getProvider('gemini')).complete(
       {
