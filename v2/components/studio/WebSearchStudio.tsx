@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { completeChat } from '@/lib/studio/chat-client'
@@ -29,7 +30,7 @@ const INITIAL: SearchState = {
   query: ''
 }
 
-export default function WebSearchStudio() {
+export default function WebSearchStudio({ userId }: { userId: string }) {
   const [query, setQuery] = useState('')
   const [state, setState] = useState<SearchState>(INITIAL)
   const [searching, setSearching] = useState(false)
@@ -270,7 +271,7 @@ export default function WebSearchStudio() {
           </div>
           <div className="pf-scroll min-h-0 flex-1 overflow-y-auto">
             {analysis ? (
-              <Markdown content={analysis} />
+              <Markdown content={analysis} /><div className="mt-2"><SaveOutputButton userId={userId} tool="Web arama analizi" title="Web arama analizi" content={analysis}/></div>
             ) : (
               <p className="text-xs text-white/35">
                 Sonuçlardan birkaçını seçip analiz ettirin; ortak noktalar ve farklılıklar
