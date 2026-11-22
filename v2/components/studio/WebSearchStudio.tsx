@@ -36,7 +36,7 @@ export default function WebSearchStudio({ userId }: { userId: string }) {
   const [searching, setSearching] = useState(false)
   const [analysis, setAnalysis] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
-  const [model, setModel] = useState<ModelSelection>({})
+  const [model, setModel] = useState<ModelSelection>({ label: 'Otomatik seçim' })
   const [selected, setSelected] = useState<string[]>([])
 
   const abortRef = useRef<AbortController | null>(null)
