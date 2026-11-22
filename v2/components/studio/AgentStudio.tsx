@@ -285,7 +285,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5 p-3 sm:p-5 lg:p-7">
+    <div className="pf-agent-studio mx-auto max-w-7xl space-y-5 p-3 sm:p-5 lg:p-7">
       <section className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-primary/10 p-5 sm:p-7">
         <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
         <header className="relative mb-5 flex flex-wrap items-center gap-3">
