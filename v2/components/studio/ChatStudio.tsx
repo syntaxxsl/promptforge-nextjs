@@ -637,7 +637,7 @@ export default function ChatStudio({ userId }: { userId: string }) {
   const projectValue = active ? active.projectId || '' : pendingProject
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] md:h-dvh">
+    <div className="pf-chat-studio flex h-[calc(100dvh-3.5rem)] md:h-dvh">
       {/* ------------------------------------------------ thread list */}
       <aside
         className={`${
