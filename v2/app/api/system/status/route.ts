@@ -26,6 +26,8 @@ export async function GET() {
     }
 
     const database = supabaseStatus()
+    const { error: databaseProbeError } = await supabase.from('studio_records').select('record_id').limit(1)
+    const databaseReachable = !databaseProbeError
     const encryption = Boolean(
       process.env.API_KEY_ENCRYPTION_SECRET &&
       process.env.API_KEY_ENCRYPTION_SECRET.length >= 32
@@ -35,7 +37,7 @@ export async function GET() {
       .map(([provider]) => provider)
 
     return NextResponse.json({
-      database: { configured: database.configured, missing: database.missing },
+      database: { configured: database.configured, reachable: databaseReachable, missing: database.missing, probeMessage: databaseProbeError ? 'Studio veritabanı tablosuna erişilemiyor.' : null },
       encryption: { configured: encryption },
       serverProviders,
       automationScheduler: {
