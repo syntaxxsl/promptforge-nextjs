@@ -15,6 +15,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [commandOpen, setCommandOpen] = useState(false)
+  const [commandQuery, setCommandQuery] = useState('')
 
   useEffect(() => {
     if (window.localStorage.getItem('pf-v2-nav-collapsed') === '1') setCollapsed(true)
@@ -42,7 +44,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }).catch(() => {})
   }, [pathname])
 
-  useEffect(() => { setNavOpen(false) }, [pathname])
+  useEffect(() => { setNavOpen(false); setCommandOpen(false) }, [pathname])
+
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setCommandOpen(true)
+      }
+      if (event.key === 'Escape') setCommandOpen(false)
+    }
+    window.addEventListener('keydown', handleShortcut)
+    return () => window.removeEventListener('keydown', handleShortcut)
+  }, [])
 
   function toggleCollapsed() {
     setCollapsed(prev => {
@@ -72,6 +86,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const pageLabel = NAV_GROUPS.flatMap(group => group.items).find(item => isActive(item.href))?.label || 'Çalışma Alanı'
+  const commandItems = NAV_GROUPS.filter(group => group.title !== 'Yönetim' || isAdmin).flatMap(group => group.items.map(item => ({ ...item, group: group.title })))
+  const filteredCommands = commandItems.filter(item => (item.label + ' ' + item.group).toLocaleLowerCase('tr').includes(commandQuery.toLocaleLowerCase('tr')))
   const sidebarWidth = collapsed ? 'md:w-[76px]' : 'md:w-[264px]'
 
   return (
@@ -121,10 +137,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <button onClick={() => setNavOpen(true)} className="pf-icon-btn md:hidden" aria-label="Menüyü aç"><Icon name="menu" className="h-5 w-5" /></button>
             <div className="min-w-0"><div className="text-[10px] font-semibold uppercase tracking-[.18em] text-muted">PromptForge / Workspace</div><div className="truncate text-sm font-semibold text-fg">{pageLabel}</div></div>
           </div>
-          <div className="flex items-center gap-2"><Link href="/projects" className="pf-top-action hidden sm:inline-flex"><Icon name="folder" className="h-4 w-4" /> Projeler</Link><Link href="/settings" className="pf-icon-btn" aria-label="Ayarlar"><Icon name="settings" className="h-[18px] w-[18px]" /></Link><span className="hidden h-8 w-px bg-border sm:block" /><span className="pf-avatar hidden sm:flex"><Icon name="user" className="h-4 w-4" /></span></div>
+          <div className="flex items-center gap-2"><button type="button" onClick={() => { setCommandQuery(""); setCommandOpen(true) }} className="pf-command-trigger"><Icon name="search" className="h-4 w-4" /><span className="hidden sm:inline">Araç ve sayfa ara</span><kbd className="hidden rounded-md border border-border px-1.5 py-0.5 text-[9px] text-muted sm:inline">⌘ K</kbd></button><Link href="/projects" className="pf-top-action hidden lg:inline-flex"><Icon name="folder" className="h-4 w-4" /> Projeler</Link><Link href="/settings" className="pf-icon-btn" aria-label="Ayarlar"><Icon name="settings" className="h-[18px] w-[18px]" /></Link><span className="hidden h-8 w-px bg-border sm:block" /><span className="pf-avatar hidden sm:flex"><Icon name="user" className="h-4 w-4" /></span></div>
         </header>
         <main className="pf-main min-h-[calc(100vh-76px)]">{children}</main>
       </div>
+      {commandOpen && <div className="pf-command-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setCommandOpen(false) }}>
+        <section className="pf-command-panel" role="dialog" aria-modal="true" aria-label="PromptForge hızlı arama">
+          <div className="pf-command-search"><Icon name="search" className="h-5 w-5 text-muted" /><input autoFocus value={commandQuery} onChange={event => setCommandQuery(event.target.value)} placeholder="Bir araç, sayfa veya özellik ara..." aria-label="Araç ve sayfa ara" /><kbd>ESC</kbd></div>
+          <div className="pf-command-meta"><span>ÇALIŞMA ALANLARI</span><span>{filteredCommands.length} sonuç</span></div>
+          <div className="pf-command-results pf-scroll">
+            {filteredCommands.length ? filteredCommands.map(item => <Link key={item.href} href={item.href} onClick={() => setCommandOpen(false)} className="pf-command-result"><span className="pf-tool-icon"><Icon name={item.icon} className="h-4 w-4" /></span><span className="min-w-0 flex-1"><strong>{item.label}</strong><small>{item.group}</small></span><Icon name="arrowRight" className="h-4 w-4 text-muted" /></Link>) : <div className="px-5 py-10 text-center text-sm text-muted">Bu aramayla eşleşen bir çalışma alanı yok.</div>}
+          </div>
+          <div className="pf-command-footer"><span><kbd>↵</kbd> Sayfayı açmak için seç</span><span><kbd>ESC</kbd> Kapat</span></div>
+        </section>
+      </div>}
     </div>
   )
 }
