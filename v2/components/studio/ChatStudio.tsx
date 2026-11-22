@@ -587,7 +587,28 @@ export default function ChatStudio({ userId }: { userId: string }) {
 
       const result = addAttachment(list, attachment)
       list = result.attachments
-      if (result.notice) setNotice(result.notice)
+      if (result.notice) {
+        setNotice(result.notice)
+      } else if (isTextFile({ name: file.name, type: file.type }) && file.size <= MAX_ATTACHMENT_BYTES) {
+        // Keep Chat's normal attachment path working even when cloud storage is
+        // not configured, but also place accepted text uploads in shared files.
+        try {
+          const sharedForm = new FormData()
+          sharedForm.append('file', file)
+          const sharedResponse = await fetch('/api/storage/files', {
+            method: 'POST',
+            body: sharedForm
+          })
+          if (!sharedResponse.ok) {
+            const sharedData = await sharedResponse.json().catch(() => ({})) as { error?: string }
+            setNotice('Dosya sohbete eklendi; ortak depoya kaydedilemedi: ' + (sharedData.error || 'depolama kullanılamıyor.'))
+          } else {
+            setNotice('Dosya sohbete eklendi ve ortak dosya deposuna kaydedildi.')
+          }
+        } catch {
+          setNotice('Dosya sohbete eklendi; ortak depoya bağlantı kurulamadı.')
+        }
+      }
     }
 
     setPending(list)
