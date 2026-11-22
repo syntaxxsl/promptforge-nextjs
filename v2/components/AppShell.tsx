@@ -179,19 +179,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="pf-assistant-panel-head">
             <span className="pf-assistant-mark"><Icon name="sparkles" className="h-4 w-4" /></span>
             <div className="min-w-0 flex-1"><strong>AI Assistant</strong><small>PromptForge çalışma alanı</small></div>
-            <button type="button" onClick={() => setAssistantOpen(false)} className="pf-icon-btn" aria-label="Asistan panelini kapat"><Icon name="x" className="h-4 w-4" /></button>
+            <button type="button" onClick={() => setAssistantOpen(false)} className="pf-icon-btn" aria-label="Asistan panelini kapat"><Icon name="chevronLeft" className="h-4 w-4" /></button>
           </div>
           <p className="pf-assistant-intro">Ne üzerinde çalışmak istiyorsun? İsteğini AI Chat'e aktar, orada devam et.</p>
           <form onSubmit={openAssistantChat} className="pf-assistant-form">
             <textarea value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} rows={3} maxLength={4000} placeholder="Örn. Bir web sitesi için modern bir ana sayfa tasarla..." aria-label="AI Assistant isteğin" />
-            <button type="submit" disabled={!assistantPrompt.trim()} className="pf-btn pf-btn-primary w-full"><Icon name="send" className="h-4 w-4" /> AI Chat'te devam et</button>
+            <button type="submit" disabled={!assistantPrompt.trim()} className="pf-btn pf-btn-primary w-full"><Icon name="arrowRight" className="h-4 w-4" /> AI Chat'te devam et</button>
           </form>
           <div className="pf-assistant-shortcuts">
             <span>HIZLI ERİŞİM</span>
             <div>
               <Link href="/image" onClick={() => setAssistantOpen(false)}><Icon name="image" className="h-4 w-4" /> Görsel üret</Link>
               <Link href="/code" onClick={() => setAssistantOpen(false)}><Icon name="code" className="h-4 w-4" /> Kod yaz</Link>
-              <Link href="/website-builder" onClick={() => setAssistantOpen(false)}><Icon name="globe" className="h-4 w-4" /> Site oluştur</Link>
+              <Link href="/website-builder" onClick={() => setAssistantOpen(false)}><Icon name="compass" className="h-4 w-4" /> Site oluştur</Link>
             </div>
           </div>
         </section>}
