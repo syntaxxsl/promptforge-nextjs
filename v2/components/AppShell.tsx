@@ -196,7 +196,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </section>}
         <button type="button" className={`pf-assistant-toggle ${assistantOpen ? 'is-open' : ''}`} onClick={() => setAssistantOpen(value => !value)} aria-expanded={assistantOpen} aria-label={assistantOpen ? 'AI Assistant panelini kapat' : 'AI Assistant panelini aç'}>
-          <Icon name={assistantOpen ? 'x' : 'sparkles'} className="h-5 w-5" /><span>{assistantOpen ? 'Kapat' : 'AI Assistant'}</span>
+          <Icon name={assistantOpen ? 'chevronLeft' : 'sparkles'} className="h-5 w-5" /><span>{assistantOpen ? 'Kapat' : 'AI Assistant'}</span>
         </button>
       </div>
       {commandOpen && <div className="pf-command-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setCommandOpen(false) }}>
