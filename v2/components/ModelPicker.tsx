@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Icon from '@/components/Icon'
-import type { ModelConfig, ProviderId } from '@/lib/ai/types'
+import type { ModelCapability, ModelConfig, ProviderId } from '@/lib/ai/types'
 
 interface CatalogResponse {
   models: ModelConfig[]
@@ -24,11 +24,13 @@ export interface ModelSelection {
 export default function ModelPicker({
   value,
   onChange,
-  disabled
+  disabled,
+  requiredCapability
 }: {
   value: ModelSelection
   onChange: (next: ModelSelection) => void
   disabled?: boolean
+  requiredCapability?: ModelCapability
 }) {
   const [data, setData] = useState<CatalogResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -55,12 +57,13 @@ export default function ModelPicker({
   const grouped = useMemo(() => {
     const map = new Map<ProviderId, ModelConfig[]>()
     for (const model of data?.models || []) {
+      if (requiredCapability && !model.capabilities.includes(requiredCapability)) continue
       const list = map.get(model.providerId) || []
       list.push(model)
       map.set(model.providerId, list)
     }
     return [...map.entries()]
-  }, [data])
+  }, [data, requiredCapability])
 
   const providerName = (id: ProviderId) =>
     data?.providers.find((p) => p.id === id)?.displayName || id
@@ -89,6 +92,7 @@ export default function ModelPicker({
           >
             {error && <div className="px-2 py-2 text-xs text-danger">{error}</div>}
             {!data && !error && <div className="px-2 py-2 text-xs text-muted">Yükleniyor…</div>}
+            {data && grouped.length === 0 && <div className="px-2 py-2 text-xs text-muted">Bu yeteneğe uygun doğrulanmış model bulunamadı. Otomatik seçim kullanılabilir.</div>}
 
             <button
               type="button"
@@ -99,7 +103,7 @@ export default function ModelPicker({
               className="w-full text-left px-2 py-1.5 rounded-md text-xs hover:bg-surface-2"
             >
               <span className="font-medium">Otomatik seçim</span>
-              <span className="block text-[11px] text-muted">Göreve göre yönlendirilir</span>
+              <span className="block text-[11px] text-muted">{requiredCapability === 'vision' ? 'Görsel anlayabilen model otomatik seçilir' : 'Göreve göre yönlendirilir'}</span>
             </button>
 
             {grouped.map(([providerId, models]) => (
