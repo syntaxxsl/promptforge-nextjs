@@ -19,6 +19,7 @@ export interface ChatClientOptions {
   model?: string
   temperature?: number
   maxTokens?: number
+  task?: string
   signal?: AbortSignal
   onDelta: (delta: string) => void
   onDone: (meta: { provider?: ProviderId; model?: string; latencyMs?: number }) => void
@@ -37,6 +38,7 @@ export async function streamChat(options: ChatClientOptions): Promise<void> {
         model: options.model,
         temperature: options.temperature,
         maxTokens: options.maxTokens,
+        task: options.task,
         stream: true
       }),
       signal: options.signal
