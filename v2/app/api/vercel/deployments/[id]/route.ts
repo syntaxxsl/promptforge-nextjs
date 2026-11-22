@@ -22,7 +22,7 @@ type DeploymentDetails = {
   meta?: Record<string, string | undefined>
 }
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { isAdmin, user } = await getSignedInUser()
   if (!user) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
   if (!isAdmin) return NextResponse.json({ error: 'Yönetici yetkisi gerekli.' }, { status: 403 })
@@ -30,7 +30,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const config = getVercelConfig()
   if (!config) return NextResponse.json({ error: 'Vercel bağlantısı yapılandırılmamış.' }, { status: 503 })
 
-  const id = params.id
+  const { id } = await params
   if (!id || !/^[a-zA-Z0-9_-]{5,160}$/.test(id)) {
     return NextResponse.json({ error: 'Geçersiz deployment kimliği.' }, { status: 400 })
   }
