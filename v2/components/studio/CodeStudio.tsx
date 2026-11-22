@@ -17,19 +17,15 @@ import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import StoredFilePicker from '@/components/studio/StoredFilePicker'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
-import { completeChat, streamChat } from '@/lib/studio/chat-client'
+import { streamChat } from '@/lib/studio/chat-client'
 import {
   addFile,
   bundleWorkspace,
   createWorkspace,
-  deleteWorkspace,
   downloadText,
-  getWorkspace,
   languageFromPath,
   listWorkspaces,
   removeFile,
-  renameWorkspace,
-  saveWorkspace,
   setActiveFile,
   updateFile
 } from '@/lib/studio/code-store'
