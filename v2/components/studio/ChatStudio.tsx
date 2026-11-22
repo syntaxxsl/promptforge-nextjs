@@ -817,6 +817,7 @@ export default function ChatStudio({ userId }: { userId: string }) {
                 <ChatMessageRow
                   key={message.id}
                   message={message}
+                  userId={userId}
                   busy={busy}
                   canRetry={message.role === 'assistant' && message.id !== STREAMING_ID}
                   canSaveToProject={Boolean(active.projectId)}
