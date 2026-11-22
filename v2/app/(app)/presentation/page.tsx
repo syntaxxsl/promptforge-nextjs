@@ -6,5 +6,5 @@ export default async function PresentationPage(){
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user) redirect('/login')
- return <PresentationStudio/>
+ return <PresentationStudio userId={data.user.id}/>
 }
