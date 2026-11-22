@@ -2,7 +2,7 @@
 
 // Project repository (local-first, per user).
 
-import { createId, nowIso, readCollection, removeById, upsert } from './store'
+import { createId, nowIso, readCollection, removeById, upsert, writeCollection } from './store'
 import type { ProjectEntry, ProjectFileEntry, ProjectOutputEntry, StudioToolId } from './types'
 
 const PROJECT_COLLECTION = 'projects'
@@ -49,8 +49,8 @@ export function deleteProject(userId: string, id: string): boolean {
   const outputs = readCollection<ProjectOutputEntry>(userId, OUTPUT_COLLECTION).filter(
     (o) => o.projectId !== id
   )
-  upsert(userId, FILE_COLLECTION, files as never)
-  upsert(userId, OUTPUT_COLLECTION, outputs as never)
+  writeCollection(userId, FILE_COLLECTION, files)
+  writeCollection(userId, OUTPUT_COLLECTION, outputs)
   return removeById<ProjectEntry>(userId, PROJECT_COLLECTION, id)
 }
 
