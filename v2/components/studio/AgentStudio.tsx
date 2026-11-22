@@ -27,6 +27,7 @@ import {
   saveAgent
 } from '@/lib/studio/agent-store'
 import { AGENT_TOOLS, type Agent, type AgentRun, type AgentToolId } from '@/lib/studio/types'
+import { useCloudCollection } from '@/lib/studio/use-cloud-collection'
 
 const AUTO: ModelSelection = { label: 'Otomatik seçim' }
 
@@ -41,6 +42,9 @@ export default function AgentStudio({ userId }: { userId: string }) {
   const [model, setModel] = useState<ModelSelection>(AUTO)
 
   const abortRef = useRef<AbortController | null>(null)
+
+  useCloudCollection({ userId, collection: 'agents', records: agents, setRecords: setAgents, sort: (a, b) => b.updatedAt.localeCompare(a.updatedAt) })
+  useCloudCollection({ userId, collection: 'agent-runs', records: runs, setRecords: setRuns, sort: (a, b) => b.createdAt.localeCompare(a.createdAt) })
 
   const active = useMemo(
     () => agents.find((a) => a.id === activeId) || null,
@@ -57,7 +61,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
   }, [userId])
 
   useEffect(() => {
-    setRuns(activeId ? listRuns(userId, activeId) : [])
+    setRuns(listRuns(userId))
   }, [userId, activeId])
 
   function refresh() {
@@ -142,7 +146,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
         model: result.model ?? null,
         latencyMs: result.latencyMs
       })
-      setRuns(listRuns(userId, active.id))
+      setRuns(listRuns(userId))
       setTask('')
     } catch (error) {
       const message = (error as Error)?.message || 'Ajan çalıştırılamadı.'
@@ -360,14 +364,14 @@ export default function AgentStudio({ userId }: { userId: string }) {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] uppercase tracking-wide text-muted">
-                    Görev geçmişi ({runs.length})
+                    Görev geçmişi ({runs.filter((run) => run.agentId === active.id).length})
                   </span>
                 </div>
                 {runs.length === 0 ? (
                   <p className="text-[11px] text-muted">Henüz görev çalıştırılmadı.</p>
                 ) : (
                   <ul className="space-y-2 max-h-96 overflow-y-auto pf-scroll">
-                    {runs.map((run) => (
+                    {runs.filter((run) => run.agentId === active.id).map((run) => (
                       <li key={run.id} className="rounded-md border border-border p-2.5">
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-xs font-medium truncate">{run.task}</span>
@@ -379,7 +383,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
                           <button
                             onClick={() => {
                               deleteRun(userId, run.id)
-                              setRuns(listRuns(userId, activeId))
+                              setRuns(listRuns(userId))
                             }}
                             className="text-muted hover:text-danger shrink-0"
                             aria-label="Kaydı sil"
