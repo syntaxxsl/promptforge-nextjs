@@ -66,7 +66,7 @@ export default function VideoStudio({ userId }: { userId: string }) {
   const ratio = aspect.replace(':', ' / ')
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+    <div className="pf-media-studio pf-video-studio p-4 md:p-6 max-w-6xl mx-auto">
       <header className="mb-5">
         <h1 className="text-xl font-semibold flex items-center gap-2">
           <Icon name="vision" className="h-5 w-5 text-primary" />
