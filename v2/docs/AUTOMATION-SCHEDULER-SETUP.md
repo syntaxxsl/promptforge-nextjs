@@ -6,22 +6,36 @@ PromptForge's scheduled automations are evaluated once per minute. Vercel Hobby 
 
 In the Vercel project settings for `promptforge-v2`, set `CRON_SECRET` to a fresh, high-entropy value. Do not paste the value into GitHub, this document, or a chat. If the previous value was shared outside the secret manager, rotate it.
 
-## 2. Add two secrets to Supabase Vault
+Changing this value only affects **new** deployments: Vercel snapshots the environment of each deployment at build time. After editing `CRON_SECRET`, trigger a fresh deployment (a new commit on the deployment branch) before testing.
 
-Open the Supabase project for PromptForge, then open **Vault** (under Database / Integrations, depending on the Dashboard layout). Add these two secrets:
+## 2. Add three secrets to Supabase Vault
+
+Open the Supabase project for PromptForge, then open **Vault** (under Database / Integrations, depending on the Dashboard layout). Add these secrets:
 
 | Name | Value |
 |---|---|
 | `promptforge_cron_url` | `https://YOUR-VERCEL-DOMAIN/api/cron/automations` |
-| `promptforge_cron_secret` | The exact same fresh value configured as Vercel `CRON_SECRET` |
+| `promptforge_cron_secret` | The exact same value configured as Vercel `CRON_SECRET` |
+| `promptforge_vercel_bypass` | The Vercel Deployment Protection bypass token for the automation |
 
 Use the active production domain shown in the Vercel project's **Settings → Domains**. Do not include a trailing slash in the URL.
 
 ## 3. Apply the migration
 
-Run the complete file `db/migrations/20261122_supabase_automation_cron.sql` in the Supabase SQL Editor after both Vault secrets exist.
+Run the complete file `db/migrations/20261122_supabase_automation_cron.sql` in the Supabase SQL Editor after the Vault secrets exist.
 
-The migration enables `pg_cron` and `pg_net`, validates the two Vault entries, and schedules `promptforge-automation-scheduler` every minute. Re-running the migration updates the job with the same name rather than creating a second scheduled job.
+The migration enables `pg_cron` and `pg_net`, and schedules `promptforge-automation-scheduler` every minute. Re-running it updates the job with the same name (same job id) rather than creating a second scheduled job.
+
+### Why two headers are required
+
+The pg_cron job sends two headers, and both are mandatory:
+
+| Header | Value source | Checked by |
+|---|---|---|
+| `Authorization: Bearer <secret>` | `promptforge_cron_secret` | the route handler (`CRON_SECRET` comparison) |
+| `x-vercel-protection-bypass` | `promptforge_vercel_bypass` | Vercel Deployment Protection |
+
+Without the bypass header, Vercel answers the request with the SSO/deployment-protection HTML page instead of the API route, so the route never executes. The symptom is a `net._http_response` row with `status_code = 200` whose body starts with `<!DOCTYPE html>` — a 200 that is not the API response.
 
 ## 4. Verify it
 
@@ -36,18 +50,17 @@ where jobname = 'promptforge-automation-scheduler';
 Check recent executions:
 
 ```sql
-select jobid, status, start_time, end_time, return_message
-from cron.job_run_details
-where jobid = (
-  select jobid
-  from cron.job
-  where jobname = 'promptforge-automation-scheduler'
-)
-order by start_time desc
+select id, status_code, left(content, 160) as snippet, created
+from net._http_response
+order by created desc
 limit 10;
 ```
 
-A successful HTTP dispatch should return HTTP 200 from `/api/cron/automations`. The endpoint itself still requires the `CRON_SECRET` bearer header and the existing Supabase admin configuration.
+A successful dispatch returns `status_code = 200` with a JSON body such as `{"ok":true,"checked":0,"executed":0,"skipped":0,"failures":[]}`. Any other body shape (HTML, `NOT_FOUND`, `401`) means the request did not reach the route handler.
+
+## 5. Build configuration note
+
+The repository also contains the V1 app with its own lockfile, so Next.js may infer the workspace root as the repository root. That mis-inference writes the build output to the wrong directory and Vercel deploys an empty bundle where every route answers 404. `v2/next.config.js` therefore pins `turbopack.root` to the `v2/` directory.
 
 ## Notes
 
