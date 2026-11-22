@@ -59,8 +59,10 @@ export interface Automation {
   name: string
   description: string
   trigger: TriggerKind
-  /** Cron-ish label for schedule triggers; stored only, not executed. */
+  /** Five-field cron expression, e.g. 0 9 * * 1-5. */
   scheduleLabel?: string
+  /** IANA time zone used to evaluate the schedule. */
+  scheduleTimezone?: string
   nodes: AutomationNode[]
   enabled: boolean
   createdAt: string
@@ -130,6 +132,8 @@ export function createAutomation(
     name: patch.name?.trim() || 'Yeni otomasyon',
     description: patch.description || '',
     trigger: patch.trigger ?? 'manual',
+    scheduleLabel: '0 9 * * 1-5',
+    scheduleTimezone: 'Europe/Istanbul',
     nodes: patch.nodes ?? [makeNode('trigger'), makeNode('ai_action'), makeNode('output')],
     enabled: true,
     createdAt: now,
