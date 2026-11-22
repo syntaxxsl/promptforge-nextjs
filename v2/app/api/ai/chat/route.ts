@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { runAI, streamAI } from '@/lib/ai/ai-engine'
-import { AIProviderError, toProviderError, toProviderFailure } from '@/lib/ai/errors'
+import { AIProviderError, toProviderFailure } from '@/lib/ai/errors'
 import {
   AI_RATE_LIMIT,
   checkBodySize,
