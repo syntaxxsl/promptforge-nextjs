@@ -43,8 +43,8 @@ export default function AgentStudio({ userId }: { userId: string }) {
 
   const abortRef = useRef<AbortController | null>(null)
 
-  useCloudCollection({ userId, collection: 'agents', records: agents, setRecords: setAgents, sort: (a, b) => b.updatedAt.localeCompare(a.updatedAt) })
-  useCloudCollection({ userId, collection: 'agent-runs', records: runs, setRecords: setRuns, sort: (a, b) => b.createdAt.localeCompare(a.createdAt) })
+  useCloudCollection({ userId, collection: 'agents', records: agents, setRecords: setAgents, sort: (a, b) => b.updatedAt.localeCompare(a.updatedAt), onUnavailable: () => setNotice('Bulut ajan eşitlemesi kullanılamıyor; yerel kayıtların korunuyor.') })
+  useCloudCollection({ userId, collection: 'agent-runs', records: runs, setRecords: setRuns, sort: (a, b) => b.createdAt.localeCompare(a.createdAt), onUnavailable: () => setNotice('Bulut görev geçmişi eşitlemesi kullanılamıyor; yerel kayıtların korunuyor.') })
 
   const active = useMemo(
     () => agents.find((a) => a.id === activeId) || null,
