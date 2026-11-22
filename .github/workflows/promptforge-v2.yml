@@ -35,6 +35,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: v2/package-lock.json
+      - name: Regenerate the lockfile from the audited manifest
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Install dependencies
         run: npm ci
       - name: Dependency vulnerability report
@@ -99,9 +101,19 @@ jobs:
             /tmp/npm-audit-production.json
           if-no-files-found: warn
           retention-days: 7
+      - name: Enforce production dependency security
+        run: npm audit --omit=dev --audit-level=high
       - name: Run tests
         run: npm test
       - name: TypeScript check
         run: npm run typecheck
       - name: Production build
         run: npm run build
+
+      - name: Upload regenerated package lock
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptforge-v2-regenerated-lock
+          path: v2/package-lock.json
+          retention-days: 7
