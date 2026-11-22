@@ -246,7 +246,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
     try {
       const value = JSON.parse(await file.text()) as { format?: string; version?: number; project?: { name?: string; description?: string; color?: string; linkedTools?: StudioToolId[] }; files?: Array<{ name?: string; content?: string }>; outputs?: Array<{ title?: string; tool?: string; payload?: string }> }
       if (value.format !== 'promptforge-project' || value.version !== 1 || !value.project || !Array.isArray(value.files) || !Array.isArray(value.outputs)) throw new Error('Bu dosya geçerli bir PromptForge proje paketi değil.')
-      const project = createProject(userId, { name: (value.project.name || 'İçe aktarılan proje').slice(0, 100), description: (value.project.description || '').slice(0, 500), color: PROJECT_COLORS.includes(value.project.color || '') ? value.project.color! : PROJECT_COLORS[0] })
+      const project = createProject(userId, { name: (value.project.name || 'İçe aktarılan proje').slice(0, 100), description: (value.project.description || '').slice(0, 500), color: (typeof value.project.color === 'string' && (PROJECT_COLORS as readonly string[]).includes(value.project.color)) ? value.project.color as typeof PROJECT_COLORS[number] : PROJECT_COLORS[0] })
       if (!project) throw new Error('Proje oluşturulamadı; tarayıcı depolaması dolu olabilir.')
       for (const item of value.files.slice(0, 100)) if (typeof item.name === 'string' && typeof item.content === 'string') addFile(userId, project.id, item.name.slice(0, 160), item.content.slice(0, 500000))
       for (const item of value.outputs.slice(0, 100)) if (typeof item.title === 'string' && typeof item.payload === 'string') addOutput(userId, project.id, (item.tool || 'import').slice(0, 60), item.title.slice(0, 160), item.payload.slice(0, 200000))
@@ -548,8 +548,8 @@ export default function ProjectManager({ userId }: { userId: string }) {
                       </p>
                     </div>
                     <div className="ml-auto flex gap-1.5">
-                      <button onClick={() => importInputRef.current?.click()} className="pf-btn pf-btn-ghost text-xs"><Icon name="upload" className="h-3.5 w-3.5" />Paket içe aktar</button>
-                      <button onClick={exportProjectBundle} className="pf-btn pf-btn-ghost text-xs"><Icon name="share" className="h-3.5 w-3.5" />Paylaşılabilir paket</button>
+                      <button onClick={() => importInputRef.current?.click()} className="pf-btn pf-btn-ghost text-xs"><Icon name="paperclip" className="h-3.5 w-3.5" />Paket içe aktar</button>
+                      <button onClick={exportProjectBundle} className="pf-btn pf-btn-ghost text-xs"><Icon name="download" className="h-3.5 w-3.5" />Paylaşılabilir paket</button>
                       <button onClick={rename} className="pf-btn pf-btn-ghost text-xs">
                         <Icon name="pen" className="h-3.5 w-3.5" />
                         Adlandır
@@ -662,7 +662,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
                       <div>
                         {activeFile ? (
                           <>
-                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><span className="text-[11px] text-muted">{versions.filter((item) => item.fileId === activeFile.id).length} kayıtlı sürüm</span><button type="button" onClick={saveVersion} className="pf-btn pf-btn-ghost text-[11px]"><Icon name="clock" className="h-3.5 w-3.5"/>Sürüm kaydet</button></div>
+                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><span className="text-[11px] text-muted">{versions.filter((item) => item.fileId === activeFile.id).length} kayıtlı sürüm</span><button type="button" onClick={saveVersion} className="pf-btn pf-btn-ghost text-[11px]"><Icon name="activity" className="h-3.5 w-3.5"/>Sürüm kaydet</button></div>
                             <textarea value={activeFile.content} onChange={(e) => saveFileContent(e.target.value)} className="pf-input min-h-48 font-mono text-xs resize-y" placeholder="Dosya içeriği…" />
                             {versions.filter((item) => item.fileId === activeFile.id).slice(0, 8).length > 0 && <div className="mt-3 space-y-1.5"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted">Sürüm geçmişi</p>{versions.filter((item) => item.fileId === activeFile.id).slice(0, 8).map((version) => <div key={version.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-2.5 py-2"><span className="text-[11px] text-muted">{new Date(version.createdAt).toLocaleString('tr-TR')}</span><button type="button" onClick={() => restoreVersion(version)} className="text-[11px] text-primary hover:underline">Geri yükle</button></div>)}</div>}
                           </>
