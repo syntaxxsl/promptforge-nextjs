@@ -350,7 +350,7 @@ export default function ResearchStudio({ userId }: { userId: string }) {
   const lastLiveText = runningStage ? liveText[runningStage] ?? '' : ''
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-3 md:flex-row md:gap-4 md:p-5">
+    <div className="pf-research-studio flex h-full min-h-0 flex-col gap-3 p-3 md:flex-row md:gap-4 md:p-5">
       {/* history rail */}
       <aside className="w-full shrink-0 md:w-60">
         <div className="mb-2 flex items-center justify-between">
