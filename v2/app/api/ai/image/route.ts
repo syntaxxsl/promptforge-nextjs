@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     const key = await resolveApiKey('openai', auth.user.id)
     if (!key || key.source !== 'user') {
-      return fail('Görsel üretmek için Ayarlar → API Anahtarları bölümüne kendi OpenAI API anahtarını eklemelisin. Kullanım ücreti OpenAI hesabına yansır.', 409, 'openai_key_required')
+      return fail('Görsel üretimi için yetkili bir OpenAI API anahtarı gerekir. API hesabı ve ücretlendirmeyi ebeveynin/velinle yönet.', 409, 'openai_key_required')
     }
 
     const fullPrompt = [
