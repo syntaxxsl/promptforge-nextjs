@@ -153,7 +153,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
     if (!cloudReadyRef.current) return
     const timer = window.setTimeout(() => {
       void (async () => {
-        const collections = ['projects', 'project-files', 'project-outputs'] as const
+        const collections = ['projects', 'project-files', 'project-outputs', 'project-file-versions'] as const
         for (const collection of collections) {
           const records = readCollection<{ id: string; createdAt: string; updatedAt?: string }>(userId, collection)
           const localIds = new Set(records.map((record) => record.id))
