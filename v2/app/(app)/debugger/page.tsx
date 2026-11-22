@@ -6,5 +6,5 @@ export default async function DebuggerPage() {
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   if (!data.user) redirect('/login')
-  return <DebuggerStudio />
+  return <DebuggerStudio userId={data.user.id} />
 }
