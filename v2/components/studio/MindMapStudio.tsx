@@ -54,7 +54,7 @@ export default function MindMapStudio({ userId }: { userId: string }) {
     catch { setNotice('Kopyalama başarısız; metni seçerek kopyalayabilirsin.') }
   }
 
-  return <main className="mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
+  return <main className="pf-mindmap-studio mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
     <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="map" className="h-4 w-4" /> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">Zihin Haritası</h1><p className="mt-1 text-sm text-muted">Karmaşık konuları dallara ayır, fikirler arasındaki ilişkileri görünür hâle getir.</p></div>
       <ModelPicker value={model} onChange={setModel} disabled={busy} />
