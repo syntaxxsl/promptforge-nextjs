@@ -288,6 +288,7 @@ export default function CodeStudio({ userId }: { userId: string }) {
   }, [activeFile])
 
   return (
+    <>
     <div className="flex flex-col md:h-screen md:flex-row">
       {/* Files */}
       <aside
@@ -548,5 +549,6 @@ export default function CodeStudio({ userId }: { userId: string }) {
           onSelect={importStoredFile}
         />
       )}
+    </>
   )
 }
