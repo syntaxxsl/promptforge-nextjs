@@ -197,7 +197,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
       const toolContext = task.trim()
         ? await collectToolContext(active, task.trim(), controller.signal)
         : ''
-      const userPrompt = `${prompt}${toolContext ? `\\n\\nTool context:\\n${toolContext}` : ''}`
+      const userPrompt = `${prompt}${toolContext ? `\n\nTool context:\n${toolContext}` : ''}`
       const userContent = attachedImage
         ? [
             { type: 'text', text: userPrompt },
@@ -216,7 +216,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
       })
       addRun(userId, {
         agentId: active.id,
-        task: task.trim(),
+        task: task.trim() || 'Görsel analizi',
         result: result.text,
         provider: result.provider ?? null,
         model: result.model ?? null,
@@ -229,7 +229,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
       const message = (error as Error)?.message || 'Ajan çalıştırılamadı.'
       addRun(userId, {
         agentId: active.id,
-        task: task.trim(),
+        task: task.trim() || (attachedImage ? 'Görsel analizi' : 'Boş görev'),
         result: '',
         provider: model.provider ?? null,
         model: model.model ?? null,
