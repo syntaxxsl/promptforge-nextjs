@@ -15,6 +15,7 @@ type Options<T extends CloudRecord> = {
   records: T[]
   setRecords: (records: T[]) => void
   sort?: (a: T, b: T) => number
+  onUnavailable?: () => void
 }
 
 /**
@@ -27,11 +28,19 @@ export function useCloudCollection<T extends CloudRecord>({
   collection,
   records,
   setRecords,
-  sort
+  sort,
+  onUnavailable
 }: Options<T>) {
   const readyRef = useRef(false)
   const syncedRef = useRef<Map<string, string>>(new Map())
   const cloudIdsRef = useRef<Set<string>>(new Set())
+  const errorNotifiedRef = useRef(false)
+
+  function reportUnavailable() {
+    if (errorNotifiedRef.current) return
+    errorNotifiedRef.current = true
+    onUnavailable?.()
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -70,9 +79,11 @@ export function useCloudCollection<T extends CloudRecord>({
         }
 
         readyRef.current = true
+        errorNotifiedRef.current = false
         setRecords(result)
       } catch {
         // Stay local-first. A missing migration or Supabase config is not data loss.
+        if (!cancelled) reportUnavailable()
       }
     }
 
@@ -103,7 +114,9 @@ export function useCloudCollection<T extends CloudRecord>({
             if (!response.ok) throw new Error('Cloud save failed')
             syncedRef.current.set(record.id, snapshot)
             cloudIdsRef.current.add(record.id)
+            errorNotifiedRef.current = false
           } catch {
+            reportUnavailable()
             return
           }
         }
@@ -120,7 +133,9 @@ export function useCloudCollection<T extends CloudRecord>({
             if (!response.ok) throw new Error('Cloud delete failed')
             cloudIdsRef.current.delete(id)
             syncedRef.current.delete(id)
+            errorNotifiedRef.current = false
           } catch {
+            reportUnavailable()
             return
           }
         }
