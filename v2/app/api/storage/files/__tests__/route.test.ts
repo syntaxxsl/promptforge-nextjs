@@ -108,6 +108,32 @@ describe('POST /api/storage/files validation', () => {
     expect(upload).not.toHaveBeenCalled()
   })
 
+  it('rejects a MIME type paired with a misleading extension', async () => {
+    signedIn()
+    const form = new FormData()
+    form.set('file', new File(['%PDF-1.7'], 'payload.exe', { type: 'application/pdf' }))
+    const request = new NextRequest(URL, { method: 'POST' })
+    vi.spyOn(request, 'formData').mockResolvedValue(form)
+
+    const response = (await POST(request))!
+    expect(response.status).toBe(415)
+    expect((await response.json()).code).toBe('file_type_mismatch')
+    expect(upload).not.toHaveBeenCalled()
+  })
+
+  it('rejects a PDF extension and MIME type when the file signature is invalid', async () => {
+    signedIn()
+    const form = new FormData()
+    form.set('file', new File(['not a pdf'], 'payload.pdf', { type: 'application/pdf' }))
+    const request = new NextRequest(URL, { method: 'POST' })
+    vi.spyOn(request, 'formData').mockResolvedValue(form)
+
+    const response = (await POST(request))!
+    expect(response.status).toBe(415)
+    expect((await response.json()).code).toBe('invalid_file_signature')
+    expect(upload).not.toHaveBeenCalled()
+  })
+
   it('rejects files larger than the configured limit', async () => {
     signedIn()
     const request = new NextRequest(URL, {
