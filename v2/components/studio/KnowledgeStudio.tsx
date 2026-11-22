@@ -211,7 +211,7 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
   const preview = question.trim() ? retrieve(userId, question, { spaceId, topK: 4 }) : []
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4 lg:flex-row md:p-6">
+    <div className="pf-knowledge-studio flex h-full min-h-0 flex-col gap-4 p-4 lg:flex-row md:p-6">
       {/* spaces */}
       <aside className="w-full shrink-0 lg:w-56">
         <div className="mb-3 flex items-center justify-between">
