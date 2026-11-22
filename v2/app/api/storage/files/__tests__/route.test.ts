@@ -99,7 +99,8 @@ describe('POST /api/storage/files validation', () => {
     signedIn()
     const form = new FormData()
     form.set('file', new File(['content'], 'payload.exe', { type: 'application/x-msdownload' }))
-    const request = new NextRequest(URL, { method: 'POST', body: form })
+    const request = new NextRequest(URL, { method: 'POST' })
+    vi.spyOn(request, 'formData').mockResolvedValue(form)
 
     const response = await POST(request)
     expect(response.status).toBe(415)
@@ -109,9 +110,10 @@ describe('POST /api/storage/files validation', () => {
 
   it('rejects files larger than the configured limit', async () => {
     signedIn()
-    const form = new FormData()
-    form.set('file', new File(['x'.repeat(4 * 1024 * 1024 + 1)], 'large.txt', { type: 'text/plain' }))
-    const request = new NextRequest(URL, { method: 'POST', body: form })
+    const request = new NextRequest(URL, {
+      method: 'POST',
+      headers: { 'content-length': String(4 * 1024 * 1024 + 16 * 1024 + 1) }
+    })
 
     const response = await POST(request)
     expect(response.status).toBe(413)
