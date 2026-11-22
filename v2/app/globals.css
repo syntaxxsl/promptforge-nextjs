@@ -979,3 +979,35 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
  .pf-brand-studio>div,.pf-presentation-studio>div{grid-template-columns:minmax(0,1fr)}
  .pf-chatbot-studio>div,.pf-database-studio>div,.pf-debugger-studio>div,.pf-document-studio>div{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Additional tool-specific workspace signatures */
+.pf-universal-search-studio>header{border:1px solid rgba(45,212,191,.2);background:radial-gradient(ellipse at 90% 0%,rgba(20,184,166,.12),transparent 45%),var(--pf-surface)}
+.pf-universal-search-studio>header h1{letter-spacing:-.045em}
+.pf-universal-search-studio .pf-btn-primary{background:linear-gradient(105deg,#0f766e,#0891b2)}
+.pf-mindmap-studio>header{border:1px solid rgba(192,132,252,.2);border-radius:18px;background:radial-gradient(ellipse at 90% 0%,rgba(168,85,247,.13),transparent 45%),var(--pf-surface);padding:19px}
+.pf-mindmap-studio>div>section{border-color:rgba(192,132,252,.15)}
+.pf-mindmap-studio .pf-btn-primary{background:linear-gradient(105deg,#9333ea,#6d28d9)}
+.pf-playground-studio>header{border-color:rgba(52,211,153,.22);background:radial-gradient(ellipse at 92% 0%,rgba(16,185,129,.12),transparent 45%),var(--pf-surface)}
+.pf-playground-studio>section{border-color:rgba(52,211,153,.15)}
+.pf-playground-studio .pf-btn-primary{background:linear-gradient(105deg,#059669,#0f766e)}
+.pf-social-studio>header{border:1px solid rgba(244,114,182,.2);border-radius:18px;background:radial-gradient(ellipse at 92% 0%,rgba(219,39,119,.12),transparent 45%),var(--pf-surface);padding:19px}
+.pf-social-studio>div>section{border-color:rgba(244,114,182,.15)}
+.pf-social-studio .pf-btn-primary{background:linear-gradient(105deg,#db2777,#9333ea)}
+.pf-quiz-studio>header{border:1px solid rgba(250,204,21,.2);border-radius:18px;background:radial-gradient(ellipse at 92% 0%,rgba(202,138,4,.11),transparent 45%),var(--pf-surface);padding:19px}
+.pf-quiz-studio>div>section{border-color:rgba(250,204,21,.14)}
+.pf-quiz-studio .pf-btn-primary{background:linear-gradient(105deg,#ca8a04,#b45309)}
+.pf-resume-studio>header{border:1px solid rgba(148,163,184,.23);border-radius:18px;background:radial-gradient(ellipse at 92% 0%,rgba(100,116,139,.14),transparent 45%),var(--pf-surface);padding:19px}
+.pf-resume-studio>div>section{border-color:rgba(148,163,184,.18)}
+.pf-resume-studio .pf-btn-primary{background:linear-gradient(105deg,#475569,#334155)}
+.pf-sql-studio>header{border:1px solid rgba(96,165,250,.2);border-radius:18px;background:radial-gradient(ellipse at 92% 0%,rgba(37,99,235,.13),transparent 45%),var(--pf-surface);padding:19px}
+.pf-sql-studio>div>section{border-color:rgba(96,165,250,.16)}
+.pf-sql-studio .pf-btn-primary{background:linear-gradient(105deg,#2563eb,#1d4ed8)}
+.pf-knowledge-studio{background:radial-gradient(ellipse at 95% 0%,rgba(34,211,238,.07),transparent 38%)}
+.pf-knowledge-studio>aside{border:1px solid rgba(34,211,238,.15);border-radius:17px;background:linear-gradient(155deg,rgba(8,145,178,.07),var(--pf-surface))}
+.pf-knowledge-studio>section{border:1px solid rgba(34,211,238,.13);border-radius:17px;background:var(--pf-surface)}
+@media(max-width:767px){
+ .pf-universal-search-studio,.pf-mindmap-studio,.pf-playground-studio,.pf-social-studio,.pf-quiz-studio,.pf-resume-studio,.pf-sql-studio{padding:12px}
+ .pf-mindmap-studio>header,.pf-social-studio>header,.pf-quiz-studio>header,.pf-resume-studio>header,.pf-sql-studio>header{padding:15px}
+ .pf-knowledge-studio{height:auto;min-height:calc(100dvh - 64px);padding:12px}
+ .pf-knowledge-studio>aside{max-height:230px;overflow:auto}
+}
