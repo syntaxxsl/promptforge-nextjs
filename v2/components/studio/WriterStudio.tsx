@@ -50,7 +50,7 @@ export default function WriterStudio({ userId }: { userId: string }){
  }
  function stop(){abortRef.current?.abort();abortRef.current=null;setBusy(false);setNotice('Üretim durduruldu; mevcut metin korundu.')}
  async function copy(){try{await navigator.clipboard.writeText(result);setNotice('Metin panoya kopyalandı.')}catch{setNotice('Kopyalama başarısız oldu; metni seçerek kopyalayabilirsin.')}}
- return <main className="mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
+ return <main className="pf-writer-studio mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
   <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="pen" className="h-4 w-4"/> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">AI Writer</h1><p className="mt-1 text-sm text-muted">Farklı formatlarda, hedef kitlene ve anlatım tonuna uygun içerikler üret.</p></div><ModelPicker value={model} onChange={setModel} disabled={busy}/></header>
   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{FORMATS.map((item,i)=><button key={item.id} type="button" onClick={()=>setFormat(item.id)} disabled={busy} aria-pressed={format===item.id} className={`rounded-xl border p-4 text-left transition ${format===item.id?'border-accent/60 bg-accent/10':'border-border bg-surface hover:border-accent/30'}`}><span className="text-xs text-muted">0{i+1}</span><div className="mt-2 text-sm font-semibold text-fg">{item.title}</div><p className="mt-1 text-xs leading-5 text-muted">{item.description}</p></button>)}</div>
   <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
