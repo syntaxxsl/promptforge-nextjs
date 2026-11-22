@@ -38,7 +38,9 @@ jobs:
           cache: npm
           cache-dependency-path: v2/package-lock.json
       - name: Generate lockfile for isolated dependency upgrade
-        run: npm install --package-lock-only --ignore-scripts --no-audit
+        run: |
+          rm -f package-lock.json
+          npm install --package-lock-only --ignore-scripts --no-audit
       - name: Migrate async Supabase cookie calls
         run: |
           node <<'NODE'
