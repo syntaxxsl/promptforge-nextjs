@@ -46,7 +46,7 @@ function LoginForm() {
     setResetting(true)
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: window.location.origin + '/login'
+        redirectTo: window.location.origin + '/reset-password'
       })
       if (resetError) setError(resetError.message)
       else setNotice('Şifre sıfırlama bağlantısı, destekleniyorsa e-posta adresine gönderildi. Gelen kutunu kontrol et.')
