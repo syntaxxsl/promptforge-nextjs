@@ -195,6 +195,7 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
     abort.current = controller
     setBusy(true)
     setResult('')
+    if (tool === 'photo') setImageOutput('')
     setNotice('')
     const instructions = 'Çalışma alanı: ' + config.title + '. Stil: ' + style + '. Kullanıcı brief’i: ' + brief.trim() + '. ' +
       (tool === 'logo' ? 'Logo SVG boyutu 900x600. ' : '') +
