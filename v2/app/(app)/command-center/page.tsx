@@ -6,7 +6,7 @@ import Icon from '@/components/Icon'
 type SupportItem = { id: string; user_id: string; kind: 'support' | 'feedback'; title: string; message: string; status: 'open' | 'in_progress' | 'resolved' | 'closed'; admin_note: string; created_at: string }
 
 type SystemStatus = {
-  database?: { configured: boolean; missing?: string[] }
+  database?: { configured: boolean; reachable?: boolean; probeMessage?: string | null; missing?: string[] }
   encryption?: { configured: boolean }
   serverProviders?: string[]
   automationScheduler?: { cronSecretConfigured: boolean; adminDatabaseConfigured: boolean; configured: boolean }
@@ -95,7 +95,7 @@ export default function CommandCenterPage() {
     <section className="pf-card p-5 space-y-3">
       <div className="flex items-center justify-between gap-3"><h2 className="font-semibold flex items-center gap-2"><Icon name="shield"/> Sistem yapılandırması</h2><span className="text-[10px] text-muted">Gizli değerler gösterilmez</span></div>
       {statusLoading ? <p className="text-sm text-muted">Kontrol ediliyor…</p> : systemStatus ? <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">Supabase ayarları</div><div className="mt-2 text-sm font-semibold">{systemStatus.database?.configured ? 'Yapılandırılmış' : 'Eksik'}</div>{systemStatus.database?.missing?.length ? <p className="mt-1 text-[10px] text-muted">{systemStatus.database.missing.join(', ')}</p> : null}</div>
+        <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">Supabase ayarları</div><div className="mt-2 text-sm font-semibold">{systemStatus.database?.configured ? (systemStatus.database.reachable ? 'Bağlantı aktif' : 'Erişim başarısız') : 'Eksik'}</div>{systemStatus.database?.probeMessage ? <p className="mt-1 text-[10px] text-amber-500">{systemStatus.database.probeMessage}</p> : null}{systemStatus.database?.missing?.length ? <p className="mt-1 text-[10px] text-muted">{systemStatus.database.missing.join(', ')}</p> : null}</div>
         <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">API anahtarı şifreleme</div><div className="mt-2 text-sm font-semibold">{systemStatus.encryption?.configured ? 'Hazır' : 'Anahtar eksik'}</div><p className="mt-1 text-[10px] text-muted">Değer güvenlik nedeniyle okunamaz.</p></div>
         <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">Sunucu AI sağlayıcıları</div><div className="mt-2 text-sm font-semibold">{systemStatus.serverProviders?.length ?? 0} yapılandırılmış</div><p className="mt-1 text-[10px] text-muted">{systemStatus.serverProviders?.join(', ') || 'Sunucu ortamında sağlayıcı anahtarı yok.'}</p></div>
         <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">Workflow zamanlayıcısı</div><div className="mt-2 text-sm font-semibold">{systemStatus.automationScheduler?.configured ? 'Yapılandırılmış' : 'Kurulum gerekli'}</div><p className="mt-1 text-[10px] text-muted">CRON_SECRET: {systemStatus.automationScheduler?.cronSecretConfigured ? 'Hazır' : 'Eksik'} · Supabase admin: {systemStatus.automationScheduler?.adminDatabaseConfigured ? 'Hazır' : 'Eksik'}</p></div>
@@ -104,7 +104,7 @@ export default function CommandCenterPage() {
     <div className="grid xl:grid-cols-[1.1fr_.9fr] gap-4">
       <section className="pf-card p-5 space-y-4"><h2 className="font-semibold flex items-center gap-2"><Icon name="activity"/> Ortak izleme altyapısı</h2>
         <div className="grid sm:grid-cols-2 gap-3">{[['API','API istekleri ve servis yanıtları'],['AI Engine','Model ve sağlayıcı katmanı'],['Güvenlik','Rol ve erişim kontrolleri'],['Veritabanı','Supabase ve analitik tabloları'],['Araçlar','Çalışma alanı gezinme etkinlikleri']].map(([name,desc]) => <div key={name} className="rounded-xl border border-border p-3"><div className="font-medium">{name}</div><p className="text-xs text-muted mt-1">{desc}</p></div>)}</div>
-        <p className="text-xs text-muted">Şu an doğrulanabilir metrikler gezinme etkinlikleridir. API/AI/DB sağlık kontrolleri yapılandırıldıkça aynı merkeze eklenecek; erişilmeyen servisler sağlıklı gibi gösterilmez.</p>
+        <p className="text-xs text-muted">Veritabanı erişimi canlı sorguyla doğrulanır. API ve AI istek telemetrisi henüz merkezi olarak ölçülmüyor; bu alanlar çalışıyor gibi gösterilmez.</p>
       </section>
       <section className="pf-card p-5 space-y-4"><h2 className="font-semibold flex items-center gap-2"><Icon name="sparkles"/> AI Yönetim Asistanı</h2><p className="text-sm text-muted">Operasyonel sorunları analiz et, güvenli kontrol adımları ve iyileştirme önerileri al.</p>
         <form onSubmit={askAssistant} className="space-y-3"><textarea className="pf-input min-h-28 w-full resize-y" value={prompt} onChange={(e) => setPrompt(e.target.value)} maxLength={3000} minLength={3} required placeholder="Örn. Platform izleme mimarisinde hangi kontroller eksik?" /><button className="pf-btn pf-btn-primary w-full" disabled={asking || !prompt.trim()}>{asking ? 'Analiz ediliyor…' : 'Asistana sor'} <Icon name="arrowRight"/></button></form>
