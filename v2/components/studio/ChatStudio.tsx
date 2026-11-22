@@ -23,6 +23,7 @@ import {
   deleteThread,
   getThread,
   listThreads,
+  persistAll,
   renameThread,
   saveThread,
   searchThreads,
@@ -107,6 +108,8 @@ export default function ChatStudio({ userId }: { userId: string }) {
   const [pendingProject, setPendingProject] = useState('')
 
   const abortRef = useRef<AbortController | null>(null)
+  const cloudReadyRef = useRef(false)
+  const cloudSyncRef = useRef<Map<string, string>>(new Map())
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -128,6 +131,82 @@ export default function ChatStudio({ userId }: { userId: string }) {
   useEffect(() => {
     refresh()
   }, [refresh])
+
+  // Hydrate local-first threads from the authenticated cloud repository.
+  // Local data is never discarded: the newest version of each thread wins.
+  useEffect(() => {
+    let cancelled = false
+    cloudReadyRef.current = false
+    cloudSyncRef.current.clear()
+
+    async function hydrateCloud() {
+      try {
+        const response = await fetch('/api/chat/threads', { cache: 'no-store' })
+        if (!response.ok) throw new Error('Cloud thread storage is unavailable.')
+        const data = (await response.json()) as { threads?: ChatThread[] }
+        if (cancelled) return
+
+        const local = listThreads(userId)
+        const remote = Array.isArray(data.threads) ? data.threads : []
+        const remoteById = new Map(remote.map((thread) => [thread.id, thread]))
+        const merged = new Map<string, ChatThread>()
+
+        for (const thread of [...remote, ...local]) {
+          const previous = merged.get(thread.id)
+          if (!previous || thread.updatedAt > previous.updatedAt) {
+            merged.set(thread.id, thread)
+          }
+        }
+
+        const result = Array.from(merged.values()).sort((a, b) =>
+          b.updatedAt.localeCompare(a.updatedAt)
+        )
+        persistAll(userId, result)
+        for (const thread of remote) {
+          cloudSyncRef.current.set(thread.id, JSON.stringify(thread))
+        }
+        cloudReadyRef.current = true
+        setThreads(result)
+      } catch {
+        if (cancelled) return
+        // Keep the local-first experience intact when Supabase is not configured.
+        setNotice('Bulut sohbet eşitlemesi kullanılamıyor. Sohbetler bu cihazda kaydedilmeye devam ediyor.')
+      }
+    }
+
+    void hydrateCloud()
+    return () => {
+      cancelled = true
+      cloudReadyRef.current = false
+    }
+  }, [userId])
+
+  // Push changed threads after a short debounce. Streaming previews are filtered
+  // by the API; the finalized local thread is synced after the stream completes.
+  useEffect(() => {
+    if (!cloudReadyRef.current || threads.length === 0) return
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        for (const thread of threads) {
+          const snapshot = JSON.stringify(thread)
+          if (cloudSyncRef.current.get(thread.id) === snapshot) continue
+          try {
+            const response = await fetch('/api/chat/threads', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ thread })
+            })
+            if (!response.ok) throw new Error('Cloud save failed')
+            cloudSyncRef.current.set(thread.id, snapshot)
+          } catch {
+            setNotice('Bir sohbet buluta eşitlenemedi. Yerel kopyan korunuyor.')
+            break
+          }
+        }
+      })()
+    }, 800)
+    return () => window.clearTimeout(timer)
+  }, [threads, userId])
 
   // Load the settings of the selected thread into the composer + dialogs.
   useEffect(() => {
@@ -401,8 +480,17 @@ export default function ChatStudio({ userId }: { userId: string }) {
 
   function confirmDelete() {
     if (!deleteTarget) return
-    deleteThread(userId, deleteTarget.id)
-    if (activeId === deleteTarget.id) setActiveId(null)
+    const id = deleteTarget.id
+    deleteThread(userId, id)
+    cloudSyncRef.current.delete(id)
+    if (cloudReadyRef.current) {
+      void fetch('/api/chat/threads?id=' + encodeURIComponent(id), { method: 'DELETE' })
+        .then((response) => {
+          if (!response.ok) setNotice('Sohbet cihazdan silindi ancak buluttan silinemedi.')
+        })
+        .catch(() => setNotice('Sohbet cihazdan silindi ancak bulut bağlantısı kurulamadı.'))
+    }
+    if (activeId === id) setActiveId(null)
     setDeleteTarget(null)
     refresh()
   }
