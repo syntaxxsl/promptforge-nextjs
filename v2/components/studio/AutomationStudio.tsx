@@ -2,8 +2,7 @@
 
 // Automation Studio — node-based workflow editor with a real sequential runner.
 //
-// Scheduled triggers are stored but not fired: there is no scheduler in this
-// build, and the UI says so rather than pretending a cron job exists.
+// Scheduled workflows run through the authenticated Vercel Cron worker.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useCloudCollection } from '@/lib/studio/use-cloud-collection'
@@ -31,8 +30,8 @@ import {
 
 const TRIGGERS: { id: TriggerKind; label: string; note: string }[] = [
   { id: 'manual', label: 'Manuel', note: 'Butonla çalıştırılır' },
-  { id: 'schedule', label: 'Zamanlanmış', note: 'Zamanlayıcı bağlı değil' },
-  { id: 'event', label: 'Olay', note: 'Olay kaynağı bağlı değil' }
+  { id: 'schedule', label: 'Zamanlanmış', note: 'Cron ile otomatik çalışır' },
+  { id: 'event', label: 'Olay', note: 'Olay tetikleyicileri henüz etkin değil' }
 ]
 
 export default function AutomationStudio({ userId }: { userId: string }) {
@@ -292,10 +291,38 @@ export default function AutomationStudio({ userId }: { userId: string }) {
               </button>
             </div>
 
+            {active.trigger === 'schedule' && (
+              <div className="mb-3 grid gap-3 rounded-xl border border-indigo-400/20 bg-indigo-500/[0.05] p-3 sm:grid-cols-2">
+                <label className="text-[11px] text-white/65">
+                  Cron zamanlaması
+                  <input
+                    value={active.scheduleLabel || '0 9 * * 1-5'}
+                    onChange={(event) => patch({ scheduleLabel: event.target.value })}
+                    placeholder="0 9 * * 1-5"
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white"
+                    aria-label="Cron zamanlaması"
+                  />
+                  <span className="mt-1 block text-[10px] text-white/35">Örnek: 0 9 * * 1-5 = hafta içi her gün 09:00</span>
+                </label>
+                <label className="text-[11px] text-white/65">
+                  Saat dilimi (IANA)
+                  <input
+                    value={active.scheduleTimezone || 'Europe/Istanbul'}
+                    onChange={(event) => patch({ scheduleTimezone: event.target.value })}
+                    placeholder="Europe/Istanbul"
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white"
+                    aria-label="Saat dilimi"
+                  />
+                  <span className="mt-1 block text-[10px] text-white/35">Türkiye için Europe/Istanbul kullan.</span>
+                </label>
+              </div>
+            )}
+
             {active.trigger !== 'manual' && (
               <p className="mb-3 rounded-lg border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2 text-[11px] text-amber-200/80">
-                Zamanlanmış/olay tetikleyicileri kaydedilir ancak bu sürümde bir zamanlayıcı
-                çalışmaz. Akışı yalnızca manuel olarak başlatabilirsiniz.
+                {active.trigger === 'schedule'
+                  ? 'Zamanlama Vercel Cron üzerinden dakikada bir kontrol edilir. Cron Secret ve Supabase servis anahtarı sunucuda yapılandırılmış olmalıdır.'
+                  : 'Olay tetikleyicileri henüz etkin değil; bu akışı manuel başlatabilirsiniz.'}
               </p>
             )}
 
