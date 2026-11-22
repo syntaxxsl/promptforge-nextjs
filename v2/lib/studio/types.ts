@@ -134,7 +134,7 @@ export const IMAGE_STYLES: { id: ImageStyle; label: string }[] = [
 ]
 
 /** Generation status. There is no 'running' state without a real provider. */
-export type ImageJobStatus = 'draft' | 'queued' | 'failed'
+export type ImageJobStatus = 'draft' | 'queued' | 'failed' | 'completed'
 
 export interface ImageJob {
   id: string
@@ -148,6 +148,8 @@ export interface ImageJob {
   /** Provider that would serve this job, once one is connected. */
   provider: ProviderId | null
   model: string | null
+  /** Number of generated images, when the job completed. */
+  outputCount?: number
   /** Set when status is 'failed'. */
   error?: string
   createdAt: string

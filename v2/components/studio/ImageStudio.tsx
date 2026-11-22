@@ -15,7 +15,8 @@ import {
   createImageJob,
   deleteImageJob,
   imageProviderStatus,
-  listImageJobs
+  listImageJobs,
+  saveImageJob
 } from '@/lib/studio/media-store'
 import {
   IMAGE_ASPECTS,
@@ -35,6 +36,10 @@ export default function ImageStudio({ userId }: { userId: string }) {
   const [notice, setNotice] = useState<string | null>(null)
   const [model, setModel] = useState<ModelSelection>({ label: 'Otomatik seçim' })
   const [refining, setRefining] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [generatedImages, setGeneratedImages] = useState<string[]>([])
+  const [imageModel, setImageModel] = useState<'gpt-image-2.6-flare' | 'gpt-image-2.6-sunburst'>('gpt-image-2.6-flare')
+  const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('medium')
   const refineAbort = useRef<AbortController | null>(null)
 
   useCloudCollection({ userId, collection: 'image-jobs', records: jobs, setRecords: setJobs, sort: (a, b) => b.createdAt.localeCompare(a.createdAt), onUnavailable: () => setNotice('Bulut Image Studio eşitlemesi kullanılamıyor; taslakların bu cihazda korunuyor.') })
@@ -100,6 +105,48 @@ export default function ImageStudio({ userId }: { userId: string }) {
     setNotice('Taslak kaydedildi. Üretim için sağlayıcı bağlantısı gerekiyor.')
   }
 
+  async function generate() {
+    if (!prompt.trim() || generating) {
+      if (!prompt.trim()) setNotice('Önce bir görsel promptu yazın.')
+      return
+    }
+    setGenerating(true)
+    setNotice(null)
+    setGeneratedImages([])
+    try {
+      const response = await fetch('/api/ai/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'generate', prompt: prompt.trim(), negativePrompt: negative,
+          aspect, style, count, model: imageModel, quality
+        })
+      })
+      const payload = await response.json().catch(() => ({})) as { images?: string[]; error?: string }
+      if (!response.ok) throw new Error(payload.error || 'Görsel üretilemedi.')
+      const images = Array.isArray(payload.images) ? payload.images : []
+      if (!images.length) throw new Error('Görsel servisi boş sonuç döndürdü.')
+      setGeneratedImages(images)
+      const created = createImageJob(userId, { prompt: prompt.trim(), negativePrompt: negative.trim() || undefined, aspect, style, count: images.length })
+      if (created) {
+        saveImageJob(userId, { ...created, status: 'completed', provider: 'openai', model: imageModel, outputCount: images.length })
+        setJobs(listImageJobs(userId))
+      }
+      setNotice(images.length + ' görsel oluşturuldu. Her görseli ayrı ayrı indirebilirsin.')
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Görsel üretimi başarısız.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  function downloadGeneratedImage(source: string, index: number) {
+    const anchor = document.createElement('a')
+    anchor.href = source
+    anchor.download = 'promptforge-image-' + (index + 1) + '.png'
+    anchor.click()
+  }
+
   function remove(id: string) {
     deleteImageJob(userId, id)
     setJobs(listImageJobs(userId))
@@ -121,7 +168,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
       </header>
 
       <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 mb-5 text-xs text-warning">
-        <strong className="font-semibold">Üretim sağlayıcısı bağlı değil.</strong>{' '}
+        <strong className="font-semibold">OpenAI Image API hazır.</strong>{' '}
         {provider.reason}
       </div>
 
@@ -212,6 +259,24 @@ export default function ImageStudio({ userId }: { userId: string }) {
             </div>
           </div>
 
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-medium mb-1.5" htmlFor="img-model">Görsel modeli</label>
+              <select id="img-model" value={imageModel} onChange={e => setImageModel(e.target.value as typeof imageModel)} className="pf-input text-sm">
+                <option value="gpt-image-2.6-flare">GPT Image 2.6 Flare · hızlı</option>
+                <option value="gpt-image-2.6-sunburst">GPT Image 2.6 Sunburst · ayrıntılı</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" htmlFor="img-quality">Kalite</label>
+              <select id="img-quality" value={quality} onChange={e => setQuality(e.target.value as typeof quality)} className="pf-input text-sm">
+                <option value="low">Düşük · taslak</option>
+                <option value="medium">Orta</option>
+                <option value="high">Yüksek</option>
+              </select>
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-medium mb-1.5" htmlFor="img-count">
               Görsel sayısı
@@ -230,18 +295,14 @@ export default function ImageStudio({ userId }: { userId: string }) {
             </select>
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              onClick={save}
-              disabled={!prompt.trim()}
-              className="pf-btn pf-btn-primary text-sm disabled:opacity-40"
-            >
-              <Icon name="plus" className="h-4 w-4" />
-              Taslak kaydet
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button onClick={generate} disabled={!prompt.trim() || generating} className="pf-btn pf-btn-primary text-sm disabled:opacity-40">
+              <Icon name="sparkles" className="h-4 w-4" />{generating ? 'Görsel oluşturuluyor…' : 'Görsel oluştur'}
             </button>
-            <span className="text-[11px] text-muted">
-              Üretim yapılmaz — sağlayıcı bağlantısı yok.
-            </span>
+            <button onClick={save} disabled={!prompt.trim() || generating} className="pf-btn pf-btn-ghost text-sm disabled:opacity-40">
+              <Icon name="plus" className="h-4 w-4" /> Taslak kaydet
+            </button>
+            <span className="text-[11px] text-muted">Kendi OpenAI API anahtarın ve kullanım ücreti gerekir.</span>
           </div>
 
           {notice && (
@@ -257,13 +318,8 @@ export default function ImageStudio({ userId }: { userId: string }) {
         {/* Preview frame + history */}
         <aside className="space-y-4">
           <div className="pf-card p-3">
-            <div className="text-[10px] uppercase tracking-wide text-muted mb-2">Çerçeve önizleme</div>
-            <div
-              className="w-full rounded-md border border-dashed border-border bg-surface-2/40 flex items-center justify-center"
-              style={{ aspectRatio: ratio }}
-            >
-              <span className="text-[11px] text-muted">Oran: {aspect}</span>
-            </div>
+            <div className="text-[10px] uppercase tracking-wide text-muted mb-2">Görsel önizleme</div>
+            {generatedImages.length ? <div className="grid gap-2">{generatedImages.map((source, index) => <figure key={index} className="overflow-hidden rounded-lg border border-border"><img src={source} alt={'Oluşturulan görsel ' + (index + 1)} className="w-full h-auto" /><figcaption className="flex items-center justify-between px-2 py-2 text-[10px] text-muted"><span>Görsel {index + 1}</span><button type="button" onClick={() => downloadGeneratedImage(source, index)} className="text-primary">İndir</button></figcaption></figure>)}</div> : <div className="w-full rounded-md border border-dashed border-border bg-surface-2/40 flex items-center justify-center" style={{ aspectRatio: ratio }}><span className="text-[11px] text-muted">{generating ? 'Görsel oluşturuluyor…' : 'Oran: ' + aspect}</span></div>}
             <dl className="mt-3 space-y-1 text-[11px]">
               <div className="flex justify-between">
                 <dt className="text-muted">Stil</dt>
@@ -275,7 +331,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted">Durum</dt>
-                <dd className="text-warning">sağlayıcı yok</dd>
+                <dd className="text-emerald-400">OpenAI Images</dd>
               </div>
             </dl>
           </div>
@@ -298,7 +354,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
                       <span>·</span>
                       <span>{IMAGE_STYLES.find((s) => s.id === job.style)?.label}</span>
                       <span>·</span>
-                      <span>{job.count} adet</span>
+                      <span>{job.outputCount || job.count} adet</span><span>·</span><span>{job.status === "completed" ? "Tamamlandı" : "Taslak"}</span>
                       <button
                         onClick={() => remove(job.id)}
                         className="ml-auto hover:text-danger"

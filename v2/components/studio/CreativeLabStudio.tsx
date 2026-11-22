@@ -126,6 +126,7 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
   const [style, setStyle] = useState(config.styleOptions[0])
   const [model, setModel] = useState<ModelSelection>(AUTO)
   const [image, setImage] = useState('')
+  const [imageOutput, setImageOutput] = useState('')
   const [result, setResult] = useState('')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
@@ -177,13 +178,14 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
     if (!file) return
     try {
       setImage(await prepareImage(file))
+      setImageOutput('')
       setNotice('Görsel hazır. Analiz için küçültülmüş JPEG kullanılacak.')
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Görsel yüklenemedi.')
     }
   }
 
-  function generate() {
+  async function generate() {
     if (busy) return
     if (!brief.trim()) {
       setNotice('Önce kısa bir brief yaz.')
@@ -199,6 +201,27 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
       (tool === 'thumbnail' ? 'Thumbnail SVG boyutu 1280x720. ' : '') +
       (tool === 'scene3d' ? 'Blender betiği Blender 4.x ile uyumlu olsun. ' : '') +
       'Çıktı başlığı: ' + config.outputLabel + '. Türkçe yanıt ver.'
+    if (tool === 'photo' && image) {
+      try {
+        const response = await fetch('/api/ai/image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'edit', prompt: instructions, imageDataUrl: image,
+            model: 'gpt-image-2.6-sunburst', quality: 'medium', aspect: 'auto'
+          })
+        })
+        const payload = await response.json().catch(() => ({})) as { images?: string[]; error?: string }
+        if (!response.ok) throw new Error(payload.error || 'Fotoğraf düzenlenemedi.')
+        setImageOutput(payload.images?.[0] || '')
+        setNotice('Fotoğraf düzenlendi. Sonucu indirebilirsin.')
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : 'Fotoğraf düzenleme başarısız.')
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
     const userContent = tool === 'photo' && image
       ? [{ type: 'text', text: instructions }, { type: 'image_url', image_url: { url: image, detail: 'low' } }]
       : instructions
@@ -256,7 +279,7 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
       <section className="pf-creative-output">
         <div className="pf-creative-section-head"><div><span>02 / OUTPUT</span><h2>{config.outputLabel}</h2></div>{result && <SaveOutputButton userId={userId} tool={config.title} title={config.title + ' — ' + brief.slice(0, 48)} content={result} />}</div>
         {notice && <div role="status" className="pf-creative-notice">{notice}</div>}
-        {!result && !busy && <div className="pf-creative-empty"><span className="pf-creative-empty-icon"><Icon name={config.icon} className="h-7 w-7" /></span><strong>Çalışma alanın hazır</strong><p>Brief’ini yaz, stilini seç ve ilk taslağını üret. Sonuçların burada görünecek.</p><div className="pf-creative-empty-lines"><i /><i /><i /></div></div>}
+        {!result && !imageOutput && !busy && <div className="pf-creative-empty"><span className="pf-creative-empty-icon"><Icon name={config.icon} className="h-7 w-7" /></span><strong>Çalışma alanın hazır</strong><p>Brief’ini yaz, stilini seç ve ilk taslağını üret. Sonuçların burada görünecek.</p><div className="pf-creative-empty-lines"><i /><i /><i /></div></div>}
         {busy && !result && <div className="pf-creative-loading"><span /><strong>Fikrin işleniyor</strong><small>Modelden ilk yanıt bekleniyor…</small></div>}
         {tool === 'voice' && result && <div className="pf-voice-player">
           <div><Icon name="headset" className="h-4 w-4" /><strong>Sesli önizleme</strong><span>Tarayıcı sesi</span></div>
@@ -270,6 +293,7 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
             <button type="button" onClick={stopVoice} disabled={!speaking}>Durdur</button>
           </div>
         </div>}
+        {imageOutput && <div className="pf-photo-result"><img src={imageOutput} alt="Düzenlenmiş fotoğraf" /><a href={imageOutput} download="promptforge-photo-edited.png">Düzenlenmiş fotoğrafı indir</a></div>}
         {svgMode && svg && <div className="pf-svg-preview"><div><span>CANVAS PREVIEW</span><small>İzole SVG önizlemesi</small></div><iframe title={config.title + ' önizlemesi'} sandbox="" srcDoc={previewDocument} /></div>}
         {result && <div className="pf-creative-result"><Markdown content={result} /></div>}
         {result && <div className="pf-creative-output-foot"><span><i />{busy ? 'Yanıt akışı devam ediyor' : 'Taslak hazır'}</span><span>{result.length.toLocaleString('tr-TR')} karakter</span></div>}

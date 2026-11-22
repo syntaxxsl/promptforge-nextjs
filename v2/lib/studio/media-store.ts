@@ -82,9 +82,9 @@ export function deleteVideoJob(userId: string, id: string): boolean {
  */
 export function imageProviderStatus(): { ready: boolean; reason: string } {
   return {
-    ready: false,
+    ready: true,
     reason:
-      'Görsel üretim sağlayıcısı bağlı değil. Bu sürümde iş tanımları kaydedilir, üretim yapılmaz.'
+      'Görsel üretimi OpenAI Images API ile yapılır. Kendi OpenAI API anahtarını eklemelisin; istekler OpenAI hesabında ücretlendirilir.'
   }
 }
 
