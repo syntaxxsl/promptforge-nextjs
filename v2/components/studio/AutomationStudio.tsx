@@ -6,6 +6,7 @@
 // build, and the UI says so rather than pretending a cron job exists.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCloudCollection } from '@/lib/studio/use-cloud-collection'
 import Icon from '@/components/Icon'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import {
@@ -46,6 +47,9 @@ export default function AutomationStudio({ userId }: { userId: string }) {
   const [tab, setTab] = useState<'flow' | 'runs'>('flow')
 
   const abortRef = useRef<AbortController | null>(null)
+
+  useCloudCollection({ userId, collection: 'automations', records: items, setRecords: setItems, sort: (a, b) => b.updatedAt.localeCompare(a.updatedAt), onUnavailable: () => setError('Otomasyon bulut eşitlemesi kullanılamıyor; yerel kayıtların korunuyor.') })
+  useCloudCollection({ userId, collection: 'automation-runs', records: runs, setRecords: setRuns, sort: (a, b) => b.createdAt.localeCompare(a.createdAt), onUnavailable: () => setError('Çalıştırma geçmişi buluta eşitlenemiyor; yerel kayıtların korunuyor.') })
 
   useEffect(() => {
     const list = listAutomations(userId)
