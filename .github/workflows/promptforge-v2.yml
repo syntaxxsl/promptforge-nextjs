@@ -151,6 +151,7 @@ jobs:
         run: npm run build
       - name: Commit verified Next.js 16 migration
         if: success() && github.ref == 'refs/heads/promptforge-v2-next16-upgrade'
+        working-directory: .
         run: |
           git add -u v2
           git add v2/proxy.ts v2/package-lock.json
