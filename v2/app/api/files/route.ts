@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ file: attachment })
-  } catch (error) {
+  } catch {
     return jsonError('Dosya yüklenemedi.', 500, 'upload_failed')
   }
 }
