@@ -1,10 +1,10 @@
 'use client'
 
-// Image Studio — prompt authoring, presets and a job history.
+// Image Studio — prompt authoring, real OpenAI image generation and job history.
 //
-// No image provider is connected. The studio is honest about that: the primary
-// action saves the job as a draft and states that rendering is unavailable.
-// There is no placeholder image, no simulated progress bar and no fake gallery.
+// Rendering is performed by the authenticated server route. The user's own
+// OpenAI API key is required; provider credentials never enter the browser.
+// Jobs are stored locally first and synchronized to Supabase when available.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useCloudCollection } from '@/lib/studio/use-cloud-collection'
@@ -168,7 +168,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
       </header>
 
       <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 mb-5 text-xs text-warning">
-        <strong className="font-semibold">OpenAI Image API hazır.</strong>{' '}
+        <strong className="font-semibold">OpenAI Images API desteği mevcut.</strong>{' '}
         {provider.reason}
       </div>
 
@@ -331,7 +331,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted">Durum</dt>
-                <dd className="text-emerald-400">OpenAI Images</dd>
+                <dd className="text-emerald-400">API entegrasyonu</dd>
               </div>
             </dl>
           </div>
