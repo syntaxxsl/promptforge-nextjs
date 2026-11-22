@@ -28,6 +28,17 @@ describe('routeModel', () => {
     expect(result?.model.id).toBe('gpt-4o-mini')
   })
 
+  it('rejects an explicitly selected model without vision capability for vision tasks', () => {
+    const result = routeModel({ messages: [{ role: 'user', content: 'describe image' }], task: 'vision', provider: 'deepseek', model: 'deepseek-chat' })
+    expect(result).toBeNull()
+  })
+
+  it('chooses a vision-capable model within an explicitly selected provider', () => {
+    const result = routeModel({ messages: [{ role: 'user', content: 'describe image' }], task: 'vision', provider: 'mistral' })
+    expect(result?.providerId).toBe('mistral')
+    expect(result?.model.capabilities).toContain('vision')
+  })
+
   it('returns null for explicit provider with unknown model', () => {
     const result = routeModel({ messages: [{ role: 'user', content: 'hi' }], provider: 'openai', model: 'nonexistent' })
     expect(result).toBeNull()
