@@ -22,7 +22,7 @@ Supabase Dashboard → SQL Editor bölümünde, yalnızca V2 projesi açıkken a
 1. `20261122_api_key_storage.sql` — kullanıcı API anahtarları ve sunucu tarafı anahtar havuzu
 2. `20261122_chat_threads.sql` — kullanıcıya özel sohbet geçmişi
 3. `20261122_studio_records.sql` — çalışma alanları, projeler, ajanlar ve kaydedilmiş çıktılar
-4. `20261122_private_file_storage.sql` — özel dosya bucket'ı ve sahiplik politikaları
+4. `20261122_private_file_storage.sql` — özel dosya bucket'ı ve sahiplik politikaları\n5. `20261122_command_center.sql` — kullanıcıya özel, içerik toplamayan platform etkinlikleri
 
 Her dosya transaction kullanır. Bir migration hata verirse sonraki dosyaya geçmeyin; hatayı inceleyin. SQL'i tekrar çalıştırmadan önce mevcut tablo, bucket ve policy durumunu kontrol edin.
 
@@ -69,3 +69,14 @@ Bir özellik ancak bu gerçek Supabase kontrolleri geçtikten sonra bulut senkro
 - SQL dosyaları: hazırlanmış, **henüz uygulanmadı**.
 - Supabase ortamı: bu depoda gerçek proje bilgileri yok.
 - Canlı depolama / kullanıcı verisi senkronizasyonu: yapılandırma ve doğrulama bekliyor.
+
+
+## 5. Command Center ve yönetici rolü
+
+- `20261122_command_center.sql` yalnızca V2 projesinde uygulanmalıdır.
+- Yönetici paneli, yalnızca Supabase Auth kullanıcısının güvenilir `app_metadata.role = 'admin'` değeri varsa açılır. `user_metadata` kullanılmaz.
+- İlk yöneticiyi Supabase Dashboard → Authentication → Users içinden seçip güvenilir app metadata alanına `{"role":"admin"}` atayarak yetkilendirin. Bu rolü istemci arayüzünden kullanıcıların değiştirmesine izin vermeyin.
+- Admin API'leri service-role anahtarını yalnızca sunucuda kullanır ve her istekte rolü doğrular.
+- User Monitor yalnızca oturum açmış kullanıcının kendi etkinliklerini gösterir.
+- Telemetri yalnızca sayfa yolu ve olay türünü saklar; prompt, yanıt, dosya içeriği, sorgu parametresi ve API anahtarı saklamaz.
+- AI Yönetim Asistanı için hesaba ait AI sağlayıcı anahtarı veya sunucu sağlayıcı anahtarı gerekir. Asistan salt okunur öneriler üretir; yönetim işlemi yapmaz.
