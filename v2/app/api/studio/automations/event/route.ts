@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: 'Otomasyonlar okunamadı.' }, { status: 503 })
 
   const matches = (data || []).map((row) => row.record_data as Automation).filter((automation) =>
-    automation && automation.enabled === true && automation.trigger === 'event' && automation.eventName === eventName
+    automation && Array.isArray(automation.nodes) && automation.enabled === true && automation.trigger === 'event' && automation.eventName === eventName
   ).slice(0, 3)
 
   const runs = []
