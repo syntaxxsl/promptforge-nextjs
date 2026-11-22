@@ -901,3 +901,24 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
  .pf-api-studio>section{padding:13px}
  .pf-api-studio .grid-cols-\[1fr_1fr_auto\]{grid-template-columns:minmax(0,1fr) auto}
 }
+
+/* Focused tool identities for prompt engineering, SEO and writing */
+.pf-prompt-engineer-studio>header{border:1px solid rgba(167,139,250,.2);border-radius:18px;background:radial-gradient(ellipse at 90% 0%,rgba(139,92,246,.13),transparent 42%),var(--pf-surface);padding:20px}
+.pf-prompt-engineer-studio>header h1{letter-spacing:-.045em}
+.pf-prompt-engineer-studio>div>button[aria-pressed=true]{border-color:rgba(167,139,250,.48);background:linear-gradient(145deg,rgba(139,92,246,.15),var(--pf-surface));box-shadow:inset 0 0 0 1px rgba(167,139,250,.08),0 10px 26px rgba(139,92,246,.07)}
+.pf-prompt-engineer-studio .pf-btn-primary{background:linear-gradient(105deg,#7c3aed,#6366f1)}
+.pf-seo-studio>header{border:1px solid rgba(45,212,191,.18);border-radius:18px;background:radial-gradient(ellipse at 90% 0%,rgba(13,148,136,.13),transparent 42%),var(--pf-surface);padding:20px}
+.pf-seo-studio>header h1{letter-spacing:-.045em}
+.pf-seo-studio>div>button[aria-pressed=true]{border-color:rgba(45,212,191,.45);background:linear-gradient(145deg,rgba(13,148,136,.13),var(--pf-surface));box-shadow:inset 0 0 0 1px rgba(45,212,191,.07),0 10px 26px rgba(13,148,136,.07)}
+.pf-seo-studio .pf-btn-primary{background:linear-gradient(105deg,#0f766e,#0891b2)}
+.pf-writer-studio>header{border:1px solid rgba(251,191,36,.2);border-radius:18px;background:radial-gradient(ellipse at 90% 0%,rgba(217,119,6,.13),transparent 42%),var(--pf-surface);padding:20px}
+.pf-writer-studio>header h1{letter-spacing:-.045em}
+.pf-writer-studio>div>button[aria-pressed=true]{border-color:rgba(251,191,36,.45);background:linear-gradient(145deg,rgba(217,119,6,.13),var(--pf-surface));box-shadow:inset 0 0 0 1px rgba(251,191,36,.07),0 10px 26px rgba(217,119,6,.07)}
+.pf-writer-studio .pf-btn-primary{background:linear-gradient(105deg,#d97706,#b45309)}
+.pf-prompt-engineer-studio>div>section,.pf-seo-studio>div>section,.pf-writer-studio>div>section{min-width:0;box-shadow:0 12px 32px rgba(0,0,0,.08)}
+@media(max-width:767px){
+ .pf-prompt-engineer-studio,.pf-seo-studio,.pf-writer-studio{padding:12px}
+ .pf-prompt-engineer-studio>header,.pf-seo-studio>header,.pf-writer-studio>header{padding:16px;border-radius:15px}
+ .pf-prompt-engineer-studio>div>section,.pf-seo-studio>div>section,.pf-writer-studio>div>section{padding:13px}
+ .pf-seo-studio>section,.pf-writer-studio>section{min-height:420px}
+}
