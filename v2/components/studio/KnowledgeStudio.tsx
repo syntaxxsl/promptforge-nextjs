@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import {
@@ -478,7 +479,7 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
                 {answer && (
                   <div className="space-y-2">
                     <div className="rounded-lg border border-white/8 bg-black/30 p-2.5">
-                      <Markdown content={answer.answer} />
+                      <Markdown content={answer.answer} /><div className="mt-2"><SaveOutputButton userId={userId} tool="Bilgi Bankası yanıtı" title="Bilgi Bankası yanıtı" content={answer.answer}/></div>
                     </div>
                     {answer.citations.length > 0 && (
                       <div className="space-y-1.5">
