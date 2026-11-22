@@ -6,5 +6,5 @@ export default async function StoryPage(){
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user) redirect('/login')
- return <StoryStudio/>
+ return <StoryStudio userId={data.user.id}/>
 }
