@@ -124,7 +124,7 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1500px] space-y-5 p-4 md:p-7">
+    <main className="pf-prompt-engineer-studio mx-auto w-full max-w-[1500px] space-y-5 p-4 md:p-7">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent">
