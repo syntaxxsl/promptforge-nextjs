@@ -1,9 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/Icon'
 import { NAV_GROUPS } from '@/lib/nav'
+import { listProjects } from '@/lib/studio/project-store'
+import { listThreads } from '@/lib/studio/chat-store'
+import { readCollection } from '@/lib/studio/store'
 
 const featured = [
   { label: 'AI Chat', description: 'Fikirlerini konuşarak geliştir, içerik üret ve cevaplar al.', href: '/chat', icon: 'message' as const, tone: 'violet' },
@@ -12,8 +15,17 @@ const featured = [
   { label: 'Code Studio', description: 'Kodlarını yaz, incele ve geliştirme akışını sürdür.', href: '/code', icon: 'terminal' as const, tone: 'green' }
 ]
 
-export default function DashboardStudio() {
+export default function DashboardStudio({ userId }: { userId: string }) {
   const [query, setQuery] = useState('')
+  const [stats, setStats] = useState({ projects: 0, conversations: 0, outputs: 0 })
+
+  useEffect(() => {
+    setStats({
+      projects: listProjects(userId).length,
+      conversations: listThreads(userId).length,
+      outputs: readCollection<{ id: string }>(userId, 'studio-outputs').length
+    })
+  }, [userId])
   const groups = useMemo(() => NAV_GROUPS.filter(group => group.title !== 'Yönetim'), [])
   const tools = useMemo(() => groups.flatMap(group => group.items.map(item => ({ ...item, group: group.title }))), [groups])
   const filtered = tools.filter(item => (item.label + ' ' + item.group).toLocaleLowerCase('tr').includes(query.toLocaleLowerCase('tr')))
@@ -33,6 +45,12 @@ export default function DashboardStudio() {
         </div>
         <div className="pointer-events-none absolute bottom-7 right-8 hidden items-center gap-3 opacity-70 xl:flex"><div className="pf-hero-orbit"><Icon name="sparkles" className="h-7 w-7" /></div><div className="space-y-2"><div className="h-2 w-24 rounded-full bg-accent/30" /><div className="h-2 w-16 rounded-full bg-fg/10" /><div className="h-2 w-20 rounded-full bg-fg/10" /></div></div>
       </section>
+      {!query && <section className="pf-dashboard-stats" aria-label="Çalışma alanı özeti">
+        <div><span className="pf-stat-icon"><Icon name="folder" className="h-4 w-4" /></span><span><strong>{stats.projects}</strong><small>Projelerim</small></span><Link href="/projects" aria-label="Projelerime git"><Icon name="arrowRight" className="h-4 w-4" /></Link></div>
+        <div><span className="pf-stat-icon"><Icon name="message" className="h-4 w-4" /></span><span><strong>{stats.conversations}</strong><small>Sohbetlerim</small></span><Link href="/history" aria-label="Sohbet geçmişine git"><Icon name="arrowRight" className="h-4 w-4" /></Link></div>
+        <div><span className="pf-stat-icon"><Icon name="layers" className="h-4 w-4" /></span><span><strong>{stats.outputs}</strong><small>Kaydedilen çıktılar</small></span><Link href="/outputs" aria-label="Çıktı kütüphanesine git"><Icon name="arrowRight" className="h-4 w-4" /></Link></div>
+        <div className="pf-stat-note"><span className="h-2 w-2 rounded-full bg-emerald-400" /><span>Çalışma alanın hazır</span><small>Projelerin ve çıktıların tek yerde</small></div>
+      </section>}
       {!query && <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="pf-eyebrow">Hızlı başlangıç</div><h2 className="mt-1 text-xl font-semibold tracking-tight text-fg">Nereden başlayalım?</h2></div><span className="text-xs text-muted">Öne çıkan çalışma alanları</span></div>
         <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">{featured.map(item => <Link key={item.href} href={item.href} className={`pf-feature-card group tone-${item.tone}`}>
