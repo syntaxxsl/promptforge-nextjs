@@ -101,17 +101,22 @@ export async function POST(request: NextRequest) {
     // Enforce the cap against the actual body bytes, not only the optional
     // Content-Length header (which can be absent or untrusted).
     const contentLength = Number(request.headers.get('content-length') || '0')
-    if (contentLength > 128 * 1024) {
-      return jsonError('İstek gövdesi çok büyük (limit 131072 bayt).', 413, 'body_too_large')
+    // Vision requests carry a bounded base64 image; ordinary chat stays on the smaller cap.
+    const MAX_VISION_BODY_BYTES = 6 * 1024 * 1024
+    if (contentLength > MAX_VISION_BODY_BYTES) {
+      return jsonError('İstek gövdesi çok büyük (görsel dahil limit 6 MB).', 413, 'body_too_large')
     }
 
     let body: Record<string, unknown>
     try {
       const rawBody = await request.text()
       const actualSize = new TextEncoder().encode(rawBody).byteLength
-      const sizeCheck = checkBodySize(actualSize)
-      if (!sizeCheck.ok) return jsonError(sizeCheck.reason!, 413, 'body_too_large')
+      if (actualSize > 6 * 1024 * 1024) return jsonError('İstek gövdesi çok büyük (görsel dahil limit 6 MB).', 413, 'body_too_large')
       body = JSON.parse(rawBody) as Record<string, unknown>
+      const isVisionRequest = body.task === 'vision'
+      const allowedSize = isVisionRequest ? 6 * 1024 * 1024 : 128 * 1024
+      const sizeCheck = checkBodySize(actualSize, allowedSize)
+      if (!sizeCheck.ok) return jsonError(sizeCheck.reason!, 413, 'body_too_large')
     } catch {
       return jsonError('İstek gövdesi geçerli JSON değil.', 400, 'invalid_json')
     }
@@ -203,7 +208,8 @@ export async function GET() {
     endpoint: '/api/ai/chat',
     methods: ['POST'],
     streaming: true,
-    maxBodyBytes: 128 * 1024,
+    maxBodyBytes: 6 * 1024 * 1024,
+    standardChatMaxBodyBytes: 128 * 1024,
     rateLimit: AI_RATE_LIMIT
   })
 }
