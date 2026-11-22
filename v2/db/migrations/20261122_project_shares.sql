@@ -1,5 +1,6 @@
 -- PromptForge V2 — expiring, read-only project share snapshots.
--- Apply this migration in the V2 Supabase SQL editor before enabling public share links.
+-- Apply after the studio_records migration.
+
 begin;
 
 create table if not exists public.project_shares (
@@ -37,31 +38,47 @@ create or replace function public.get_project_share(p_token_hash text)
 returns jsonb
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
-  select jsonb_build_object('snapshot', snapshot, 'expiresAt', expires_at)
-  from public.project_shares
-  where token_hash = p_token_hash
-    and revoked_at is null
-    and expires_at > now()
+  select jsonb_build_object(
+    'snapshot', shares.snapshot,
+    'expiresAt', shares.expires_at
+  )
+  from public.project_shares as shares
+  where shares.token_hash = p_token_hash
+    and shares.revoked_at is null
+    and shares.expires_at > now()
   limit 1;
 $$;
 
 revoke all on function public.get_project_share(text) from public;
 grant execute on function public.get_project_share(text) to anon, authenticated;
 
-
--- Keep version snapshots compatible with an already-created studio_records table.
-do $
+-- Keep the collection allow-list compatible with all V2 studio modules.
+do $$
 begin
   if to_regclass('public.studio_records') is not null then
-    alter table public.studio_records drop constraint if exists studio_records_collection_check;
-    alter table public.studio_records add constraint studio_records_collection_check check (collection in (
-      'code-workspaces', 'projects', 'project-files', 'project-outputs', 'project-file-versions',
-      'agents', 'agent-runs', 'image-jobs', 'video-jobs', 'studio-outputs', 'memories', 'canvas-boards'
-    ));
+    alter table public.studio_records
+      drop constraint if exists studio_records_collection_check;
+
+    alter table public.studio_records
+      add constraint studio_records_collection_check
+      check (collection in (
+        'code-workspaces',
+        'projects',
+        'project-files',
+        'project-outputs',
+        'project-file-versions',
+        'agents',
+        'agent-runs',
+        'image-jobs',
+        'video-jobs',
+        'studio-outputs',
+        'memories',
+        'canvas-boards'
+      ));
   end if;
 end
-$;
+$$;
 
 commit;
