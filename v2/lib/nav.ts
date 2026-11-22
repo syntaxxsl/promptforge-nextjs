@@ -68,6 +68,14 @@ export const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    title: 'Kişisel Alan',
+    items: [
+      { icon: 'sparkles', label: 'AI Memory', href: '/memory' },
+      { icon: 'layers', label: 'Canvas Studio', href: '/canvas' },
+      { icon: 'folder', label: 'Prompt Library', href: '/prompt-library' }
+    ]
+  },
+  {
     title: 'Medya Stüdyoları',
     items: [
       { icon: 'sparkles', label: 'Logo Studio', href: '/logo-studio' },
