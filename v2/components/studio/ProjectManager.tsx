@@ -102,7 +102,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
     cloudSyncRef.current.clear()
     cloudIdsRef.current.clear()
 
-    const collections = ['projects', 'project-files', 'project-outputs'] as const
+    const collections = ['projects', 'project-files', 'project-outputs', 'project-file-versions'] as const
     async function hydrate() {
       try {
         const results = await Promise.all(collections.map(async (collection) => {
@@ -130,6 +130,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
 
         cloudReadyRef.current = true
         setProjects(filterProjects(userId, { query, favoritesOnly, tool: toolFilter || undefined }))
+        setVersions(readCollection<ProjectFileVersion>(userId, 'project-file-versions').filter((item) => !activeId || item.projectId === activeId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
         if (activeId) {
           setFiles(listFiles(userId, activeId))
           setOutputs(listOutputs(userId, activeId))
@@ -191,7 +192,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
       })()
     }, 900)
     return () => window.clearTimeout(timer)
-  }, [projects, files, outputs, userId])
+  }, [projects, files, outputs, versions, userId])
 
   useEffect(() => {
     refresh()

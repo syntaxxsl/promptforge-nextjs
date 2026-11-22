@@ -5,10 +5,10 @@ import { checkRateLimit, rateLimitKey } from '@/lib/ai/guards'
 export const runtime = 'nodejs'
 
 const COLLECTIONS = new Set([
-  'code-workspaces', 'projects', 'project-files', 'project-outputs',
+  'code-workspaces', 'projects', 'project-files', 'project-outputs', 'project-file-versions',
   'agents', 'agent-runs', 'image-jobs', 'video-jobs', 'studio-outputs', 'memories', 'canvas-boards'
 ])
-const MAX_BODY_BYTES = 300 * 1024
+const MAX_BODY_BYTES = 1024 * 1024
 const RATE_LIMIT = { limit: 120, windowMs: 60_000 }
 
 type RecordValue = Record<string, unknown>
