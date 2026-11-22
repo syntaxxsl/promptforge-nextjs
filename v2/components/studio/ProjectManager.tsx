@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import StoredFilePicker from '@/components/studio/StoredFilePicker'
 import {
   addFile,
   addOutput,
@@ -52,6 +53,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
   const [newFileName, setNewFileName] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [storedPickerOpen, setStoredPickerOpen] = useState(false)
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
   const [formColor, setFormColor] = useState(PROJECT_COLORS[0])
@@ -239,6 +241,22 @@ export default function ProjectManager({ userId }: { userId: string }) {
     setFiles(listFiles(userId, active.id))
     setActiveFileId(created.id)
     setNewFileName('')
+  }
+
+  function importStoredFile(file: { name: string; content: string }) {
+    if (!active) return
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'import.txt'
+    const name = files.some((item) => item.name === safeName)
+      ? safeName.replace(/(\.[^.]+)?$/, '-imported$1')
+      : safeName
+    const created = addFile(userId, active.id, name, file.content)
+    if (!created) {
+      setNotice('Dosya projeye aktarılamadı.')
+      return
+    }
+    setFiles(listFiles(userId, active.id))
+    setActiveFileId(created.id)
+    setNotice('Dosya ortak depodan projeye aktarıldı.')
   }
 
   function saveFileContent(content: string) {
@@ -518,7 +536,14 @@ export default function ProjectManager({ userId }: { userId: string }) {
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-semibold">Dosyalar ({files.length})</h3>
                   </div>
-                  <div className="flex gap-1.5 mb-3">
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    <button
+                      onClick={() => setStoredPickerOpen(true)}
+                      className="pf-btn pf-btn-ghost text-[11px]"
+                    >
+                      <Icon name="folder" className="h-3.5 w-3.5" />
+                      Depodan aktar
+                    </button>
                     <input
                       value={newFileName}
                       onChange={(e) => setNewFileName(e.target.value)}
@@ -644,5 +669,12 @@ export default function ProjectManager({ userId }: { userId: string }) {
         </div>
       )}
     </div>
+      {storedPickerOpen && (
+        <StoredFilePicker
+          title="Projeye dosya aktar"
+          onClose={() => setStoredPickerOpen(false)}
+          onSelect={importStoredFile}
+        />
+      )}
   )
 }
