@@ -7,6 +7,7 @@
 // progress and no placeholder video.
 
 import { useEffect, useMemo, useState } from 'react'
+import { useCloudCollection } from '@/lib/studio/use-cloud-collection'
 import Icon from '@/components/Icon'
 import {
   createVideoJob,
@@ -29,6 +30,8 @@ export default function VideoStudio({ userId }: { userId: string }) {
   const [quality, setQuality] = useState<VideoQuality>('standard')
   const [jobs, setJobs] = useState<VideoJob[]>([])
   const [notice, setNotice] = useState<string | null>(null)
+
+  useCloudCollection({ userId, collection: 'video-jobs', records: jobs, setRecords: setJobs, sort: (a, b) => b.createdAt.localeCompare(a.createdAt) })
 
   const provider = useMemo(() => videoProviderStatus(), [])
 
@@ -70,7 +73,7 @@ export default function VideoStudio({ userId }: { userId: string }) {
           Video Studio
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Video promptu ve çıktı ayarlarını hazırlayın; işler bu tarayıcıda saklanır.
+          Video promptu ve çıktı ayarlarını hazırlayın; işler bulut eşitlemesiyle cihazlar arasında korunur; yerel kopya da tutulur.
         </p>
       </header>
 
