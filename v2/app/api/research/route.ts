@@ -122,7 +122,8 @@ function parseBody(input: unknown): { ok: true; value: ParsedResearchBody } | { 
  * decide between server mode (Supabase) and local mode, and to render an honest
  * banner instead of a fake "all systems go".
  */
-export async function GET() {
+export async function GET(_request: NextRequest) {
+  void _request
   const status = supabaseStatus()
   if (!status.configured) {
     // No Supabase: there is no session to read and no table to query. Report it
