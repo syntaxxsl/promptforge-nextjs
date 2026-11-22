@@ -74,6 +74,8 @@ export default function CodeStudio({ userId }: { userId: string }) {
   const [preview, setPreview] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
+  const cloudReadyRef = useRef(false)
+  const cloudSyncRef = useRef<Map<string, string>>(new Map())
 
   const active = useMemo(
     () => workspaces.find((w) => w.id === activeId) || null,
@@ -85,10 +87,75 @@ export default function CodeStudio({ userId }: { userId: string }) {
   )
 
   useEffect(() => {
-    const list = listWorkspaces(userId)
-    setWorkspaces(list)
-    if (list.length > 0) setActiveId(list[0].id)
+    let cancelled = false
+    cloudReadyRef.current = false
+    cloudSyncRef.current.clear()
+    const localAtStart = listWorkspaces(userId)
+    setWorkspaces(localAtStart)
+    if (localAtStart.length > 0) setActiveId(localAtStart[0].id)
+
+    async function hydrate() {
+      try {
+        const response = await fetch('/api/studio/data?collection=code-workspaces', { cache: 'no-store' })
+        if (!response.ok) throw new Error('Cloud storage unavailable')
+        const data = (await response.json()) as { records?: CodeWorkspace[] }
+        if (cancelled) return
+
+        const local = listWorkspaces(userId)
+        const remote = Array.isArray(data.records) ? data.records : []
+        const merged = new Map<string, CodeWorkspace>()
+        for (const workspace of [...remote, ...local]) {
+          const previous = merged.get(workspace.id)
+          if (!previous || workspace.updatedAt > previous.updatedAt) merged.set(workspace.id, workspace)
+        }
+        const result = Array.from(merged.values()).sort((a, b) =>
+          b.updatedAt.localeCompare(a.updatedAt)
+        )
+        // Preserve the browser copy; only replace this collection after a merge.
+        const { writeCollection } = await import('@/lib/studio/store')
+        writeCollection(userId, 'code-workspaces', result)
+        for (const workspace of remote) {
+          cloudSyncRef.current.set(workspace.id, JSON.stringify(workspace))
+        }
+        cloudReadyRef.current = true
+        setWorkspaces(result)
+        setActiveId((current) => current || result[0]?.id || null)
+      } catch {
+        if (cancelled) return
+        setNotice('Bulut Code Studio eşitlemesi kullanılamıyor. Dosyaların bu cihazdaki kopyası korunuyor.')
+      }
+    }
+    void hydrate()
+    return () => {
+      cancelled = true
+      cloudReadyRef.current = false
+    }
   }, [userId])
+
+  useEffect(() => {
+    if (!cloudReadyRef.current || workspaces.length === 0) return
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        for (const workspace of workspaces) {
+          const snapshot = JSON.stringify(workspace)
+          if (cloudSyncRef.current.get(workspace.id) === snapshot) continue
+          try {
+            const response = await fetch('/api/studio/data?collection=code-workspaces', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ record: workspace })
+            })
+            if (!response.ok) throw new Error('Cloud save failed')
+            cloudSyncRef.current.set(workspace.id, snapshot)
+          } catch {
+            setNotice('Bir çalışma alanı buluta eşitlenemedi. Yerel dosyaların korunuyor.')
+            break
+          }
+        }
+      })()
+    }, 900)
+    return () => window.clearTimeout(timer)
+  }, [workspaces, userId])
 
   function refresh() {
     setWorkspaces(listWorkspaces(userId))
