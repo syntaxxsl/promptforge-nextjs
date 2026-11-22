@@ -15,7 +15,7 @@ on:
       - ".github/workflows/promptforge-v2.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -41,6 +41,8 @@ jobs:
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Install dependencies
         run: npm ci
+      - name: Ensure Next.js async Supabase cookie calls
+        run: node scripts/migrate-async-supabase-client.mjs
       - name: Dependency vulnerability report
         run: |
           npm audit --json > /tmp/npm-audit-all.json || true
@@ -113,6 +115,18 @@ jobs:
         run: npm run typecheck
       - name: Production build
         run: npm run build
+      - name: Commit validated async-cookie migration and lockfile
+        if: success() && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app lib package-lock.json
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit."
+          else
+            git commit -m "fix(v2): complete async Supabase cookies migration"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
 
       - name: Upload regenerated package lock
         if: always()
