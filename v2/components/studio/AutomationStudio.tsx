@@ -315,6 +315,17 @@ export default function AutomationStudio({ userId }: { userId: string }) {
                   />
                   <span className="mt-1 block text-[10px] text-white/35">Türkiye için Europe/Istanbul kullan.</span>
                 </label>
+                <label className="text-[11px] text-white/65 sm:col-span-2">
+                  Her çalıştırmada kullanılacak girdi
+                  <textarea
+                    value={active.scheduleInput || ''}
+                    onChange={(event) => patch({ scheduleInput: event.target.value })}
+                    rows={3}
+                    maxLength={12000}
+                    placeholder="Örn. Her sabah bugünkü görevleri özetle…"
+                    className="mt-1 w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white"
+                  />
+                </label>
               </div>
             )}
 
