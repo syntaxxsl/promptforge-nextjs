@@ -252,7 +252,7 @@ export interface ProjectFileEntry {
 export interface ProjectOutputEntry {
   id: string
   projectId: string
-  tool: StudioToolId
+  tool: string
   title: string
   /** Free-form payload: chat text, code, or a job reference. */
   payload: string
