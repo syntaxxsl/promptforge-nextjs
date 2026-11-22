@@ -197,7 +197,7 @@ export default function ChatMessageRow({
               Düzenle
             </button>
           )}
-          {!isUser && !streaming && !busy && !message.error && <SaveOutputButton userId={userId} tool="AI Chat" title={message.content.slice(0, 72) || 'AI Chat yanıtı'} content={message.content}/>}
+          {!isUser && !streaming && !busy && !message.error && <SaveOutputButton userId={userId} tool="AI Chat" title={message.content.slice(0, 72) || 'AI Chat yanıtı'} content={message.content} showProjectSelect={false}/>}
           {copyFailed && <span className="text-[11px] text-warning">Kopyalanamadı.</span>}
           {copied && <span className="text-[11px] text-success">Kopyalandı.</span>}
           {!isUser && message.error && (
