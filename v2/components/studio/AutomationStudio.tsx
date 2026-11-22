@@ -200,7 +200,7 @@ export default function AutomationStudio({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4 lg:flex-row md:p-6">
+    <div className="pf-automation-studio flex h-full min-h-0 flex-col gap-4 p-4 lg:flex-row md:p-6">
       <aside className="w-full shrink-0 lg:w-60">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white/90">Otomasyonlar</h2>
