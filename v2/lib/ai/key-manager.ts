@@ -19,7 +19,7 @@ export async function resolveApiKey(
   // 1. User-owned key (RLS-protected table, read via user session).
   if (userId) {
     try {
-      const supabase = createSupabaseServerClient()
+      const supabase = await createSupabaseServerClient()
       const { data } = await supabase
         .from('user_api_keys')
         .select('key_encrypted')

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Icon from '@/components/Icon'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 export default async function ProfilePage(){
- const supabase=createSupabaseServerClient()
+ const supabase=await createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user)redirect('/login')
  const email=data.user.email||'E-posta bilgisi yok'
