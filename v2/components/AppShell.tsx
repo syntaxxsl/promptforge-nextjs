@@ -28,6 +28,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [commandOpen, setCommandOpen] = useState(false)
   const [commandQuery, setCommandQuery] = useState('')
+  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [assistantPrompt, setAssistantPrompt] = useState('')
 
   useEffect(() => {
     if (window.localStorage.getItem('pf-v2-nav-collapsed') === '1') setCollapsed(true)
@@ -55,7 +57,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }).catch(() => {})
   }, [pathname])
 
-  useEffect(() => { setNavOpen(false); setCommandOpen(false) }, [pathname])
+  useEffect(() => { setNavOpen(false); setCommandOpen(false); setAssistantOpen(false) }, [pathname])
 
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
@@ -84,6 +86,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       document.documentElement.setAttribute('data-theme', next)
       return next
     })
+  }
+
+  function openAssistantChat(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const prompt = assistantPrompt.trim()
+    if (!prompt) return
+    setAssistantOpen(false)
+    setAssistantPrompt('')
+    router.push('/chat?prompt=' + encodeURIComponent(prompt))
   }
 
   async function logout() {
@@ -162,6 +173,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </nav>
         <main className="pf-main min-h-[calc(100vh-126px)]">{children}</main>
+      </div>
+      <div className="pf-assistant-launcher">
+        {assistantOpen && <section className="pf-assistant-panel" aria-label="AI Assistant hızlı başlatıcı">
+          <div className="pf-assistant-panel-head">
+            <span className="pf-assistant-mark"><Icon name="sparkles" className="h-4 w-4" /></span>
+            <div className="min-w-0 flex-1"><strong>AI Assistant</strong><small>PromptForge çalışma alanı</small></div>
+            <button type="button" onClick={() => setAssistantOpen(false)} className="pf-icon-btn" aria-label="Asistan panelini kapat"><Icon name="x" className="h-4 w-4" /></button>
+          </div>
+          <p className="pf-assistant-intro">Ne üzerinde çalışmak istiyorsun? İsteğini AI Chat'e aktar, orada devam et.</p>
+          <form onSubmit={openAssistantChat} className="pf-assistant-form">
+            <textarea value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} rows={3} maxLength={4000} placeholder="Örn. Bir web sitesi için modern bir ana sayfa tasarla..." aria-label="AI Assistant isteğin" />
+            <button type="submit" disabled={!assistantPrompt.trim()} className="pf-btn pf-btn-primary w-full"><Icon name="send" className="h-4 w-4" /> AI Chat'te devam et</button>
+          </form>
+          <div className="pf-assistant-shortcuts">
+            <span>HIZLI ERİŞİM</span>
+            <div>
+              <Link href="/image" onClick={() => setAssistantOpen(false)}><Icon name="image" className="h-4 w-4" /> Görsel üret</Link>
+              <Link href="/code" onClick={() => setAssistantOpen(false)}><Icon name="code" className="h-4 w-4" /> Kod yaz</Link>
+              <Link href="/website-builder" onClick={() => setAssistantOpen(false)}><Icon name="globe" className="h-4 w-4" /> Site oluştur</Link>
+            </div>
+          </div>
+        </section>}
+        <button type="button" className={`pf-assistant-toggle ${assistantOpen ? 'is-open' : ''}`} onClick={() => setAssistantOpen(value => !value)} aria-expanded={assistantOpen} aria-label={assistantOpen ? 'AI Assistant panelini kapat' : 'AI Assistant panelini aç'}>
+          <Icon name={assistantOpen ? 'x' : 'sparkles'} className="h-5 w-5" /><span>{assistantOpen ? 'Kapat' : 'AI Assistant'}</span>
+        </button>
       </div>
       {commandOpen && <div className="pf-command-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setCommandOpen(false) }}>
         <section className="pf-command-panel" role="dialog" aria-modal="true" aria-label="PromptForge hızlı arama">
