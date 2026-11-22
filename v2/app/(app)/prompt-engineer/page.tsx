@@ -7,5 +7,5 @@ export default async function PromptEngineerPage() {
   const { data } = await supabase.auth.getUser()
   if (!data.user) redirect('/login')
 
-  return <PromptEngineerStudio userId={data.user.id} />
+  return <PromptEngineerStudio />
 }
