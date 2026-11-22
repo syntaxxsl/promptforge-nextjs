@@ -45,7 +45,7 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<KnowledgeAnswer | null>(null)
   const [asking, setAsking] = useState(false)
-  const [model, setModel] = useState<ModelSelection>({})
+  const [model, setModel] = useState<ModelSelection>({ label: 'Otomatik seçim' })
   const [summaries, setSummaries] = useState<Record<string, string>>({})
   const [summarizing, setSummarizing] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
