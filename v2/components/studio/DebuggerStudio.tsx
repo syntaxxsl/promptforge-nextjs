@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { streamChat } from '@/lib/studio/chat-client'
@@ -16,7 +17,7 @@ const TASKS: { id: Task; title: string; description: string; instruction: string
 ]
 const AUTO: ModelSelection = { label: 'Otomatik seçim' }
 
-export default function DebuggerStudio() {
+export default function DebuggerStudio({ userId }: { userId: string }) {
   const [task, setTask] = useState<Task>('fix')
   const [language, setLanguage] = useState('Otomatik algıla')
   const [code, setCode] = useState('')
@@ -62,7 +63,7 @@ export default function DebuggerStudio() {
       <div><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="bug" className="h-4 w-4" /> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">AI Debugger</h1><p className="mt-1 text-sm text-muted">Kodunu ve hata kayıtlarını analiz et; açıklamalı düzeltme önerileri al.</p></div>
       <ModelPicker value={model} onChange={setModel} disabled={busy} />
     </header>
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{TASKS.map((item, index) => <button key={item.id} type="button" onClick={() => setTask(item.id)} disabled={busy} aria-pressed={task === item.id} className={`rounded-xl border p-4 text-left transition ${task === item.id ? 'border-accent/60 bg-accent/10' : 'border-border bg-surface hover:border-accent/30'}`}><span className="text-xs text-muted">0{index + 1}</span><div className="mt-2 text-sm font-semibold text-fg">{item.title}</div><p className="mt-1 text-xs leading-5 text-muted">{item.description}</p></button>)}</div>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{TASKS.map((item, index) => <button key={item.id} type="button" onClick={() => setTask(item.id)} disabled={busy} aria-pressed={task === item.id} className={`rounded-xl border p-4 text-left transition ${task === item.id ? 'border-accent/60 bg-accent/10' : 'border-border bg-surface hover:border-accent/30'}`}><span className="text-xs text-muted">0{index + 1}</span><div className="mt-2 text-sm font-semibold text-fg">{item.title}</div><p className="mt-1 text-xs leading-5 text-muted">{item.description}</p></button><SaveOutputButton userId={userId} tool="AI Debugger" title="AI Debugger" content={result}/>)}</div>
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="space-y-4 rounded-2xl border border-border bg-surface p-4 md:p-5">
         <div><h2 className="text-sm font-semibold text-fg">Hata ayıklama girdileri</h2><p className="mt-1 text-xs text-muted">{active.description}</p></div>
