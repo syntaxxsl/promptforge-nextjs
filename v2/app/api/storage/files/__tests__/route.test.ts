@@ -48,14 +48,14 @@ afterEach(() => {
 describe('/api/storage/files access control', () => {
   it('returns 503 when Supabase is not configured', async () => {
     configureSupabase(false)
-    const response = await GET()
+    const response = (await GET())!
     expect(response.status).toBe(503)
     expect((await response.json()).code).toBe('supabase_not_configured')
   })
 
   it('rejects unauthenticated file listing', async () => {
     getUser.mockResolvedValue({ data: { user: null }, error: null })
-    const response = await GET()
+    const response = (await GET())!
     expect(response.status).toBe(401)
     expect(list).not.toHaveBeenCalled()
   })
@@ -67,7 +67,7 @@ describe('/api/storage/files access control', () => {
       error: null
     })
 
-    const response = await GET()
+    const response = (await GET())!
     const body = await response.json()
 
     expect(response.status).toBe(200)
@@ -89,7 +89,7 @@ describe('POST /api/storage/files validation', () => {
   it('rejects anonymous uploads before parsing or storing a file', async () => {
     getUser.mockResolvedValue({ data: { user: null }, error: null })
     const request = new NextRequest(URL, { method: 'POST' })
-    const response = await POST(request)
+    const response = (await POST(request))!
 
     expect(response.status).toBe(401)
     expect(upload).not.toHaveBeenCalled()
@@ -102,7 +102,7 @@ describe('POST /api/storage/files validation', () => {
     const request = new NextRequest(URL, { method: 'POST' })
     vi.spyOn(request, 'formData').mockResolvedValue(form)
 
-    const response = await POST(request)
+    const response = (await POST(request))!
     expect(response.status).toBe(415)
     expect((await response.json()).code).toBe('unsupported_type')
     expect(upload).not.toHaveBeenCalled()
@@ -115,7 +115,7 @@ describe('POST /api/storage/files validation', () => {
       headers: { 'content-length': String(4 * 1024 * 1024 + 16 * 1024 + 1) }
     })
 
-    const response = await POST(request)
+    const response = (await POST(request))!
     expect(response.status).toBe(413)
     expect(upload).not.toHaveBeenCalled()
   })
@@ -126,7 +126,7 @@ describe('DELETE /api/storage/files ownership', () => {
     signedIn()
     const request = new NextRequest(`${URL}?path=user-2%2Fprivate.pdf`, { method: 'DELETE' })
 
-    const response = await DELETE(request)
+    const response = (await DELETE(request))!
     expect(response.status).toBe(400)
     expect((await response.json()).code).toBe('invalid_path')
     expect(remove).not.toHaveBeenCalled()
@@ -136,7 +136,7 @@ describe('DELETE /api/storage/files ownership', () => {
     signedIn()
     const request = new NextRequest(`${URL}?path=user-1%2F..%2Fother%2Fsecret.pdf`, { method: 'DELETE' })
 
-    const response = await DELETE(request)
+    const response = (await DELETE(request))!
     expect(response.status).toBe(400)
     expect(remove).not.toHaveBeenCalled()
   })
@@ -145,7 +145,7 @@ describe('DELETE /api/storage/files ownership', () => {
     signedIn()
     const request = new NextRequest(`${URL}?path=user-1%2Ffile.pdf`, { method: 'DELETE' })
 
-    const response = await DELETE(request)
+    const response = (await DELETE(request))!
     expect(response.status).toBe(200)
     expect(remove).toHaveBeenCalledWith(['user-1/file.pdf'])
   })
