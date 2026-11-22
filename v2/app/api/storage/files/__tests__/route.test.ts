@@ -124,7 +124,9 @@ describe('POST /api/storage/files validation', () => {
   it('rejects a PDF extension and MIME type when the file signature is invalid', async () => {
     signedIn()
     const form = new FormData()
-    form.set('file', new File(['not a pdf'], 'payload.pdf', { type: 'application/pdf' }))
+    const file = new File(['not a pdf'], 'payload.pdf', { type: 'application/pdf' })
+    vi.spyOn(file, 'slice').mockReturnValue({ arrayBuffer: async () => new TextEncoder().encode('not a pdf').buffer as ArrayBuffer } as Blob)
+    form.set('file', file)
     const request = new NextRequest(URL, { method: 'POST' })
     vi.spyOn(request, 'formData').mockResolvedValue(form)
 
@@ -137,7 +139,9 @@ describe('POST /api/storage/files validation', () => {
   it('accepts a PDF when extension, MIME type, and signature agree', async () => {
     signedIn()
     const form = new FormData()
-    form.set('file', new File(['%PDF-1.7 valid test content'], 'report.pdf', { type: 'application/pdf' }))
+    const file = new File(['%PDF-1.7 valid test content'], 'report.pdf', { type: 'application/pdf' })
+    vi.spyOn(file, 'slice').mockReturnValue({ arrayBuffer: async () => new TextEncoder().encode('%PDF-1.7 valid').buffer as ArrayBuffer } as Blob)
+    form.set('file', file)
     const request = new NextRequest(URL, { method: 'POST' })
     vi.spyOn(request, 'formData').mockResolvedValue(form)
 
