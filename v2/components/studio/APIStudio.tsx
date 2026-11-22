@@ -32,7 +32,7 @@ export default function APIStudio({ userId }: { userId: string }) {
  function removeHeader(id:number){setHeaders(old=>old.filter(h=>h.id!==id))}
  async function copy(){try{await navigator.clipboard.writeText(code);setNotice('Kod panoya kopyalandı.')}catch{setNotice('Kopyalama başarısız; kodu seçerek kopyalayabilirsin.')}}
  function validate(){if(!validUrl){setNotice('Geçerli bir HTTPS veya localhost adresi gir.');return}if(!validBody){setNotice('İstek gövdesi geçerli JSON olmalı.');return}setNotice('İstek taslağı geçerli görünüyor. Bu çalışma alanı isteği göndermiyor; yalnızca kod oluşturuyor.')}
- return <main className="mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
+ return <main className="pf-api-studio mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
   <header><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="terminal" className="h-4 w-4"/> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">API Studio</h1><p className="mt-1 text-sm text-muted">REST isteklerini tasarla, başlıklarını ve JSON gövdesini düzenle, Fetch veya cURL kodu oluştur.</p></header>
   <section className="space-y-4 rounded-2xl border border-border bg-surface p-4 md:p-5">
    <div className="flex flex-col gap-2 md:flex-row"><select aria-label="HTTP metodu" value={method} onChange={e=>setMethod(e.target.value as Method)} className="pf-input w-full md:w-36">{METHODS.map(m=><option key={m}>{m}</option>)}</select><input aria-label="API adresi" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://api.example.com/endpoint" className="pf-input min-w-0 flex-1 font-mono text-sm"/></div>
