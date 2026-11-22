@@ -1,11 +1,12 @@
 'use client'
 import { useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { streamChat } from '@/lib/studio/chat-client'
 const AUTO: ModelSelection = { label: 'Otomatik seçim' }
-export default function VisionToCodeStudio() {
+export default function VisionToCodeStudio({ userId }: { userId: string }) {
  const [preview,setPreview]=useState(''),[description,setDescription]=useState(''),[framework,setFramework]=useState('React + TypeScript + Tailwind'),[style,setStyle]=useState('Birebir arayüz'),[model,setModel]=useState<ModelSelection>(AUTO),[result,setResult]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState('')
  const abort=useRef<AbortController|null>(null)
  async function choose(file?:File) {
@@ -37,7 +38,7 @@ export default function VisionToCodeStudio() {
   <div className="grid gap-4 xl:grid-cols-[.85fr_1.15fr]">
    <section className="space-y-4 rounded-2xl border border-border bg-surface p-4 md:p-5"><div><h2 className="text-sm font-semibold text-fg">Görsel ve talimatlar</h2><p className="mt-1 text-xs text-muted">PNG, JPEG, WebP · en fazla 8 MB. Gönderilmeden önce tarayıcıda küçültülür.</p></div>
     <label className="flex min-h-56 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-background/50 p-4">{preview?<img src={preview} alt="Yüklenen arayüz önizlemesi" className="max-h-72 max-w-full rounded-lg object-contain"/>:<span className="text-center text-sm text-muted"><Icon name="image-plus" className="mx-auto mb-3 h-8 w-8"/>Görsel seçmek için dokun</span>}<input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={e=>void choose(e.target.files?.[0])}/></label>
-    {preview&&<button type="button" onClick={()=>setPreview('')} className="pf-btn pf-btn-ghost text-xs">Görseli kaldır</button>}
+    {preview&&<button type="button" onClick={()=>setPreview('')} className="pf-btn pf-btn-ghost text-xs">Görseli kaldır</button><SaveOutputButton userId={userId} tool="Görselden Kod" title="Görselden Kod" content={result}/>}
     <label className="block text-xs text-muted">Hedef teknoloji<select value={framework} onChange={e=>setFramework(e.target.value)} className="pf-input mt-2 w-full text-sm">{['React + TypeScript + Tailwind','Next.js App Router + TypeScript','HTML + CSS + JavaScript','Vue + TypeScript','Sade HTML + CSS'].map(x=><option key={x}>{x}</option>)}</select></label>
     <label className="block text-xs text-muted">Tasarım yaklaşımı<select value={style} onChange={e=>setStyle(e.target.value)} className="pf-input mt-2 w-full text-sm">{['Birebir arayüz','Modern yorum / iyileştirilmiş tasarım','Mobil öncelikli responsive','Sadece ana bölüm'].map(x=><option key={x}>{x}</option>)}</select></label>
     <label className="block text-xs text-muted">Ek açıklama<textarea value={description} onChange={e=>setDescription(e.target.value)} rows={4} maxLength={3000} placeholder="Örn. koyu tema, sabit navbar, tıklanabilir kartlar..." className="pf-input mt-2 w-full text-sm"/></label>
