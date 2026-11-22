@@ -47,7 +47,7 @@ export async function resolveApiKey(
     admin = getSupabaseAdminClient()
     if (admin) {
       try {
-        const { data } = await admin
+        const { data: rawUserKey } = await admin
           .from('user_api_keys')
           .select('key_encrypted')
           .eq('user_id', userId)
@@ -56,10 +56,11 @@ export async function resolveApiKey(
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
+        const userKey = rawUserKey as unknown as { key_encrypted?: string | null } | null
 
-        if (data?.key_encrypted) {
+        if (userKey?.key_encrypted) {
           try {
-            return { source: 'user', apiKey: decryptSecret(String(data.key_encrypted)), providerId }
+            return { source: 'user', apiKey: decryptSecret(String(userKey.key_encrypted)), providerId }
           } catch {
             return null
           }
