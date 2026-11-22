@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
 import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
@@ -31,6 +31,13 @@ export default function WebsiteBuilderStudio({ userId }: { userId: string }){
  const [busy,setBusy]=useState(false)
  const [notice,setNotice]=useState('')
  const [meta,setMeta]=useState('')
+ const [view,setView]=useState<'code'|'preview'>('code')
+ const previewHtml=useMemo(()=>{
+  if(stack!=='HTML, CSS ve JavaScript (tek dosya)')return ''
+  const match=result.match(/```(?:html)?\s*\n([\s\S]*?)```/i)
+  const candidate=(match?.[1]||'').trim()
+  return /<html[\s>]|<!doctype html/i.test(candidate)?candidate:''
+ },[result,stack])
  const abortRef=useRef<AbortController|null>(null)
  const selected=TYPES.find(x=>x.id===type)??TYPES[2]
  function generate(){
@@ -65,7 +72,7 @@ export default function WebsiteBuilderStudio({ userId }: { userId: string }){
     <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={responsive} onChange={e=>setResponsive(e.target.checked)} className="accent-current"/> Mobil uyumlu tasarım oluştur</label>
     <div className="flex flex-wrap gap-2"><button type="button" onClick={generate} disabled={busy||(name.trim().length+purpose.trim().length)<5} className="pf-btn pf-btn-primary"><Icon name="sparkles" className="h-4 w-4"/>{busy?'Kod hazırlanıyor…':'Web sitesi oluştur'}</button>{busy&&<button type="button" onClick={stop} className="pf-btn pf-btn-ghost">Durdur</button>}</div>{notice&&<p role="status" className="text-xs text-muted">{notice}</p>}
    </section>
-   <section className="flex min-h-[650px] flex-col rounded-2xl border border-border bg-surface p-4 md:p-5"><div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Üretilen proje</h2><p className="mt-1 text-xs text-muted">{meta||(busy?'Kod üretiliyor…':'Tam kod ve kurulum adımları burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={()=>{setResult('');setNotice('')}} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5"/>Kopyala</button><SaveOutputButton userId={userId} tool="Website Builder" title="Website Builder" content={result}/></div></div><div className="min-h-[560px] flex-1 overflow-y-auto rounded-xl border border-border bg-background/60 p-4">{result?<Markdown content={result}/>:<div className="flex min-h-[540px] items-center justify-center text-center text-sm text-muted">{busy?'Projen hazırlanıyor…':'Bir site türü seç, proje detaylarını gir ve kod üret.'}</div>}</div></section>
+   <section className="flex min-h-[650px] flex-col rounded-2xl border border-border bg-surface p-4 md:p-5"><div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Üretilen proje</h2><p className="mt-1 text-xs text-muted">{meta||(busy?'Kod üretiliyor…':'Tam kod ve kurulum adımları burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={()=>{setResult('');setNotice('')}} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5"/>Kopyala</button><SaveOutputButton userId={userId} tool="Website Builder" title="Website Builder" content={result}/></div></div><div className="mb-3 flex items-center gap-2"><button type="button" onClick={()=>setView('code')} aria-pressed={view==='code'} className="pf-btn pf-btn-ghost text-xs">Kod ve açıklama</button><button type="button" onClick={()=>setView('preview')} disabled={!previewHtml} aria-pressed={view==='preview'} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40">Canlı önizleme</button></div><div className="min-h-[560px] flex-1 overflow-y-auto rounded-xl border border-border bg-background/60 p-4">{view==='preview'&&previewHtml?<iframe title="Oluşturulan web sitesi önizlemesi" srcDoc={previewHtml} sandbox="" className="h-[650px] w-full bg-white"/>:result?<Markdown content={result}/>:<div className="flex min-h-[540px] items-center justify-center text-center text-sm text-muted">{busy?'Projen hazırlanıyor…':'Bir site türü seç, proje detaylarını gir ve kod üret.'}</div>}</div></section>
   </div><p className="text-center text-[11px] text-muted">Bu alan kod ve kurulum yönergeleri üretir; kodu otomatik çalıştırmaz veya canlıya yayınlamaz. Üretilen kodu kullanmadan önce gözden geçirip test et.</p>
  </main>
 }
