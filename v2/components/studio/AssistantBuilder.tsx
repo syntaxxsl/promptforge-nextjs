@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
 import Markdown from '@/components/Markdown'
-import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
+import ModelPicker from '@/components/ModelPicker'
 import {
   ASSISTANT_TOOLS,
   AVATARS,
