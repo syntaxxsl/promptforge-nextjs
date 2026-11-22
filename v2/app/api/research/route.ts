@@ -219,8 +219,8 @@ export async function POST(request: NextRequest) {
       for await (const event of events) {
         if (event.type === 'run_done') finalRun = event.run
         if (event.type === 'stage_error') {
+          // Keep consuming the pipeline so it can emit the complete failed run.
           failure = { message: event.message, code: event.code }
-          break
         }
       }
 
