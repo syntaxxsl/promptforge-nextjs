@@ -146,16 +146,16 @@ export default function SettingsPage() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-border bg-surface-2/50 p-3">
             <p className="text-xs text-muted">Supabase ortam değişkenleri</p>
-            <p className="mt-1 text-sm font-medium">{statusLoading ? 'Kontrol ediliyor…' : systemStatus?.database.configured ? 'Tanımlı' : 'Eksik'}</p>
+            <p className="mt-1 text-sm font-medium">{statusLoading ? 'Kontrol ediliyor…' : !systemStatus ? 'Kontrol edilemedi' : systemStatus.database.configured ? 'Tanımlı' : 'Eksik'}</p>
             {Boolean(systemStatus?.database.missing.length) && <p className="mt-1 break-all text-xs text-muted">Eksik: {systemStatus?.database.missing.join(', ')}</p>}
           </div>
           <div className="rounded-lg border border-border bg-surface-2/50 p-3">
             <p className="text-xs text-muted">API anahtarı şifreleme sırrı</p>
-            <p className="mt-1 text-sm font-medium">{statusLoading ? 'Kontrol ediliyor…' : systemStatus?.encryption.configured ? 'Tanımlı' : 'Eksik veya kısa'}</p>
+            <p className="mt-1 text-sm font-medium">{statusLoading ? 'Kontrol ediliyor…' : !systemStatus ? 'Kontrol edilemedi' : systemStatus.encryption.configured ? 'Tanımlı' : 'Eksik veya kısa'}</p>
           </div>
           <div className="rounded-lg border border-border bg-surface-2/50 p-3 sm:col-span-2">
             <p className="text-xs text-muted">Sunucu ortamında tanımlı AI sağlayıcıları</p>
-            <p className="mt-1 text-sm font-medium">{statusLoading ? 'Kontrol ediliyor…' : systemStatus?.serverProviders.length ? systemStatus.serverProviders.join(', ') : 'Yok — hesap anahtarları ayrıca yönetilir'}</p>
+            <p className="mt-1 text-sm font-medium">{statusLoading ? 'Kontrol ediliyor…' : !systemStatus ? 'Kontrol edilemedi' : systemStatus.serverProviders.length ? systemStatus.serverProviders.join(', ') : 'Yok — hesap anahtarları ayrıca yönetilir'}</p>
           </div>
         </div>
         <p className="mt-3 text-xs leading-5 text-muted">Bu kontrol yalnızca ortam değişkenlerinin varlığını doğrular; veritabanı migration'larının uygulandığını veya canlı bağlantının çalıştığını kanıtlamaz.</p>
