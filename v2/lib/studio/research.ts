@@ -18,7 +18,6 @@
 import { createId, nowIso, readCollection, removeById, upsert } from './store'
 import { completeChat } from './chat-client'
 import {
-  RESEARCH_STAGES,
   RESEARCH_STAGE_ORDER,
   RESEARCH_SYSTEM_PROMPT,
   buildStagePrompt,
@@ -28,7 +27,6 @@ import {
   type ResearchSource,
   type ResearchStageId,
   type ResearchStageResult,
-  type ResearchStatus
 } from './research-pipeline'
 import type { ProviderId } from '@/lib/ai/types'
 
