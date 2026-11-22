@@ -6,7 +6,7 @@ create table if not exists public.studio_records (
   user_id uuid not null references auth.users(id) on delete cascade,
   collection text not null check (collection in (
     'code-workspaces', 'projects', 'project-files', 'project-outputs',
-    'agents', 'agent-runs', 'image-jobs', 'video-jobs'
+    'agents', 'agent-runs', 'image-jobs', 'video-jobs', 'studio-outputs'
   )),
   record_id text not null,
   record_data jsonb not null,
