@@ -39,8 +39,66 @@ jobs:
         run: npm ci
       - name: Dependency vulnerability report
         run: |
-          npm audit --json > /tmp/npm-audit.json || true
-          node -e "const a=require('/tmp/npm-audit.json'); console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities,packages:Object.entries(a.vulnerabilities||{}).map(([name,v])=>({name,severity:v.severity,isDirect:v.isDirect,range:v.range,fixAvailable:v.fixAvailable}))},null,2))"
+          npm audit --json > /tmp/npm-audit-all.json || true
+          npm audit --omit=dev --json > /tmp/npm-audit-production.json || true
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          function readReport(path) {
+            try {
+              return JSON.parse(fs.readFileSync(path, 'utf8'));
+            } catch {
+              return {};
+            }
+          }
+
+          function formatReport(label, report) {
+            const counts = report.metadata?.vulnerabilities ?? {};
+            const lines = [
+              `### ${label}`,
+              '',
+              `Total: **${counts.total ?? 0}** · Critical: **${counts.critical ?? 0}** · High: **${counts.high ?? 0}** · Moderate: **${counts.moderate ?? 0}** · Low: **${counts.low ?? 0}**`,
+              ''
+            ];
+
+            const entries = Object.entries(report.vulnerabilities ?? {});
+            if (!entries.length) {
+              lines.push('No vulnerable packages reported.');
+              return lines.join('\n');
+            }
+
+            lines.push('| Package | Severity | Direct | Affected range | Fix available |');
+            lines.push('|---|---|---:|---|---|');
+            for (const [name, item] of entries) {
+              lines.push(`| ${name} | ${item.severity ?? 'unknown'} | ${item.isDirect ? 'yes' : 'no'} | ${item.range ?? '—'} | ${typeof item.fixAvailable === 'object' ? JSON.stringify(item.fixAvailable) : String(item.fixAvailable ?? 'unknown')} |`);
+            }
+            return lines.join('\n');
+          }
+
+          const all = readReport('/tmp/npm-audit-all.json');
+          const production = readReport('/tmp/npm-audit-production.json');
+          const summary = [
+            '# PromptForge V2 dependency audit',
+            '',
+            formatReport('All dependencies (production + development)', all),
+            '',
+            formatReport('Production dependencies only', production),
+            ''
+          ].join('\n');
+
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+          console.log(summary);
+          NODE
+      - name: Upload dependency audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptforge-v2-npm-audit
+          path: |
+            /tmp/npm-audit-all.json
+            /tmp/npm-audit-production.json
+          if-no-files-found: warn
+          retention-days: 7
       - name: Run tests
         run: npm test
       - name: TypeScript check
