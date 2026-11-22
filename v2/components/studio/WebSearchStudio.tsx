@@ -271,7 +271,7 @@ export default function WebSearchStudio({ userId }: { userId: string }) {
           </div>
           <div className="pf-scroll min-h-0 flex-1 overflow-y-auto">
             {analysis ? (
-              <Markdown content={analysis} /><div className="mt-2"><SaveOutputButton userId={userId} tool="Web arama analizi" title="Web arama analizi" content={analysis}/></div>
+              <><Markdown content={analysis} /><div className="mt-2"><SaveOutputButton userId={userId} tool="Web arama analizi" title="Web arama analizi" content={analysis}/></div></>
             ) : (
               <p className="text-xs text-white/35">
                 Sonuçlardan birkaçını seçip analiz ettirin; ortak noktalar ve farklılıklar
