@@ -293,3 +293,29 @@ body{background:radial-gradient(ellipse at 15% -10%,rgba(113,88,255,.10),transpa
 .pf-media-studio aside dl{padding-top:10px;border-top:1px solid var(--pf-border)}
 @media(max-width:1023px){.pf-media-studio>div:nth-of-type(2){grid-template-columns:minmax(0,1fr)}}
 @media(max-width:640px){.pf-media-studio{padding:14px 12px 30px}.pf-media-studio>header{padding:19px 17px;border-radius:16px}.pf-media-studio>header h1{font-size:22px}.pf-media-studio>div:nth-of-type(2)>section{padding:15px}.pf-media-studio>div:nth-of-type(2){gap:13px}}
+
+
+/* Code Studio — editor-first three-pane workspace */
+.pf-code-studio{height:calc(100dvh - 76px);min-height:560px;gap:0;background:#0b0e16;color:var(--pf-fg);overflow:hidden}
+.pf-code-studio>aside{width:250px;max-width:82vw;flex:none;background:#10141f;border-color:rgba(255,255,255,.08);padding:12px}
+.pf-code-studio>aside>div:first-child{padding:5px 3px 13px;border-color:rgba(255,255,255,.08)}
+.pf-code-studio>aside .pf-btn-primary{min-height:39px;border-radius:10px;background:linear-gradient(110deg,#8268f5,#6148d5)}
+.pf-code-studio>aside .pf-input{border-radius:9px;background:#0b0e16;border-color:rgba(255,255,255,.09)}
+.pf-code-studio>aside>div:nth-child(2){padding:13px 3px}
+.pf-code-studio>aside>div:nth-child(2)>div:first-child{padding:4px 7px 9px;font-weight:800;letter-spacing:.15em}
+.pf-code-studio>aside .group{min-height:34px;padding:5px 8px;border:1px solid transparent;border-radius:8px}
+.pf-code-studio>aside .group.bg-surface-2{border-color:rgba(139,117,255,.2);background:rgba(139,117,255,.12)}
+.pf-code-studio>aside .group button:first-child{font-size:11px}
+.pf-code-studio>div{min-width:0;background:#0b0e16}
+.pf-code-studio>div>header{height:50px;background:#111622;border-color:rgba(255,255,255,.08)}
+.pf-code-studio>div>header .pf-btn{min-height:30px;border-radius:8px}
+.pf-code-studio>div>textarea{min-height:180px;background:#0b0e16;color:#d8def0;tab-size:2;line-height:1.8;caret-color:#a895ff}
+.pf-code-studio>div>div.flex-1.flex.flex-col.items-center{background:radial-gradient(circle at 50% 42%,rgba(128,103,245,.09),transparent 45%)}
+.pf-code-studio>div>div.flex-1.flex.flex-col.items-center>div{border:1px solid rgba(155,135,255,.2);background:rgba(139,117,255,.12)}
+.pf-code-studio>div>div.shrink-0.border-t{background:#111622;border-color:rgba(255,255,255,.08);box-shadow:0 -10px 30px rgba(0,0,0,.12)}
+.pf-code-studio>div>div.shrink-0.border-t>div{padding:13px 15px}
+.pf-code-studio>div>div.shrink-0.border-t .pf-input{min-height:40px;border-radius:10px;background:#0b0e16;border-color:rgba(255,255,255,.1)}
+.pf-code-studio>div>div.shrink-0.border-t .pf-btn{min-height:34px;border-radius:9px}
+.pf-code-studio>div>div.shrink-0.border-t .pf-btn-primary{background:linear-gradient(110deg,#8b75ff,#634bd7)}
+.pf-code-studio>div>div.shrink-0.border-t .rounded-lg.border{border-color:rgba(155,135,255,.18);background:#0b0e16}
+@media(max-width:767px){.pf-code-studio{height:calc(100dvh - 76px);min-height:0}.pf-code-studio>aside{width:100%;max-width:none;max-height:45dvh;overflow:auto;border-right:0}.pf-code-studio>div>header{padding-left:9px;padding-right:9px}.pf-code-studio>div>div.shrink-0.border-t>div{padding:10px}.pf-code-studio>div>textarea{font-size:12px;padding:12px}}
