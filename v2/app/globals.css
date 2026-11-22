@@ -922,3 +922,19 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
  .pf-prompt-engineer-studio>div>section,.pf-seo-studio>div>section,.pf-writer-studio>div>section{padding:13px}
  .pf-seo-studio>section,.pf-writer-studio>section{min-height:420px}
 }
+
+/* Dashboard personal favorites */
+.pf-feature-wrap{position:relative;min-width:0}
+.pf-feature-wrap>.pf-feature-card{height:100%;padding-right:54px}
+.pf-feature-favorite{position:absolute;top:15px;right:15px;z-index:2;display:grid;width:32px;height:32px;place-items:center;border:1px solid var(--pf-border,rgba(148,163,184,.2));border-radius:10px;background:rgba(15,23,42,.34);color:var(--pf-muted,#94a3b8);transition:color .18s,border-color .18s,background .18s,transform .18s}
+.pf-feature-favorite:hover{transform:translateY(-1px);border-color:rgba(250,204,21,.4);color:#facc15}
+.pf-feature-favorite.is-favorite{border-color:rgba(250,204,21,.32);background:rgba(250,204,21,.1);color:#facc15}
+.pf-favorites-section{padding:19px;border:1px solid rgba(167,139,250,.17);border-radius:20px;background:linear-gradient(115deg,rgba(139,92,246,.07),rgba(34,211,238,.025) 70%,transparent)}
+.pf-favorite-item{display:flex;min-width:0;align-items:center;gap:8px;border:1px solid var(--pf-border,rgba(148,163,184,.16));border-radius:13px;background:var(--pf-surface,rgba(255,255,255,.025));padding:9px}
+.pf-favorite-item>a{display:flex;min-width:0;flex:1;align-items:center;gap:10px}
+.pf-favorite-item>a>span:last-child{display:block;min-width:0}
+.pf-favorite-item b{display:block;overflow:hidden;color:var(--pf-fg,#e5e7eb);font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.pf-favorite-item small{display:block;margin-top:3px;color:var(--pf-muted,#94a3b8);font-size:9px}
+.pf-favorite-item>button{display:grid;width:30px;height:30px;flex:none;place-items:center;border-radius:9px;color:#facc15}
+.pf-favorite-item>button:hover{background:rgba(250,204,21,.1)}
+@media(max-width:767px){.pf-favorites-section{padding:14px;border-radius:16px}.pf-feature-favorite{top:12px;right:12px}.pf-feature-wrap>.pf-feature-card{padding-right:48px}}
