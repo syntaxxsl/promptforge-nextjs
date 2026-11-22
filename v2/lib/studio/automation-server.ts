@@ -35,7 +35,7 @@ export async function runScheduledAutomation(userId: string, automation: Automat
     automationId: automation.id,
     automationName: automation.name,
     trigger: 'schedule',
-    input: automation.description || 'Zamanlanmış otomatik çalıştırma',
+    input: automation.scheduleInput?.trim() || automation.description || 'Zamanlanmış otomatik çalıştırma',
     nodes: [],
     status: 'complete',
     createdAt: now,
