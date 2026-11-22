@@ -79,13 +79,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Enforce the cap against the actual body bytes, not only the optional
+    // Content-Length header (which can be absent or untrusted).
     const contentLength = Number(request.headers.get('content-length') || '0')
-    const sizeCheck = checkBodySize(contentLength)
-    if (!sizeCheck.ok) return jsonError(sizeCheck.reason!, 413, 'body_too_large')
+    if (contentLength > 128 * 1024) {
+      return jsonError('İstek gövdesi çok büyük (limit 131072 bayt).', 413, 'body_too_large')
+    }
 
     let body: Record<string, unknown>
     try {
-      body = (await request.json()) as Record<string, unknown>
+      const rawBody = await request.text()
+      const actualSize = new TextEncoder().encode(rawBody).byteLength
+      const sizeCheck = checkBodySize(actualSize)
+      if (!sizeCheck.ok) return jsonError(sizeCheck.reason!, 413, 'body_too_large')
+      body = JSON.parse(rawBody) as Record<string, unknown>
     } catch {
       return jsonError('İstek gövdesi geçerli JSON değil.', 400, 'invalid_json')
     }
