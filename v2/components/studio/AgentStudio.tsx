@@ -209,8 +209,8 @@ export default function AgentStudio({ userId }: { userId: string }) {
           { role: 'system', content: buildSystemPrompt(active) },
           { role: 'user', content: userContent }
         ],
-        provider: model.provider,
-        model: model.model,
+        provider: active.provider ?? model.provider,
+        model: active.model ?? model.model,
         task: attachedImage ? 'vision' : 'chat',
         signal: controller.signal
       })
