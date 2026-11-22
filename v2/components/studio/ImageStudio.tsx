@@ -68,7 +68,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
   const ratio = IMAGE_ASPECTS.find((a) => a.id === aspect)?.ratio || '1 / 1'
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+    <div className="pf-media-studio pf-image-studio p-4 md:p-6 max-w-6xl mx-auto">
       <header className="mb-5">
         <h1 className="text-xl font-semibold flex items-center gap-2">
           <Icon name="image" className="h-5 w-5 text-primary" />
