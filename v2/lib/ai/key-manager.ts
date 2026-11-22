@@ -57,7 +57,9 @@ export async function resolveApiKey(
         .order('last_used_at', { ascending: true, nullsFirst: true })
         .limit(5)
 
-      const usable = ((data as any[]) || []).find((row: any) => !row.cooldown_until || String(row.cooldown_until) < now)
+      type AdminPoolRow = { encrypted_key?: string | null; cooldown_until?: string | null }
+      const rows = Array.isArray(data) ? data as AdminPoolRow[] : []
+      const usable = rows.find((row) => !row.cooldown_until || row.cooldown_until < now)
       if (usable?.encrypted_key) {
         try {
           return { source: 'pool', apiKey: decryptSecret(String(usable.encrypted_key)), providerId }

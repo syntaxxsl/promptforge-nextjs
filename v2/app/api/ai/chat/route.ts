@@ -47,10 +47,22 @@ function parseMessages(input: unknown): AIMessage[] | null {
     if (role !== 'system' && role !== 'user' && role !== 'assistant' && role !== 'tool') return null
     if (typeof content !== 'string' && !Array.isArray(content)) return null
     if (Array.isArray(content)) {
-      if (content.length > 8 || content.some((part: any) => !part || typeof part !== 'object' || !['text', 'image_url'].includes(part.type))) return null
-      for (const part of content as any[]) {
-        if (part.type === 'text' && (typeof part.text !== 'string' || part.text.length > 100_000)) return null
-        if (part.type === 'image_url' && (typeof part.image_url?.url !== 'string' || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(part.image_url.url))) return null
+      if (content.length > 8) return null
+      for (const part of content) {
+        if (!part || typeof part !== 'object') return null
+        const block = part as Record<string, unknown>
+        if (block.type === 'text') {
+          if (typeof block.text !== 'string' || block.text.length > 100_000) return null
+          continue
+        }
+        if (block.type === 'image_url') {
+          const image = block.image_url
+          if (!image || typeof image !== 'object') return null
+          const url = (image as Record<string, unknown>).url
+          if (typeof url !== 'string' || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(url)) return null
+          continue
+        }
+        return null
       }
     }
     messages.push({ role, content: content as AIMessage['content'] })

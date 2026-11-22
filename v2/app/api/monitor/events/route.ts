@@ -10,10 +10,12 @@ export async function POST(request: Request) {
   const { supabase, user } = await getSignedInUser()
   if (!user) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
 
-  let body: any
+  let body: unknown
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 }) }
-  const event = typeof body?.event === 'string' ? body.event : ''
-  const route = typeof body?.route === 'string' ? body.route : ''
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 })
+  const payload = body as Record<string, unknown>
+  const event = typeof payload.event === 'string' ? payload.event : ''
+  const route = typeof payload.route === 'string' ? payload.route : ''
   if (!ALLOWED_EVENTS.has(event) || !route.startsWith('/') || route.length > 180 || route.startsWith('//')) {
     return NextResponse.json({ error: 'Geçersiz etkinlik.' }, { status: 400 })
   }

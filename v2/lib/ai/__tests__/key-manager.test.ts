@@ -26,7 +26,7 @@ vi.mock('@/lib/crypto', () => ({
 import { resolveApiKey } from '../key-manager'
 
 function createUserQuery() {
-  const query: Record<string, any> = {}
+  const query: Record<string, unknown> = {}
   query.select = vi.fn(() => query)
   query.eq = vi.fn(() => query)
   query.order = vi.fn(() => query)
@@ -36,7 +36,7 @@ function createUserQuery() {
 }
 
 function createAdminQuery() {
-  const query: Record<string, any> = {}
+  const query: Record<string, unknown> = {}
   query.select = vi.fn(() => query)
   query.eq = vi.fn(() => query)
   query.order = vi.fn(() => query)

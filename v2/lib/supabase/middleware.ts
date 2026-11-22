@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function updateSession(request: NextRequest) {
 
   // Supabase not configured: do not crash; treat as anonymous.
   if (!url || !key) {
-    return { supabase: null as any, user: null, response }
+    return { supabase: null as SupabaseClient | null, user: null, response }
   }
 
   const supabase = createServerClient(url, key, {
