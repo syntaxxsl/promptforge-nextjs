@@ -39,6 +39,8 @@ export type IconName =
   | 'search'
   | 'check'
   | 'paperclip'
+  | 'star'
+  | 'starFilled'
 
 const paths: Record<IconName, React.ReactNode> = {
   overview: (<><rect x="3" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6" /></>),
@@ -78,6 +80,8 @@ const paths: Record<IconName, React.ReactNode> = {
   play: (<path d="M8 5.2v13.6c0 .8.9 1.3 1.6.9l10-6.8c.6-.4.6-1.4 0-1.8l-10-6.8c-.7-.4-1.6.1-1.6.9Z" />),
   search: (<><circle cx="11" cy="11" r="7" /><path d="m16.2 16.2 4.3 4.3" /></>),
   check: (<path d="m5 12.5 4.5 4.5L19 7.5" />),
+  star: (<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z" />),
+  starFilled: (<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z" fill="currentColor" stroke="currentColor" />),
   paperclip: (<path d="M20 11.5 12.2 19.3a4.6 4.6 0 0 1-6.5-6.5l8-8a3.2 3.2 0 0 1 4.5 4.5l-8 8a1.8 1.8 0 0 1-2.5-2.5l7.2-7.2" />)
 }
 
