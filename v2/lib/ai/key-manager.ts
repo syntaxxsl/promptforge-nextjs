@@ -8,46 +8,19 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
 }
 
 /**
- * Server-side only. Resolves an API key without exposing it to the client.
- * Priority: user key -> admin pool key -> server env.
- * DB access is best-effort; if tables are missing we fall through to env.
+ * Resolve credentials without exposing them to the client.
+ * Interactive requests check the session-scoped user key first; background
+ * jobs fall back to the service client. A stored but undecryptable user key
+ * fails closed and is never replaced with a pool or environment credential.
  */
 export async function resolveApiKey(
   providerId: ProviderId,
   userId?: string
 ): Promise<ResolvedKey | null> {
-  const admin = getSupabaseAdminClient()
+  let admin: ReturnType<typeof getSupabaseAdminClient> = null
 
-  // 1. User-owned key. The service client is used only server-side and the
-  // userId must come from a verified session or trusted scheduled-job record.
-  // This also enables background workflows, which have no browser cookie jar.
-  if (userId && admin) {
-    try {
-      const { data } = await admin
-        .from('user_api_keys')
-        .select('key_encrypted')
-        .eq('user_id', userId)
-        .eq('provider', providerId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (data?.key_encrypted) {
-        try {
-          return { source: 'user', apiKey: decryptSecret(String(data.key_encrypted)), providerId }
-        } catch {
-          // A stored user key exists but cannot be decrypted. Fail closed.
-          return null
-        }
-      }
-    } catch {
-      // If the admin client/table is unavailable, try the session-scoped path.
-    }
-  }
-
-  // Interactive requests can still use the caller's RLS-scoped session.
   if (userId) {
+    // Interactive path: respect the caller's RLS-scoped session first.
     try {
       const supabase = await createSupabaseServerClient()
       const { data } = await supabase
@@ -59,6 +32,7 @@ export async function resolveApiKey(
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
+
       if (data?.key_encrypted) {
         try {
           return { source: 'user', apiKey: decryptSecret(String(data.key_encrypted)), providerId }
@@ -67,11 +41,38 @@ export async function resolveApiKey(
         }
       }
     } catch {
-      // Table may not exist yet; fall through.
+      // Background jobs have no cookie session; try the service client below.
     }
+
+    admin = getSupabaseAdminClient()
+    if (admin) {
+      try {
+        const { data } = await admin
+          .from('user_api_keys')
+          .select('key_encrypted')
+          .eq('user_id', userId)
+          .eq('provider', providerId)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (data?.key_encrypted) {
+          try {
+            return { source: 'user', apiKey: decryptSecret(String(data.key_encrypted)), providerId }
+          } catch {
+            return null
+          }
+        }
+      } catch {
+        // Missing key table or admin configuration: continue to other sources.
+      }
+    }
+  } else {
+    admin = getSupabaseAdminClient()
   }
 
-  // 2. Admin-managed pool key (service role).
+  // Shared pool credentials are only considered after the user's own key.
   if (admin) {
     try {
       const now = new Date().toISOString()
@@ -90,20 +91,17 @@ export async function resolveApiKey(
         try {
           return { source: 'pool', apiKey: decryptSecret(String(usable.encrypted_key)), providerId }
         } catch {
-          // Fall through.
+          // Fall through to the server environment.
         }
       }
     } catch {
-      // Table may not exist yet; fall through.
+      // Missing pool table or admin configuration: fall through.
     }
   }
 
-  // 3. Server environment variable.
   const envVar = `${providerId.toUpperCase()}_API_KEY`
   const envKey = process.env[envVar]
-  if (envKey) {
-    return { source: 'server_env', apiKey: envKey, providerId }
-  }
+  if (envKey) return { source: 'server_env', apiKey: envKey, providerId }
 
   return null
 }
