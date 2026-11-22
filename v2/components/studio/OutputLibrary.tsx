@@ -61,6 +61,24 @@ export default function OutputLibrary({ userId }: { userId: string }) {
     } catch { /* local deletion is already complete */ }
   }
 
+  function exportAll() {
+    if (!items.length) return
+    const body = items.map(item => [
+      `# ${item.title}`,
+      `Araç: ${item.tool}`,
+      `Tarih: ${new Date(item.createdAt).toLocaleString('tr-TR')}`,
+      '',
+      item.content
+    ].join('\\n')).join('\\n\\n---\\n\\n')
+    const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'promptforge-ciktilarim.md'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function copy() {
     if (!selected) return
     try { await navigator.clipboard.writeText(selected.content); setNotice('Çıktı panoya kopyalandı.') }
@@ -68,7 +86,7 @@ export default function OutputLibrary({ userId }: { userId: string }) {
   }
 
   return <main className="mx-auto w-full max-w-[1400px] space-y-5 p-4 md:p-7">
-    <header><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[.18em] text-accent"><Icon name="folder" className="h-4 w-4"/> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">Çıktı Kütüphanesi</h1><p className="mt-1 text-sm text-muted">AI çalışma alanlarında kaydettiğin metinleri tek yerde topla.</p></header>
+    <header className="flex flex-wrap items-end justify-between gap-3"><div><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[.18em] text-accent"><Icon name="folder" className="h-4 w-4"/> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">Çıktı Kütüphanesi</h1><p className="mt-1 text-sm text-muted">AI çalışma alanlarında kaydettiğin metinleri tek yerde topla.</p></div><button type="button" onClick={exportAll} disabled={!items.length} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="download" className="h-3.5 w-3.5"/>Tümünü dışa aktar</button></header>
     <div className="grid gap-4 lg:grid-cols-[minmax(280px,.8fr)_minmax(0,1.2fr)]">
       <section className="rounded-2xl border border-border bg-surface p-4">
         <label className="relative block"><Icon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Çıktılarda ara…" className="pf-input w-full pl-9 text-sm"/></label>
