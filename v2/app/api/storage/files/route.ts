@@ -78,7 +78,7 @@ function safeName(value: string) {
 async function getContext() {
   const status = supabaseStatus()
   if (!status.configured) return { response: NextResponse.json({ error: status.reason, code: 'supabase_not_configured' }, { status: 503 }) }
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error: authError } = await supabase.auth.getUser()
   if (authError || !data.user) return { response: error('Oturum gerekli.', 401, 'unauthorized') }
   return { supabase, user: data.user }
