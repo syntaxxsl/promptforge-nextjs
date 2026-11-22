@@ -10,6 +10,24 @@ const BUCKET = 'user-files'
 const MAX_FILE_BYTES = 4 * 1024 * 1024
 const MAX_FILES_PER_USER = 100
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 }
+const MIME_EXTENSIONS: Record<string, string[]> = {
+  'text/plain': ['.txt', '.text', '.log'],
+  'text/markdown': ['.md', '.markdown'],
+  'text/csv': ['.csv'],
+  'application/json': ['.json'],
+  'application/pdf': ['.pdf'],
+  'application/rtf': ['.rtf'],
+  'application/zip': ['.zip'],
+  'application/x-zip-compressed': ['.zip'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+  'image/png': ['.png'],
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/webp': ['.webp'],
+  'image/gif': ['.gif']
+}
+
 const ALLOWED_TYPES = new Set([
   'text/plain', 'text/markdown', 'text/csv', 'application/json',
   'application/pdf', 'application/rtf', 'application/zip',
@@ -22,6 +40,27 @@ const ALLOWED_TYPES = new Set([
 
 function error(message: string, status: number, code: string) {
   return NextResponse.json({ error: message, code }, { status })
+}
+
+async function hasExpectedSignature(file: File, mime: string) {
+  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer())
+  const startsWith = (...values: number[]) => values.every((value, index) => bytes[index] === value)
+
+  switch (mime) {
+    case 'application/pdf': return new TextDecoder().decode(bytes.slice(0, 5)) === '%PDF-'
+    case 'image/png': return startsWith(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)
+    case 'image/jpeg': return startsWith(0xff, 0xd8, 0xff)
+    case 'image/gif': return ['GIF87a', 'GIF89a'].includes(new TextDecoder().decode(bytes.slice(0, 6)))
+    case 'image/webp': return new TextDecoder().decode(bytes.slice(0, 4)) === 'RIFF' && new TextDecoder().decode(bytes.slice(8, 12)) === 'WEBP'
+    case 'application/zip':
+    case 'application/x-zip-compressed':
+    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+    case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+      return startsWith(0x50, 0x4b, 0x03, 0x04) || startsWith(0x50, 0x4b, 0x05, 0x06) || startsWith(0x50, 0x4b, 0x07, 0x08)
+    case 'application/rtf': return /^\s*{\\rtf/i.test(new TextDecoder().decode(bytes))
+    default: return true
+  }
 }
 
 function safeName(value: string) {
@@ -100,6 +139,10 @@ export async function POST(request: NextRequest) {
 
   const mime = (file.type || 'application/octet-stream').toLowerCase()
   if (!ALLOWED_TYPES.has(mime)) return error('Bu dosya türü desteklenmiyor.', 415, 'unsupported_type')
+
+  const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase()
+  if (!MIME_EXTENSIONS[mime]?.includes(extension)) return error('Dosya uzantısı ve içerik türü eşleşmiyor.', 415, 'file_type_mismatch')
+  if (!(await hasExpectedSignature(file, mime))) return error('Dosyanın içeriği bildirilen dosya türüyle eşleşmiyor.', 415, 'invalid_file_signature')
 
   const { data: existingFiles, error: countError } = await context.supabase.storage
     .from(BUCKET)
