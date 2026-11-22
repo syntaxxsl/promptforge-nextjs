@@ -869,3 +869,35 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
 @keyframes pf-assistant-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:767px){.pf-assistant-launcher{right:14px;bottom:14px}.pf-assistant-toggle{min-height:48px;padding:0 16px}.pf-assistant-panel{max-height:min(72dvh,590px);overflow-y:auto;border-radius:19px}}
 @media(prefers-reduced-motion:reduce){.pf-assistant-panel{animation:none}.pf-assistant-toggle{transition:none}}
+
+/* Research, automation and API studio identities */
+.pf-research-studio{--research-accent:#a78bfa;--research-glow:rgba(139,92,246,.16)}
+.pf-research-studio>aside{border:1px solid rgba(167,139,250,.17);border-radius:18px;background:linear-gradient(155deg,rgba(139,92,246,.07),var(--pf-surface) 52%)}
+.pf-research-studio>aside h2{color:#ddd6fe}
+.pf-research-studio>section{min-width:0;border:1px solid rgba(167,139,250,.13);border-radius:18px;background:linear-gradient(145deg,rgba(139,92,246,.035),transparent 45%)}
+.pf-research-studio>section>header{border-color:rgba(167,139,250,.15)}
+.pf-research-studio .pf-btn-primary{background:linear-gradient(105deg,#7c3aed,#4f46e5)}
+.pf-automation-studio{--automation-accent:#67e8f9;--automation-glow:rgba(34,211,238,.14);background:radial-gradient(ellipse at 90% 0%,rgba(8,145,178,.09),transparent 35%),radial-gradient(ellipse at 0% 100%,rgba(124,58,237,.08),transparent 42%)}
+.pf-automation-studio>aside{border:1px solid rgba(103,232,249,.15);border-radius:18px;background:linear-gradient(155deg,rgba(8,145,178,.1),rgba(255,255,255,.015))}
+.pf-automation-studio>aside h2{color:#a5f3fc}
+.pf-automation-studio>section{border-color:rgba(103,232,249,.13);border-radius:18px;background:linear-gradient(145deg,rgba(8,145,178,.045),rgba(255,255,255,.015))}
+.pf-automation-studio>section button:focus-visible,.pf-automation-studio>aside button:focus-visible{outline:2px solid #67e8f9;outline-offset:2px}
+.pf-api-studio>header{border:1px solid rgba(96,165,250,.16);border-radius:18px;background:radial-gradient(ellipse at 90% 0%,rgba(37,99,235,.13),transparent 45%),linear-gradient(120deg,var(--pf-surface),rgba(30,64,175,.04));padding:20px}
+.pf-api-studio>header h1{letter-spacing:-.04em}
+.pf-api-studio>section{border-color:rgba(96,165,250,.16);border-radius:17px;box-shadow:0 12px 34px rgba(0,0,0,.09)}
+.pf-api-studio>section:focus-within{border-color:rgba(96,165,250,.35);box-shadow:0 0 0 3px rgba(59,130,246,.07)}
+.pf-api-studio .pf-btn-primary{background:linear-gradient(105deg,#2563eb,#0891b2)}
+@media(max-width:767px){
+ .pf-research-studio{height:auto;min-height:calc(100dvh - 64px)}
+ .pf-research-studio>aside{padding:12px}
+ .pf-research-studio>aside .pf-scroll{max-height:170px}
+ .pf-research-studio>section{padding:13px}
+ .pf-automation-studio{height:auto;min-height:calc(100dvh - 64px);padding:12px}
+ .pf-automation-studio>aside{padding:12px}
+ .pf-automation-studio>aside .pf-scroll{max-height:160px}
+ .pf-automation-studio>section{min-height:360px;padding:13px}
+ .pf-api-studio{padding:12px}
+ .pf-api-studio>header{padding:16px}
+ .pf-api-studio>section{padding:13px}
+ .pf-api-studio .grid-cols-\[1fr_1fr_auto\]{grid-template-columns:minmax(0,1fr) auto}
+}
