@@ -182,6 +182,41 @@ export class GeminiAdapter implements AIAdapter {
       }
     }
 
+    // The last SSE event may not end with a newline; don't drop its final token.
+    const finalLine = buffer.trim()
+    if (finalLine.startsWith('data:')) {
+      const payload = finalLine.slice(5).trim()
+      if (payload) {
+        try {
+          const json = JSON.parse(payload) as {
+            candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; finishReason?: string }>
+            usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number }
+          }
+          const candidate = json.candidates?.[0]
+          const deltaText = candidate?.content?.parts?.map((part) => part.text ?? '').join('') ?? ''
+          if (deltaText) yield { delta: deltaText, done: false, provider: this.provider.id, model }
+          if (candidate?.finishReason) {
+            yield { delta: '', done: true, provider: this.provider.id, model, finishReason: candidate.finishReason }
+          }
+          if (json.usageMetadata) {
+            yield {
+              delta: '',
+              done: false,
+              provider: this.provider.id,
+              model,
+              usage: {
+                promptTokens: json.usageMetadata.promptTokenCount,
+                completionTokens: json.usageMetadata.candidatesTokenCount,
+                totalTokens: json.usageMetadata.totalTokenCount
+              }
+            }
+          }
+        } catch {
+          // Ignore an incomplete final SSE event.
+        }
+      }
+    }
+
     yield { delta: '', done: true, provider: this.provider.id, model }
   }
 }
