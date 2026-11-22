@@ -25,7 +25,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: 'overview', label: 'Dashboard', href: '/dashboard' },
       { icon: 'folder', label: 'Projeler', href: '/projects' },
       { icon: 'folder', label: 'Dosyalarım', href: '/files' },
-      { icon: 'activity', label: 'Geçmiş', href: '/history' }
+      { icon: 'activity', label: 'Geçmiş', href: '/history' },
+      { icon: 'folder', label: 'Çıktı Kütüphanesi', href: '/outputs' }
     ]
   },
   {
