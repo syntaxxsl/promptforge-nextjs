@@ -30,6 +30,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
+  // Privacy-first telemetry: route only; never send prompts, query strings, or generated content.
+  useEffect(() => {
+    if (!pathname || pathname.startsWith('/api/')) return
+    fetch('/api/monitor/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'page_view', route: pathname }),
+      keepalive: true
+    }).catch(() => {})
+  }, [pathname])
+
   function toggleCollapsed() {
     setCollapsed((prev) => {
       const next = !prev
