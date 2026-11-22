@@ -324,7 +324,7 @@ export default function AssistantBuilder({ userId }: { userId: string }) {
                       Model
                     </p>
                     <ModelPicker
-                      value={{ provider: active.provider, model: active.model }}
+                      value={{ provider: active.provider, model: active.model, label: active.model || 'Otomatik seçim' }}
                       onChange={(selection) =>
                         patch({ provider: selection.provider, model: selection.model })
                       }
