@@ -14,7 +14,7 @@ function error(message: string, status: number, code: string) {
 }
 
 async function authenticatedClient() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error: authError } = await supabase.auth.getUser()
   if (authError || !data.user) return null
   return { supabase, user: data.user }
