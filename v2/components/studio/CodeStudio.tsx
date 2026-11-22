@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
 import Markdown from '@/components/Markdown'
+import StoredFilePicker from '@/components/studio/StoredFilePicker'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { completeChat, streamChat } from '@/lib/studio/chat-client'
 import {
@@ -73,6 +74,7 @@ export default function CodeStudio({ userId }: { userId: string }) {
   const [showFiles, setShowFiles] = useState(false)
   const [newFile, setNewFile] = useState('')
   const [preview, setPreview] = useState(false)
+  const [storedPickerOpen, setStoredPickerOpen] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
   const cloudReadyRef = useRef(false)
@@ -159,6 +161,27 @@ export default function CodeStudio({ userId }: { userId: string }) {
 
   function refresh() {
     setWorkspaces(listWorkspaces(userId))
+  }
+
+  function importStoredFile(file: { name: string; content: string }) {
+    if (!active) {
+      setNotice('Önce bir çalışma alanı oluşturun.')
+      return
+    }
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'import.txt'
+    let path = safeName
+    if (active.files.some((item) => item.path === path)) {
+      const dot = safeName.lastIndexOf('.')
+      path = dot > 0
+        ? safeName.slice(0, dot) + '-imported' + safeName.slice(dot)
+        : safeName + '-imported'
+    }
+    const language = languageFromPath(path)
+    addFile(userId, active.id, path, language)
+    updateFile(userId, active.id, path, file.content)
+    refresh()
+    changeFile(path)
+    setNotice('Dosya ortak depodan çalışma alanına aktarıldı.')
   }
 
   function newWorkspace() {
@@ -353,6 +376,14 @@ export default function CodeStudio({ userId }: { userId: string }) {
               </button>
             </div>
 
+            <button
+              onClick={() => setStoredPickerOpen(true)}
+              className="pf-btn pf-btn-ghost w-full justify-center text-[11px]"
+            >
+              <Icon name="folder" className="h-3 w-3" />
+              Depodan içe aktar
+            </button>
+
             <div className="flex gap-1 pt-2">
               <button onClick={exportBundle} className="pf-btn pf-btn-ghost flex-1 justify-center text-[11px]">
                 <Icon name="download" className="h-3 w-3" />
@@ -510,5 +541,12 @@ export default function CodeStudio({ userId }: { userId: string }) {
         </div>
       </div>
     </div>
+      {storedPickerOpen && (
+        <StoredFilePicker
+          title="Code Studio'ya dosya aktar"
+          onClose={() => setStoredPickerOpen(false)}
+          onSelect={importStoredFile}
+        />
+      )}
   )
 }
