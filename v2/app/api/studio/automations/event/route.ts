@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       updated_at: run.updatedAt
     }, { onConflict: 'user_id,collection,record_id' })
     if (saveError) return NextResponse.json({ error: 'Çalıştırma geçmişi kaydedilemedi.' }, { status: 503 })
-    runs.push({ id: run.id, name: run.automationName, status: run.status, error: run.error || null })
+    runs.push(run)
   }
 
   return NextResponse.json({ ok: true, eventName, matched: matches.length, runs })
