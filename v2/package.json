@@ -28,7 +28,7 @@
     "@playwright/test": "^1.44.1",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/react": "^15.0.7",
-    "@types/node": "^20.11.16",
+    "@types/node": "^22.12.0",
     "@types/react": "^18.2.52",
     "@types/react-dom": "^18.2.18",
     "autoprefixer": "^10.4.17",
