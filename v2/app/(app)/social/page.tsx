@@ -6,5 +6,5 @@ export default async function SocialPage(){
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user) redirect('/login')
- return <SocialStudio/>
+ return <SocialStudio userId={data.user.id}/>
 }
