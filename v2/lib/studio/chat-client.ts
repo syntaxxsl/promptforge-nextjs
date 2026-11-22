@@ -10,7 +10,7 @@ import type { AIStreamChunk, ProviderId } from '@/lib/ai/types'
 
 export interface ChatClientMessage {
   role: 'system' | 'user' | 'assistant'
-  content: string
+  content: string | Array<{ type: string; [k: string]: unknown }>
 }
 
 export interface ChatClientOptions {
