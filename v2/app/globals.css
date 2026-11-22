@@ -594,3 +594,7 @@ body{background:radial-gradient(ellipse at 15% -10%,rgba(113,88,255,.10),transpa
 .pf-voice-controls label input{width:75px;accent-color:#79aef4}
 .pf-voice-controls button{min-height:32px;border:1px solid var(--pf-border);border-radius:8px;padding:0 11px;color:var(--pf-fg);font-size:10px}
 .pf-voice-controls button:disabled{opacity:.35}
+
+.pf-community-card footer .pf-community-like{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--pf-border);border-radius:999px;padding:6px 9px;color:var(--pf-muted);font-size:9px}
+.pf-community-card footer .pf-community-like[aria-pressed=true]{border-color:rgba(244,114,182,.35);background:rgba(244,114,182,.09);color:#f472b6}
+.pf-community-card footer .pf-community-like:disabled{opacity:.55}

@@ -13,11 +13,12 @@ export async function GET() {
     if (authError || !auth.user) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
     const { data, error } = await supabase
       .from('community_templates')
-      .select('id,owner_id,title,description,category,prompt,status,created_at,updated_at')
+      .select('id,owner_id,title,description,category,prompt,status,created_at,updated_at,like_count')
       .order('created_at', { ascending: false })
       .limit(150)
     if (error) return NextResponse.json({ templates: [], available: false, message: 'Topluluk veritabanı henüz kurulmamış olabilir.' })
-    return NextResponse.json({ templates: data || [], available: true }, { headers: { 'Cache-Control': 'private, no-store' } })
+    const { data: ownLikes } = await supabase.from('community_template_likes').select('template_id')
+    return NextResponse.json({ templates: data || [], likedIds: (ownLikes || []).map((row) => row.template_id), available: true }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch {
     return NextResponse.json({ templates: [], available: false, message: 'Topluluk şablonları şu anda alınamıyor.' })
   }
