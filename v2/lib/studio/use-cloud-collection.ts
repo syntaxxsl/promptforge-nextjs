@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { readCollection, writeCollection } from '@/lib/studio/store'
 
 type CloudRecord = {
@@ -31,6 +31,7 @@ export function useCloudCollection<T extends CloudRecord>({
   sort,
   onUnavailable
 }: Options<T>) {
+  const [ready, setReady] = useState(false)
   const readyRef = useRef(false)
   const syncedRef = useRef<Map<string, string>>(new Map())
   const cloudIdsRef = useRef<Set<string>>(new Set())
@@ -45,6 +46,7 @@ export function useCloudCollection<T extends CloudRecord>({
   useEffect(() => {
     let cancelled = false
     readyRef.current = false
+    setReady(false)
     syncedRef.current.clear()
     cloudIdsRef.current.clear()
 
@@ -79,6 +81,7 @@ export function useCloudCollection<T extends CloudRecord>({
         }
 
         readyRef.current = true
+        setReady(true)
         errorNotifiedRef.current = false
         setRecords(result)
       } catch {
@@ -144,5 +147,5 @@ export function useCloudCollection<T extends CloudRecord>({
     return () => window.clearTimeout(timer)
   }, [records, userId, collection])
 
-  return { ready: readyRef.current }
+  return { ready }
 }

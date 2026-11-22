@@ -43,7 +43,7 @@ import {
   readAttachment
 } from '@/lib/studio/chat-attachments'
 import { addOutput, linkTool, listProjects } from '@/lib/studio/project-store'
-import { nowIso } from '@/lib/studio/store'
+import { createId, nowIso } from '@/lib/studio/store'
 import type { ChatAttachment, ChatMessage, ChatThread, ProjectEntry } from '@/lib/studio/types'
 import type { ProviderId } from '@/lib/ai/types'
 
@@ -351,7 +351,7 @@ export default function ChatStudio({ userId }: { userId: string }) {
       const cleaned = current.messages.filter((message) => message.id !== STREAMING_ID)
       if (accumulated.trim()) {
         const final: ChatMessage = {
-          id: `msg_${Date.now().toString(36)}`,
+          id: createId('msg'),
           role: 'assistant',
           content: accumulated,
           createdAt: nowIso(),
@@ -455,7 +455,7 @@ export default function ChatStudio({ userId }: { userId: string }) {
     }
 
     const edited: ChatMessage = {
-      id: `msg_${Date.now().toString(36)}`,
+      id: createId('msg'),
       role: 'user',
       content: text,
       createdAt: nowIso(),

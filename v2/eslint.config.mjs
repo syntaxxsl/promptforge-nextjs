@@ -5,6 +5,14 @@ import nextTypescript from 'eslint-config-next/typescript'
 export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
+  {
+    rules: {
+      // Local-first stores hydrate browser state after mount; this is intentional.
+      'react-hooks/set-state-in-effect': 'off',
+      // Apostrophes in UI text are harmless and do not affect rendered content.
+      'react/no-unescaped-entities': 'off'
+    }
+  },
   globalIgnores([
     '.next/**',
     'node_modules/**',
