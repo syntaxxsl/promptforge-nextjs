@@ -18,7 +18,21 @@ export async function POST(request: NextRequest) {
     if (!data.user) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
     const limit = checkRateLimit(rateLimitKey(data.user.id, null), { limit: 10, windowMs: 60_000 })
     if (!limit.allowed) return NextResponse.json({ error: 'Çok sık paylaşım bağlantısı oluşturuldu.' }, { status: 429 })
-    const body = await request.json() as { snapshot?: unknown }
+    // Reject oversized requests before JSON parsing to avoid buffering an unbounded body.
+    const declaredLength = Number(request.headers.get('content-length') || '0')
+    if (declaredLength > MAX_SNAPSHOT_BYTES + 16 * 1024) {
+      return NextResponse.json({ error: 'Paylaşım paketi 700 KB sınırını aşıyor.' }, { status: 413 })
+    }
+    const rawBody = await request.text()
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_SNAPSHOT_BYTES + 16 * 1024) {
+      return NextResponse.json({ error: 'Paylaşım paketi 700 KB sınırını aşıyor.' }, { status: 413 })
+    }
+    let body: { snapshot?: unknown }
+    try {
+      body = JSON.parse(rawBody) as { snapshot?: unknown }
+    } catch {
+      return NextResponse.json({ error: 'Geçerli JSON gönderilmedi.' }, { status: 400 })
+    }
     if (!body.snapshot || typeof body.snapshot !== 'object' || Array.isArray(body.snapshot)) {
       return NextResponse.json({ error: 'Proje paylaşım verisi geçersiz.' }, { status: 400 })
     }
@@ -39,7 +53,7 @@ export async function POST(request: NextRequest) {
       expires_at: expiresAt
     })
     if (error) return NextResponse.json({ error: 'Paylaşım kaydedilemedi. Supabase proje paylaşım migration kontrol edilmeli.' }, { status: 503 })
-    return NextResponse.json({ token, expiresAt })
+    return NextResponse.json({ token, expiresAt }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch {
     return NextResponse.json({ error: 'Paylaşım bağlantısı oluşturulamadı.' }, { status: 500 })
   }
