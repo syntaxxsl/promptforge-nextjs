@@ -8,12 +8,14 @@
 
 import { useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import { describeAttachment } from '@/lib/studio/chat-attachments'
 import type { ChatMessage } from '@/lib/studio/types'
 
 export interface ChatMessageRowProps {
   message: ChatMessage
+  userId: string
   busy: boolean
   /** The assistant message can be regenerated from the user message above it. */
   canRetry: boolean
@@ -39,6 +41,7 @@ async function copyText(text: string): Promise<boolean> {
 
 export default function ChatMessageRow({
   message,
+  userId,
   busy,
   canRetry,
   canSaveToProject,
@@ -194,6 +197,7 @@ export default function ChatMessageRow({
               Düzenle
             </button>
           )}
+          {!isUser && !streaming && !busy && !message.error && <SaveOutputButton userId={userId} tool="AI Chat" title={message.content.slice(0, 72) || 'AI Chat yanıtı'} content={message.content}/>}
           {copyFailed && <span className="text-[11px] text-warning">Kopyalanamadı.</span>}
           {copied && <span className="text-[11px] text-success">Kopyalandı.</span>}
           {!isUser && message.error && (
