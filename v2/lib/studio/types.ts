@@ -194,7 +194,7 @@ export const AGENT_TOOLS: { id: AgentToolId; label: string; note: string }[] = [
   { id: 'web_search', label: 'Web arama', note: 'Görev öncesinde web araması yapar ve sonuçları bağlama ekler.' },
   { id: 'code_interpreter', label: 'Kod çalıştırma', note: 'Henüz etkin değil.' },
   { id: 'file_read', label: 'Dosya okuma', note: 'Özel proje dosyalarını arar ve ilgili içerikleri bağlama ekler.' },
-  { id: 'image_view', label: 'Görsel okuma', note: 'Henüz etkin değil; görsel yükleme bağlantısı bekleniyor.' }
+  { id: 'image_view', label: 'Görsel okuma', note: 'PNG, JPEG veya WebP görsellerini destekleyen modellerle analiz eder.' }
 ]
 
 export interface AgentRunMessage {
