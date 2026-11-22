@@ -265,3 +265,31 @@ body{background:radial-gradient(ellipse at 15% -10%,rgba(113,88,255,.10),transpa
   .pf-chat-studio>div:nth-of-type(2)>header{padding:6px}
   .pf-chat-studio>div:nth-of-type(2)>div:last-child{padding-left:9px;padding-right:9px}
 }
+
+
+/* Image + Video Studios — focused creator workspaces */
+.pf-media-studio{max-width:1480px;padding-top:30px;padding-bottom:48px}
+.pf-media-studio>header{position:relative;margin-bottom:24px;padding:25px 26px;border:1px solid var(--pf-border);border-radius:20px;background:linear-gradient(115deg,color-mix(in srgb,var(--pf-surface) 96%,#8065ff 4%),var(--pf-surface));overflow:hidden}
+.pf-media-studio>header:after{content:"";position:absolute;right:-55px;top:-105px;width:240px;height:240px;border-radius:50%;background:rgba(139,117,255,.11);filter:blur(48px);pointer-events:none}
+.pf-media-studio>header h1{position:relative;z-index:1;font-size:25px;letter-spacing:-.04em}
+.pf-media-studio>header p{position:relative;z-index:1;max-width:760px;line-height:1.75}
+.pf-media-studio>div:nth-of-type(1){border-radius:13px!important;padding:12px 14px!important;line-height:1.65}
+.pf-media-studio>div:nth-of-type(2){align-items:start;gap:18px}
+.pf-media-studio>div:nth-of-type(2)>section{padding:22px;border:1px solid var(--pf-border);border-radius:19px;background:color-mix(in srgb,var(--pf-surface) 94%,transparent);box-shadow:var(--pf-shadow-sm)}
+.pf-media-studio>div:nth-of-type(2)>section>div{padding-bottom:16px;border-bottom:1px solid var(--pf-border)}
+.pf-media-studio>div:nth-of-type(2)>section>div:last-of-type{border-bottom:0;padding-bottom:0}
+.pf-media-studio label,.pf-media-studio section>div>span{font-weight:650;color:var(--pf-fg);letter-spacing:-.01em}
+.pf-media-studio .pf-input{border-radius:11px;background:var(--pf-bg);border-color:var(--pf-border);padding:11px 12px}
+.pf-media-studio textarea.pf-input{min-height:150px;line-height:1.7}
+.pf-media-studio section button:not(.pf-btn){border-radius:10px;transition:all .16s ease}
+.pf-media-studio section button:not(.pf-btn):hover{border-color:rgba(155,135,255,.4);background:rgba(139,117,255,.08)}
+.pf-media-studio section button.border-primary\/50{box-shadow:inset 0 0 0 1px rgba(155,135,255,.12)}
+.pf-media-studio .pf-btn-primary{min-height:42px;border-radius:11px;padding-left:16px;padding-right:16px;background:linear-gradient(110deg,#8b75ff,#634bd7);box-shadow:0 8px 22px rgba(110,82,230,.18)}
+.pf-media-studio aside{min-width:0}
+.pf-media-studio aside .pf-card{padding:15px;border-radius:17px;background:var(--pf-surface);border-color:var(--pf-border)}
+.pf-media-studio aside .pf-card>div:first-child{font-weight:750;letter-spacing:.13em}
+.pf-media-studio aside .pf-card>div:nth-child(2){border-radius:12px;background:linear-gradient(145deg,rgba(139,117,255,.08),var(--pf-surface-2));border-color:rgba(155,135,255,.24)}
+.pf-media-studio aside li{border-radius:11px;background:var(--pf-bg);border-color:var(--pf-border);padding:10px}
+.pf-media-studio aside dl{padding-top:10px;border-top:1px solid var(--pf-border)}
+@media(max-width:1023px){.pf-media-studio>div:nth-of-type(2){grid-template-columns:minmax(0,1fr)}}
+@media(max-width:640px){.pf-media-studio{padding:14px 12px 30px}.pf-media-studio>header{padding:19px 17px;border-radius:16px}.pf-media-studio>header h1{font-size:22px}.pf-media-studio>div:nth-of-type(2)>section{padding:15px}.pf-media-studio>div:nth-of-type(2){gap:13px}}
