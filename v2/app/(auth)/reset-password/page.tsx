@@ -10,6 +10,7 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [hasRecoverySession, setHasRecoverySession] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -19,6 +20,7 @@ export default function ResetPasswordPage() {
     supabase.auth.getSession().then(({ data, error: sessionError }) => {
       if (!active) return
       if (sessionError || !data.session) setError('Geçerli bir şifre sıfırlama oturumu bulunamadı. E-postandaki bağlantıyı yeniden aç.')
+      else setHasRecoverySession(true)
       setChecking(false)
     })
     return () => { active = false }
@@ -72,7 +74,7 @@ export default function ResetPasswordPage() {
         <span>Yeni şifreyi tekrar yaz</span>
         <input className="pf-input" type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} required minLength={6} autoComplete="new-password" placeholder="Şifreni doğrula" />
       </label>
-      <button className="pf-btn pf-btn-primary w-full" disabled={checking || saving || Boolean(error && !password)}>
+      <button className="pf-btn pf-btn-primary w-full" disabled={checking || saving || !hasRecoverySession}>
         {checking ? 'Oturum kontrol ediliyor…' : saving ? 'Şifre güncelleniyor…' : 'Şifremi Güncelle'}
       </button>
       <p className="text-xs text-muted text-center"><a href="/login" className="text-primary hover:underline">Giriş sayfasına dön</a></p>
