@@ -136,6 +136,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Hesap',
     items: [
+      { icon: 'message', label: 'Destek & Geri Bildirim', href: '/support' },
       { icon: 'settings', label: 'Ayarlar', href: '/settings' },
       { icon: 'user', label: 'Profil', href: '/profile' }
     ]
