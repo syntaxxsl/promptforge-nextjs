@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable @next/next/no-img-element -- these previews render user/provider data URLs directly. */
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
 import Markdown from '@/components/Markdown'
