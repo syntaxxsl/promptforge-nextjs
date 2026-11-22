@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   if (!data.user) return jsonError('Oturum gerekli.', 401, 'unauthorized')
 
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { data } = await supabase.auth.getUser()
     const user = data.user
     if (!user) return jsonError('Oturum gerekli.', 401, 'unauthorized')
@@ -302,7 +302,7 @@ export async function DELETE(request: NextRequest) {
     )
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   if (!data.user) return jsonError('Oturum gerekli.', 401, 'unauthorized')
 
