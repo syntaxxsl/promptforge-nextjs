@@ -28,7 +28,7 @@ export async function GET() {
     message: 'Analitik tablosu bulunamadı veya migration henüz uygulanmadı.'
   }, { headers: { 'Cache-Control': 'private, no-store' } })
 
-  const rows = events.data || []
+  const rows = (events.data || []) as unknown as { user_id: string; route: string; event_name: string }[]
   const uniqueUsers = new Set(rows.map((row) => row.user_id)).size
   const routes = new Map<string, number>()
   for (const row of rows) routes.set(row.route, (routes.get(row.route) || 0) + 1)
@@ -39,10 +39,10 @@ export async function GET() {
     metrics: {
       events7d: events.count ?? rows.length,
       activeUsers7d: uniqueUsers,
-      totalUsers: users.data?.total ?? null,
+      totalUsers: (users.data as unknown as { total?: number } | null)?.total ?? null,
       pageViews7d: rows.filter((row) => row.event_name === 'page_view').length
     },
     popularRoutes: [...routes.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([route, count]) => ({ route, count })),
-    recent: recent.data || []
+    recent: (recent.data || []) as unknown as { id: string; event_name: string; route: string; created_at: string; user_id: string }[]
   }, { headers: { 'Cache-Control': 'private, no-store' } })
 }
