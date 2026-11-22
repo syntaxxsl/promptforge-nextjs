@@ -105,6 +105,8 @@ jobs:
           retention-days: 7
       - name: Enforce production dependency security
         run: npm audit --omit=dev --audit-level=high
+      - name: Lint
+        run: npm run lint
       - name: Run tests
         run: npm test
       - name: TypeScript check

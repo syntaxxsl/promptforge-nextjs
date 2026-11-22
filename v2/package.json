@@ -7,7 +7,7 @@
     "dev": "sh ./dev.sh",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude '**/live-api.test.ts'",
     "test:watch": "vitest",
@@ -20,7 +20,7 @@
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.39.0",
     "clsx": "^2.1.1",
-    "next": "15.5.29",
+    "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
@@ -37,6 +37,8 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
     "vitest": "5.1.1",
-    "@testing-library/dom": "10.4.2"
+    "@testing-library/dom": "10.4.2",
+    "eslint": "10.15.0",
+    "eslint-config-next": "16.4.6"
   }
 }
