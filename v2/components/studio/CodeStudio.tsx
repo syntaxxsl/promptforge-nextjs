@@ -13,6 +13,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import StoredFilePicker from '@/components/studio/StoredFilePicker'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
@@ -519,7 +520,7 @@ export default function CodeStudio({ userId }: { userId: string }) {
                   </button>
                   <button onClick={() => void copyAnswer()} className="pf-btn pf-btn-ghost text-xs">
                     Kopyala
-                  </button>
+                  </button><SaveOutputButton userId={userId} tool="Code Studio" title="Code Studio yanıtı" content={answer}/>
                 </>
               )}
             </div>
