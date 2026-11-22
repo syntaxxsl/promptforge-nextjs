@@ -68,6 +68,17 @@ export const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    title: 'Medya Stüdyoları',
+    items: [
+      { icon: 'sparkles', label: 'Logo Studio', href: '/logo-studio' },
+      { icon: 'image', label: 'Thumbnail Studio', href: '/thumbnail-studio' },
+      { icon: 'layers', label: '3D Studio', href: '/3d-studio' },
+      { icon: 'headset', label: 'Music Studio', href: '/music-studio' },
+      { icon: 'message', label: 'Voice Studio', href: '/voice-studio' },
+      { icon: 'image', label: 'Photo Studio', href: '/photo-studio' }
+    ]
+  },
+  {
     title: 'Geliştir',
     items: [
       { icon: 'code', label: 'Code Studio', href: '/code' },
