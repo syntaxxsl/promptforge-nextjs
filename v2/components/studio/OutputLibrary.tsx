@@ -69,7 +69,7 @@ export default function OutputLibrary({ userId }: { userId: string }) {
       `Tarih: ${new Date(item.createdAt).toLocaleString('tr-TR')}`,
       '',
       item.content
-    ].join('\n')).join('\\n\\n---\\n\\n')
+    ].join('\n')).join('\n\n---\n\n')
     const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
