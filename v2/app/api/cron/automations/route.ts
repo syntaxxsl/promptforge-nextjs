@@ -1,4 +1,5 @@
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash } from 'node:crypto'
+import { timingSafeEqual } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { runScheduledAutomation, isCronDue } from '@/lib/studio/automation-server'
@@ -9,136 +10,102 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 /**
- * Temporary cron authentication diagnostics.
+ * Debug mode: when CRON_DEBUG=1, the endpoint returns detailed comparison info
+ * without exposing the actual secret. Use this to diagnose Vault ↔ Vercel secret
+ * mismatches.
  *
- * Enabled only when the non-secret env var CRON_DIAG=1 is set. The response
- * never contains a secret: only a truncated SHA-256 fingerprint, lengths and a
- * machine-readable failure reason, so a mismatch between the Supabase Vault
- * secret and the Vercel CRON_SECRET can be located without exposing either.
+ * Usage:
+ *   curl -H "Authorization: Bearer $TOKEN" https://.../api/cron/automations
+ *   curl -H "Authorization: Bearer <sha256>" ... (to test with a hash)
  */
-const DIAG_ENABLED = process.env.CRON_DIAG === '1'
-const DIAG_TOKEN = process.env.CRON_DIAG_TOKEN || ''
-const FINGERPRINT_CHARS = 12
+const DEBUG_ENABLED = process.env.CRON_DEBUG === '1'
+const SECRET = process.env.CRON_SECRET || ''
 
-type FailureReason =
-  | 'missing_header'
-  | 'bad_scheme'
-  | 'empty_token'
-  | 'length_mismatch'
-  | 'mismatch'
-  | 'server_misconfigured'
-
-type ParsedBearer =
-  | { ok: true; token: string }
-  | { ok: false; reason: FailureReason; scheme: string | null }
-
-function fingerprint(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex').slice(0, FINGERPRINT_CHARS)
-}
-
-/** Constant-time comparison; length differences short-circuit safely. */
-function safeEqual(a: string, b: string): boolean {
-  const left = Buffer.from(a, 'utf8')
-  const right = Buffer.from(b, 'utf8')
-  if (left.length !== right.length) return false
-  return timingSafeEqual(left, right)
+function sha256hex(v: string): string {
+  return createHash('sha256').update(v).digest('hex')
 }
 
 /**
- * Accepts "Bearer <token>" case-insensitively and tolerates surrounding
- * whitespace, which is a common source of false 401s from Vault-stored values.
+ * Parse "Bearer <token>" header with tolerance for:
+ * - Leading/trailing whitespace
+ * - Extra spaces between "Bearer" and token
  */
-function parseBearer(header: string | null): ParsedBearer {
-  if (!header) return { ok: false, reason: 'missing_header', scheme: null }
+function parseBearer(header: string | null): { ok: boolean; scheme?: string; token?: string; reason?: string } {
+  if (!header) return { ok: false, reason: 'missing_header' }
   const trimmed = header.trim()
-  if (!trimmed) return { ok: false, reason: 'missing_header', scheme: null }
+  if (!trimmed) return { ok: false, reason: 'empty_header' }
 
-  const spaceAt = trimmed.indexOf(' ')
-  if (spaceAt < 0) return { ok: false, reason: 'bad_scheme', scheme: trimmed.slice(0, 16) }
+  const m = trimmed.match(/^Bearer\s+(.+)$/i)
+  if (!m) return { ok: false, reason: 'invalid_scheme', scheme: trimmed.split(' ')[0] }
 
-  const scheme = trimmed.slice(0, spaceAt)
-  if (scheme.toLowerCase() !== 'bearer') {
-    return { ok: false, reason: 'bad_scheme', scheme: trimmed.slice(0, 16) }
-  }
+  const token = m[1].trim()
+  if (!token) return { ok: false, reason: 'empty_token' }
 
-  const token = trimmed.slice(spaceAt + 1).trim()
-  if (!token) return { ok: false, reason: 'empty_token', scheme }
-
-  return { ok: true, token }
-}
-
-type AuthResult =
-  | { ok: true; diagTokenUsed: boolean }
-  | {
-      ok: false
-      reason: FailureReason
-      headerPresent: boolean
-      headerLength: number
-      scheme: string | null
-      tokenLength: number | null
-      receivedFingerprint: string | null
-    }
-
-function authenticate(request: NextRequest): AuthResult {
-  const secret = process.env.CRON_SECRET
-  const header = request.headers.get('authorization')
-  const parsed = parseBearer(header)
-
-  const base = {
-    headerPresent: Boolean(header),
-    headerLength: header ? header.length : 0,
-    scheme: parsed.ok ? 'bearer' : parsed.scheme,
-    tokenLength: parsed.ok ? parsed.token.length : null,
-    receivedFingerprint: parsed.ok ? fingerprint(parsed.token) : null
-  }
-
-  // Temporary diagnostic credential: proves the whole pipeline (route -> DB ->
-  // automation execution) without touching the real CRON_SECRET.
-  if (DIAG_ENABLED && DIAG_TOKEN && parsed.ok && safeEqual(parsed.token, DIAG_TOKEN)) {
-    return { ok: true, diagTokenUsed: true }
-  }
-
-  if (!secret) return { ok: false, reason: 'server_misconfigured', ...base }
-  if (!parsed.ok) return { ok: false, reason: parsed.reason, ...base }
-
-  if (safeEqual(parsed.token, secret)) return { ok: true, diagTokenUsed: false }
-  if (safeEqual(parsed.token, secret.trim())) return { ok: true, diagTokenUsed: false }
-
-  const reason: FailureReason = parsed.token.length === secret.trim().length ? 'mismatch' : 'length_mismatch'
-  return { ok: false, reason, ...base }
-}
-
-function unauthorized(result: Extract<AuthResult, { ok: false }>) {
-  if (result.reason === 'server_misconfigured') {
-    return NextResponse.json({ error: 'CRON_SECRET yapılandırması eksik.' }, { status: 503 })
-  }
-  if (!DIAG_ENABLED) {
-    return NextResponse.json({ error: 'Yetkisiz.' }, { status: 401 })
-  }
-
-  const expected = (process.env.CRON_SECRET || '').trim()
-  return NextResponse.json(
-    {
-      error: 'Yetkisiz.',
-      diag: {
-        reason: result.reason,
-        headerPresent: result.headerPresent,
-        headerLength: result.headerLength,
-        scheme: result.scheme,
-        tokenLength: result.tokenLength,
-        receivedFingerprint: result.receivedFingerprint,
-        expectedLength: expected ? expected.length : null,
-        expectedFingerprint: expected ? fingerprint(expected) : null
-      }
-    },
-    { status: 401 }
-  )
+  return { ok: true, scheme: 'Bearer', token }
 }
 
 export async function GET(request: NextRequest) {
-  const auth = authenticate(request)
-  if (!auth.ok) return unauthorized(auth)
+  const header = request.headers.get('authorization')
+  const parsed = parseBearer(header)
 
+  // Debug mode: show comparison info without leaking the secret
+  if (DEBUG_ENABLED && !parsed.ok) {
+    return NextResponse.json({
+      error: 'Yetkisiz.',
+      debug: {
+        header: header ? `<${header.slice(0, 20)}...>` : null,
+        headerLength: header?.length ?? 0,
+        parsed: parsed
+      }
+    }, { status: 401 })
+  }
+
+  if (!parsed.ok || !parsed.token) {
+    return NextResponse.json({ error: 'Yetkisiz.' }, { status: 401 })
+  }
+
+  const provided = parsed.token
+  const expected = SECRET
+
+  // Whitespace-tolerance: Vault may store with trailing spaces
+  const expectedTrimmed = expected.trim()
+  const providedTrimmed = provided.trim()
+
+  // Length check first (fast fail)
+  if (providedTrimmed.length !== expectedTrimmed.length) {
+    if (DEBUG_ENABLED) {
+      return NextResponse.json({
+        error: 'Yetkisiz.',
+        debug: {
+          reason: 'length_mismatch',
+          providedLength: providedTrimmed.length,
+          expectedLength: expectedTrimmed.length,
+          providedSha256: sha256hex(providedTrimmed),
+          expectedSha256: sha256hex(expectedTrimmed),
+          match: false
+        }
+      }, { status: 401 })
+    }
+    return NextResponse.json({ error: 'Yetkisiz.' }, { status: 401 })
+  }
+
+  // Timing-safe comparison
+  if (!timingSafeEqual(Buffer.from(providedTrimmed, 'utf8'), Buffer.from(expectedTrimmed, 'utf8'))) {
+    if (DEBUG_ENABLED) {
+      return NextResponse.json({
+        error: 'Yetkisiz.',
+        debug: {
+          reason: 'mismatch',
+          providedSha256: sha256hex(providedTrimmed),
+          expectedSha256: sha256hex(expectedTrimmed),
+          match: false
+        }
+      }, { status: 401 })
+    }
+    return NextResponse.json({ error: 'Yetkisiz.' }, { status: 401 })
+  }
+
+  // Auth passed
   let admin
   try { admin = createSupabaseAdminClient() } catch {
     return NextResponse.json({ error: 'Supabase admin yapılandırması eksik.' }, { status: 503 })
@@ -200,12 +167,5 @@ export async function GET(request: NextRequest) {
     if (executed >= 3) break
   }
 
-  return NextResponse.json({
-    ok: failures.length === 0,
-    checked,
-    executed,
-    skipped,
-    failures,
-    ...(auth.diagTokenUsed ? { diagTokenUsed: true } : {})
-  })
+  return NextResponse.json({ ok: failures.length === 0, checked, executed, skipped, failures })
 }
