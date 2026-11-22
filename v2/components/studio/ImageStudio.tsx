@@ -102,7 +102,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
       return
     }
     setJobs(listImageJobs(userId))
-    setNotice('Taslak kaydedildi. Üretim için sağlayıcı bağlantısı gerekiyor.')
+    setNotice('Taslak bu cihazda kaydedildi. Bulut eşitlemesi açıksa diğer cihazlarında da görünür.')
   }
 
   async function generate() {
