@@ -68,6 +68,12 @@ export const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    title: 'Topluluk',
+    items: [
+      { icon: 'users', label: 'Community Marketplace', href: '/community' }
+    ]
+  },
+  {
     title: 'Kişisel Alan',
     items: [
       { icon: 'sparkles', label: 'AI Memory', href: '/memory' },
