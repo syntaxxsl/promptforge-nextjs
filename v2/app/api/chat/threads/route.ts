@@ -24,7 +24,7 @@ async function getAuth() {
   return { limited: false as const, supabase, user: data.user }
 }
 
-function validThread(value: unknown): value is JsonRecord {
+function validThread(value: unknown): value is JsonRecord & { id: string; title: string; createdAt: string; updatedAt: string; messages: JsonRecord[] } {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const thread = value as JsonRecord
   if (typeof thread.id !== 'string' || thread.id.length < 1 || thread.id.length > 100) return false
