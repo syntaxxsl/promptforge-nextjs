@@ -105,7 +105,7 @@ export async function runScheduledAutomation(userId: string, automation: Automat
 
 function cronFieldMatches(field: string, value: number, min: number, max: number) {
   if (!field || field.length > 80) return false
-  return field.split(',').every((part) => {
+  return field.split(',').some((part) => {
     if (!part) return false
     const [base, stepText] = part.split('/')
     if (part.split('/').length > 2) return false
