@@ -56,11 +56,11 @@ jobs:
                 visit(file);
                 continue;
               }
-              if (!/\\.tsx?$/.test(entry.name) || file.endsWith(path.join('lib', 'supabase', 'server.ts'))) continue;
+              if (!/\.tsx?$/.test(entry.name) || file.endsWith(path.join('lib', 'supabase', 'server.ts'))) continue;
 
               const source = fs.readFileSync(file, 'utf8');
               const migrated = source.replace(
-                /(?<!function )(?<!await )createSupabaseServerClient\\(\\)/g,
+                /(?<!function )(?<!await )createSupabaseServerClient\(\)/g,
                 'await createSupabaseServerClient()'
               );
               if (migrated !== source) {
@@ -71,7 +71,7 @@ jobs:
           }
 
           visit(root);
-          console.log(changed.length ? changed.join('\\n') : 'No remaining synchronous Supabase client calls.');
+          console.log(changed.length ? changed.join('\n') : 'No remaining synchronous Supabase client calls.');
           NODE
       - name: Install dependencies
         run: npm ci
