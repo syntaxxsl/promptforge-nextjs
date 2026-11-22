@@ -14,6 +14,12 @@ const PROVIDERS = [
 ] as const
 
 type ProviderId = (typeof PROVIDERS)[number]['id']
+type SystemStatus = {
+  database: { configured: boolean; missing: string[] }
+  encryption: { configured: boolean }
+  serverProviders: string[]
+}
+
 type SavedKey = {
   provider: ProviderId
   active: boolean
@@ -24,6 +30,8 @@ type SavedKey = {
 
 export default function SettingsPage() {
   const [keys, setKeys] = useState<SavedKey[]>([])
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null)
+  const [statusLoading, setStatusLoading] = useState(true)
   const [provider, setProvider] = useState<ProviderId>('openai')
   const [apiKey, setApiKey] = useState('')
   const [loading, setLoading] = useState(true)
@@ -48,9 +56,24 @@ export default function SettingsPage() {
     }
   }, [])
 
+  const loadSystemStatus = useCallback(async () => {
+    setStatusLoading(true)
+    try {
+      const response = await fetch('/api/system/status', { cache: 'no-store' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Sistem durumu alınamadı.')
+      setSystemStatus(data as SystemStatus)
+    } catch {
+      setSystemStatus(null)
+    } finally {
+      setStatusLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     void loadKeys()
-  }, [loadKeys])
+    void loadSystemStatus()
+  }, [loadKeys, loadSystemStatus])
 
   async function saveKey(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -108,6 +131,34 @@ export default function SettingsPage() {
         <p className="mt-2 max-w-2xl text-sm text-muted">
           AI sağlayıcı bağlantılarını yönet. Anahtarların sunucuda şifrelenerek saklanır ve arayüzde tekrar gösterilmez.
         </p>
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Sistem yapılandırması</h2>
+            <p className="mt-1 text-sm text-muted">Gizli değerler gösterilmeden sunucu ayarları kontrol edilir.</p>
+          </div>
+          <button type="button" onClick={() => void loadSystemStatus()} disabled={statusLoading} className="rounded-lg border border-border px-3 py-2 text-xs hover:bg-surface-2 disabled:opacity-50">
+            {statusLoading ? 'Kontrol ediliyor…' : 'Durumu yenile'}
+          </button>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-border bg-surface-2/50 p-3">
+            <p className="text-xs text-muted">Supabase ortam değişkenleri</p>
+            <p className="mt-1 text-sm font-medium">{statusLoading ? 'Kontrol ediliyor…' : systemStatus?.database.configured ? 'Tanımlı' : 'Eksik'}</p>
+            {Boolean(systemStatus?.database.missing.length) && <p className="mt-1 break-all text-xs text-muted">Eksik: {systemStatus?.database.missing.join(', ')}</p>}
+          </div>
+          <div className="rounded-lg border border-border bg-surface-2/50 p-3">
+            <p className="text-xs text-muted">API anahtarı şifreleme sırrı</p>
+            <p className="mt-1 text-sm font-medium">{statusLoading ? 'Kontrol ediliyor…' : systemStatus?.encryption.configured ? 'Tanımlı' : 'Eksik veya kısa'}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-surface-2/50 p-3 sm:col-span-2">
+            <p className="text-xs text-muted">Sunucu ortamında tanımlı AI sağlayıcıları</p>
+            <p className="mt-1 text-sm font-medium">{statusLoading ? 'Kontrol ediliyor…' : systemStatus?.serverProviders.length ? systemStatus.serverProviders.join(', ') : 'Yok — hesap anahtarları ayrıca yönetilir'}</p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-muted">Bu kontrol yalnızca ortam değişkenlerinin varlığını doğrular; veritabanı migration'larının uygulandığını veya canlı bağlantının çalıştığını kanıtlamaz.</p>
       </div>
 
       <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
