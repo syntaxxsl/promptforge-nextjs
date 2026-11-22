@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { readCollection, writeCollection } from '@/lib/studio/store'
 
 type CloudRecord = {
@@ -36,12 +36,14 @@ export function useCloudCollection<T extends CloudRecord>({
   const syncedRef = useRef<Map<string, string>>(new Map())
   const cloudIdsRef = useRef<Set<string>>(new Set())
   const errorNotifiedRef = useRef(false)
+  const callbacksRef = useRef({ setRecords, sort, onUnavailable })
+  callbacksRef.current = { setRecords, sort, onUnavailable }
 
-  function reportUnavailable() {
+  const reportUnavailable = useCallback(() => {
     if (errorNotifiedRef.current) return
     errorNotifiedRef.current = true
-    onUnavailable?.()
-  }
+    callbacksRef.current.onUnavailable?.()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -72,7 +74,7 @@ export function useCloudCollection<T extends CloudRecord>({
         }
 
         const result = Array.from(merged.values())
-        if (sort) result.sort(sort)
+        if (callbacksRef.current.sort) result.sort(callbacksRef.current.sort)
         writeCollection(userId, collection, result)
 
         for (const record of remote) {
@@ -83,7 +85,7 @@ export function useCloudCollection<T extends CloudRecord>({
         readyRef.current = true
         setReady(true)
         errorNotifiedRef.current = false
-        setRecords(result)
+        callbacksRef.current.setRecords(result)
       } catch {
         // Stay local-first. A missing migration or Supabase config is not data loss.
         if (!cancelled) reportUnavailable()
@@ -95,7 +97,7 @@ export function useCloudCollection<T extends CloudRecord>({
       cancelled = true
       readyRef.current = false
     }
-  }, [userId, collection])
+  }, [userId, collection, reportUnavailable])
 
   useEffect(() => {
     if (!readyRef.current) return
@@ -145,7 +147,7 @@ export function useCloudCollection<T extends CloudRecord>({
       })()
     }, 850)
     return () => window.clearTimeout(timer)
-  }, [records, userId, collection])
+  }, [records, userId, collection, reportUnavailable])
 
   return { ready }
 }
