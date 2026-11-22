@@ -5,7 +5,7 @@
 // Everything here is local to this browser (see lib/studio/store.ts). The UI
 // states that plainly instead of implying cloud sync.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
 import {
   addFile,
@@ -30,6 +30,7 @@ import {
   type ProjectOutputEntry,
   type StudioToolId
 } from '@/lib/studio/types'
+import { readCollection, writeCollection } from '@/lib/studio/store'
 
 const TOOL_LABELS: { id: StudioToolId; label: string }[] = [
   { id: 'chat', label: 'AI Chat' },
@@ -54,6 +55,9 @@ export default function ProjectManager({ userId }: { userId: string }) {
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
   const [formColor, setFormColor] = useState(PROJECT_COLORS[0])
+  const cloudReadyRef = useRef(false)
+  const cloudSyncRef = useRef<Map<string, string>>(new Map())
+  const cloudIdsRef = useRef<Map<string, Set<string>>>(new Map())
 
   const active = useMemo(
     () => projects.find((p) => p.id === activeId) || null,
@@ -73,6 +77,104 @@ export default function ProjectManager({ userId }: { userId: string }) {
     setProjects(list)
     if (list.length > 0) setActiveId(list[0].id)
   }, [userId])
+
+  // Merge cloud records into local storage without discarding local-only work.
+  useEffect(() => {
+    let cancelled = false
+    cloudReadyRef.current = false
+    cloudSyncRef.current.clear()
+    cloudIdsRef.current.clear()
+
+    const collections = ['projects', 'project-files', 'project-outputs'] as const
+    async function hydrate() {
+      try {
+        const results = await Promise.all(collections.map(async (collection) => {
+          const response = await fetch('/api/studio/data?collection=' + collection, { cache: 'no-store' })
+          if (!response.ok) throw new Error('Cloud storage unavailable')
+          const data = await response.json() as { records?: Array<{ id: string; createdAt: string; updatedAt?: string }> }
+          return { collection, records: Array.isArray(data.records) ? data.records : [] }
+        }))
+        if (cancelled) return
+
+        for (const { collection, records } of results) {
+          const local = readCollection<{ id: string; createdAt: string; updatedAt?: string }>(userId, collection)
+          const merged = new Map<string, { id: string; createdAt: string; updatedAt?: string }>()
+          for (const record of [...records, ...local]) {
+            const previous = merged.get(record.id)
+            const stamp = record.updatedAt || record.createdAt
+            const previousStamp = previous ? (previous.updatedAt || previous.createdAt) : ''
+            if (!previous || stamp > previousStamp) merged.set(record.id, record)
+          }
+          const values = Array.from(merged.values())
+          writeCollection(userId, collection, values)
+          cloudIdsRef.current.set(collection, new Set(records.map((record) => record.id)))
+          for (const record of records) cloudSyncRef.current.set(collection + ':' + record.id, JSON.stringify(record))
+        }
+
+        cloudReadyRef.current = true
+        setProjects(filterProjects(userId, { query, favoritesOnly, tool: toolFilter || undefined }))
+        if (activeId) {
+          setFiles(listFiles(userId, activeId))
+          setOutputs(listOutputs(userId, activeId))
+        }
+      } catch {
+        if (!cancelled) setNotice('Bulut proje eşitlemesi kullanılamıyor. Yerel proje ve dosyaların korunuyor.')
+      }
+    }
+    void hydrate()
+    return () => {
+      cancelled = true
+      cloudReadyRef.current = false
+    }
+  }, [userId])
+
+  // Save local project data in the background after each meaningful change.
+  useEffect(() => {
+    if (!cloudReadyRef.current) return
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const collections = ['projects', 'project-files', 'project-outputs'] as const
+        for (const collection of collections) {
+          const records = readCollection<{ id: string; createdAt: string; updatedAt?: string }>(userId, collection)
+          const localIds = new Set(records.map((record) => record.id))
+          for (const record of records) {
+            const key = collection + ':' + record.id
+            const snapshot = JSON.stringify(record)
+            if (cloudSyncRef.current.get(key) === snapshot) continue
+            try {
+              const response = await fetch('/api/studio/data?collection=' + collection, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ record })
+              })
+              if (!response.ok) throw new Error('Cloud save failed')
+              cloudSyncRef.current.set(key, snapshot)
+              cloudIdsRef.current.get(collection)?.add(record.id)
+            } catch {
+              setNotice('Proje verilerinden biri buluta eşitlenemedi. Yerel kopya korunuyor.')
+              return
+            }
+          }
+
+          // Deletions made in this browser are mirrored only for IDs known to
+          // have existed in the cloud; this avoids deleting unseen records.
+          for (const id of cloudIdsRef.current.get(collection) || []) {
+            if (localIds.has(id)) continue
+            try {
+              const response = await fetch('/api/studio/data?collection=' + collection + '&id=' + encodeURIComponent(id), { method: 'DELETE' })
+              if (!response.ok) throw new Error('Cloud delete failed')
+              cloudIdsRef.current.get(collection)?.delete(id)
+              cloudSyncRef.current.delete(collection + ':' + id)
+            } catch {
+              setNotice('Bir kayıt cihazdan silindi ancak buluttan silinemedi.')
+              return
+            }
+          }
+        }
+      })()
+    }, 900)
+    return () => window.clearTimeout(timer)
+  }, [projects, files, outputs, userId])
 
   useEffect(() => {
     refresh()
@@ -175,7 +277,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
             Project Manager
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Projeler, dosyalar ve üretilen çıktılar tek yerde. Veriler bu tarayıcıda saklanır.
+            Projeler, dosyalar ve üretilen çıktılar tek yerde. Bulut eşitlemesi varsa cihazlar arasında senkronize edilir; yerel kopya da korunur.
           </p>
         </div>
         <button
