@@ -6,5 +6,5 @@ export default async function WebsiteBuilderPage(){
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user) redirect('/login')
- return <WebsiteBuilderStudio/>
+ return <WebsiteBuilderStudio userId={data.user.id}/>
 }
