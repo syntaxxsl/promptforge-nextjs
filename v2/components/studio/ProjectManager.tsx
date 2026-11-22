@@ -65,6 +65,8 @@ export default function ProjectManager({ userId }: { userId: string }) {
   const [activeFileId, setActiveFileId] = useState<string | null>(null)
   const [newFileName, setNewFileName] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
+  const [shareLink, setShareLink] = useState('')
+  const [sharing, setSharing] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [storedPickerOpen, setStoredPickerOpen] = useState(false)
   const [versions, setVersions] = useState<ProjectFileVersion[]>([])
@@ -255,6 +257,41 @@ export default function ProjectManager({ userId }: { userId: string }) {
       for (const item of value.outputs.slice(0, 100)) if (typeof item.title === 'string' && typeof item.payload === 'string') addOutput(userId, project.id, (item.tool || 'import').slice(0, 60), item.title.slice(0, 160), item.payload.slice(0, 200000))
       refresh(); setActiveId(project.id); setNotice('Proje paketi içe aktarıldı. Dosyaları ve çıktıları kontrol edebilirsin.')
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Proje paketi okunamadı.') }
+  }
+
+  async function createShareLink() {
+    if (!active || sharing) return
+    setSharing(true)
+    setShareLink('')
+    const snapshot = {
+      format: 'promptforge-project',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      project: { name: active.name, description: active.description, color: active.color, linkedTools: active.linkedTools },
+      files: files.map((file) => ({ name: file.name, content: file.content })),
+      outputs: outputs.map((output) => ({ title: output.title, tool: output.tool, payload: output.payload }))
+    }
+    try {
+      const response = await fetch('/api/projects/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snapshot })
+      })
+      const data = await response.json() as { token?: string; error?: string; expiresAt?: string }
+      if (!response.ok || !data.token) throw new Error(data.error || 'Paylaşım bağlantısı oluşturulamadı.')
+      const url = window.location.origin + '/share/' + data.token
+      setShareLink(url)
+      try {
+        await navigator.clipboard.writeText(url)
+        setNotice('7 gün geçerli salt okunur paylaşım bağlantısı panoya kopyalandı.')
+      } catch {
+        setNotice('Paylaşım bağlantısı oluşturuldu. Bağlantıyı aşağıdan kopyalayabilirsin.')
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Paylaşım bağlantısı oluşturulamadı.')
+    } finally {
+      setSharing(false)
+    }
   }
 
   function create() {
@@ -552,7 +589,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
                     </div>
                     <div className="ml-auto flex gap-1.5">
                       <button onClick={() => importInputRef.current?.click()} className="pf-btn pf-btn-ghost text-xs"><Icon name="paperclip" className="h-3.5 w-3.5" />Paket içe aktar</button>
-                      <button onClick={exportProjectBundle} className="pf-btn pf-btn-ghost text-xs"><Icon name="download" className="h-3.5 w-3.5" />Paylaşılabilir paket</button>
+                      <button onClick={exportProjectBundle} className="pf-btn pf-btn-ghost text-xs"><Icon name="download" className="h-3.5 w-3.5" />Paylaşılabilir paket</button><button onClick={createShareLink} disabled={sharing} className="pf-btn pf-btn-ghost text-xs"><Icon name="link" className="h-3.5 w-3.5" />{sharing ? 'Bağlantı hazırlanıyor…' : 'Paylaşım bağlantısı'}</button>
                       <button onClick={rename} className="pf-btn pf-btn-ghost text-xs">
                         <Icon name="pen" className="h-3.5 w-3.5" />
                         Adlandır
@@ -571,6 +608,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
                     </div>
                   </div>
 
+                  {shareLink && <div className="mt-3 rounded-xl border border-border bg-background p-3"><p className="mb-2 text-xs font-semibold text-fg">Salt okunur paylaşım bağlantısı</p><div className="flex flex-wrap gap-2"><input readOnly value={shareLink} className="pf-input min-w-0 flex-1 text-xs" aria-label="Paylaşım bağlantısı"/><button type="button" onClick={() => void navigator.clipboard.writeText(shareLink).then(() => setNotice('Bağlantı kopyalandı.')).catch(() => setNotice('Bağlantı alanından elle kopyalayabilirsin.'))} className="pf-btn pf-btn-ghost text-xs">Kopyala</button></div><p className="mt-2 text-[10px] text-muted">Bağlantı 7 gün sonra sona erer ve oluşturulduğu andaki proje kopyasını gösterir; canlı ortak düzenleme değildir.</p></div>}
                   <div className="mt-3">
                     <span className="block text-[10px] uppercase tracking-wide text-muted mb-1.5">
                       Bağlı araçlar
