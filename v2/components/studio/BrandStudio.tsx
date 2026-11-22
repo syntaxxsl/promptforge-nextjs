@@ -51,7 +51,7 @@ export default function BrandStudio({ userId }: { userId: string }){
  }
  function stop(){abortRef.current?.abort();abortRef.current=null;setBusy(false);setNotice('Üretim durduruldu; mevcut taslak korundu.')}
  async function copy(){try{await navigator.clipboard.writeText(result);setNotice('Marka çalışması kopyalandı.')}catch{setNotice('Kopyalama başarısız; metni seçerek kopyalayabilirsin.')}}
- return <main className="mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
+ return <main className="pf-brand-studio mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
   <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="sparkles" className="h-4 w-4"/> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">Marka Stüdyosu</h1><p className="mt-1 text-sm text-muted">Marka fikrini stratejiye, dile ve yaratıcı kampanyalara dönüştür.</p></div><ModelPicker value={model} onChange={setModel} disabled={busy}/></header>
   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{MODES.map((item,index)=><button key={item.id} type="button" onClick={()=>setMode(item.id)} disabled={busy} aria-pressed={mode===item.id} className={`rounded-xl border p-4 text-left transition ${mode===item.id?'border-accent/60 bg-accent/10':'border-border bg-surface hover:border-accent/30'}`}><span className="text-xs text-muted">0{index+1}</span><div className="mt-2 text-sm font-semibold text-fg">{item.title}</div><p className="mt-1 text-xs text-muted">{item.desc}</p></button>)}</div>
   <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
