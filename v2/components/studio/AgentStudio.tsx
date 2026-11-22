@@ -365,14 +365,14 @@ export default function AgentStudio({ userId }: { userId: string }) {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] uppercase tracking-wide text-muted">
-                    Görev geçmişi ({runs.filter((run) => run.agentId === active.id).length})
+                    Görev geçmişi ({runs.filter((run) => run.agentId === activeId).length})
                   </span>
                 </div>
                 {runs.length === 0 ? (
                   <p className="text-[11px] text-muted">Henüz görev çalıştırılmadı.</p>
                 ) : (
                   <ul className="space-y-2 max-h-96 overflow-y-auto pf-scroll">
-                    {runs.filter((run) => run.agentId === active.id).map((run) => (
+                    {runs.filter((run) => run.agentId === activeId).map((run) => (
                       <li key={run.id} className="rounded-md border border-border p-2.5">
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-xs font-medium truncate">{run.task}</span>
