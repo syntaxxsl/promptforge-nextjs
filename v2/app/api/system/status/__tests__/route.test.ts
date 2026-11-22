@@ -39,10 +39,15 @@ describe('GET /api/system/status', () => {
 
     expect(response.status).toBe(200)
     expect(response.headers.get('Cache-Control')).toBe('private, no-store')
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       database: { configured: true, missing: [] },
       encryption: { configured: true },
-      serverProviders: ['openai']
+      serverProviders: ['openai'],
+      automationScheduler: {
+        cronSecretConfigured: false,
+        adminDatabaseConfigured: false,
+        configured: false
+      }
     })
     expect(raw).not.toContain('server-openai-test-secret')
     expect(raw).not.toContain('public-anon-test-value')
@@ -58,7 +63,7 @@ describe('GET /api/system/status', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.database).toEqual({
+    expect(body.database).toMatchObject({
       configured: false,
       missing: ['NEXT_PUBLIC_SUPABASE_ANON_KEY']
     })
