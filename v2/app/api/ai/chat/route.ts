@@ -49,8 +49,8 @@ function parseMessages(input: unknown): AIMessage[] | null {
     if (Array.isArray(content)) {
       if (content.length > 8 || content.some((part: any) => !part || typeof part !== 'object' || !['text', 'image_url'].includes(part.type))) return null
       for (const part of content as any[]) {
-        if (part.type === 'text' && typeof part.text !== 'string') return null
-        if (part.type === 'image_url' && (typeof part.image_url?.url !== 'string' || !part.image_url.url.startsWith('data:image/'))) return null
+        if (part.type === 'text' && (typeof part.text !== 'string' || part.text.length > 100_000)) return null
+        if (part.type === 'image_url' && (typeof part.image_url?.url !== 'string' || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(part.image_url.url))) return null
       }
     }
     messages.push({ role, content: content as AIMessage['content'] })
