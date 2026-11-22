@@ -2,8 +2,8 @@
 
 // Project Manager — projects, files, linked outputs, favourites and search.
 //
-// Everything here is local to this browser (see lib/studio/store.ts). The UI
-// states that plainly instead of implying cloud sync.
+// Project records are local-first and sync to the authenticated cloud when configured.
+// Files from the private shared storage can be imported into a project as editable text.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
