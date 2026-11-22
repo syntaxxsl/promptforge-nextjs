@@ -7,5 +7,5 @@ export default async function WebSearchPage() {
   const { data } = await supabase.auth.getUser()
   if (!data.user) redirect('/login')
 
-  return <WebSearchStudio />
+  return <WebSearchStudio userId={data.user.id} />
 }
