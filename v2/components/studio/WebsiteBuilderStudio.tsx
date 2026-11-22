@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { streamChat } from '@/lib/studio/chat-client'
@@ -16,7 +17,7 @@ const TYPES:{id:SiteType;title:string;desc:string;brief:string}[]=[
 ]
 const AUTO:ModelSelection={label:'Otomatik seçim'}
 
-export default function WebsiteBuilderStudio(){
+export default function WebsiteBuilderStudio({ userId }: { userId: string }){
  const [type,setType]=useState<SiteType>('landing')
  const [name,setName]=useState('')
  const [purpose,setPurpose]=useState('')
@@ -53,7 +54,7 @@ export default function WebsiteBuilderStudio(){
  async function copy(){try{await navigator.clipboard.writeText(result);setNotice('Kod ve açıklamalar panoya kopyalandı.')}catch{setNotice('Kopyalama başarısız; çıktıyı seçerek kopyalayabilirsin.')}}
  return <main className="mx-auto w-full max-w-[1500px] space-y-5 p-4 md:p-7">
   <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="code" className="h-4 w-4"/> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">Website Builder</h1><p className="mt-1 text-sm text-muted">Fikrini tarif et; tasarımını, sayfa yapısını ve çalıştırılabilir başlangıç kodunu oluştur.</p></div><ModelPicker value={model} onChange={setModel} disabled={busy}/></header>
-  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{TYPES.map((item,i)=><button key={item.id} type="button" onClick={()=>setType(item.id)} disabled={busy} aria-pressed={type===item.id} className={`rounded-xl border p-4 text-left transition ${type===item.id?'border-accent/60 bg-accent/10':'border-border bg-surface hover:border-accent/30'}`}><span className="text-xs text-muted">0{i+1}</span><div className="mt-2 text-sm font-semibold text-fg">{item.title}</div><p className="mt-1 text-xs text-muted">{item.desc}</p></button>)}</div>
+  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{TYPES.map((item,i)=><button key={item.id} type="button" onClick={()=>setType(item.id)} disabled={busy} aria-pressed={type===item.id} className={`rounded-xl border p-4 text-left transition ${type===item.id?'border-accent/60 bg-accent/10':'border-border bg-surface hover:border-accent/30'}`}><span className="text-xs text-muted">0{i+1}</span><div className="mt-2 text-sm font-semibold text-fg">{item.title}</div><p className="mt-1 text-xs text-muted">{item.desc}</p></button><SaveOutputButton userId={userId} tool="Website Builder" title="Website Builder" content={result}/>)}</div>
   <div className="grid gap-4 xl:grid-cols-[0.82fr_1.18fr]">
    <section className="space-y-4 rounded-2xl border border-border bg-surface p-4 md:p-5"><div><h2 className="text-sm font-semibold text-fg">Proje ayarları</h2><p className="mt-1 text-xs text-muted">İstediğin siteyi mümkün olduğunca net tarif et.</p></div>
     <label htmlFor="wb-name" className="block text-xs font-medium text-muted">Site / proje adı<input id="wb-name" value={name} onChange={e=>setName(e.target.value)} maxLength={150} placeholder="Örn. Nova Digital" className="pf-input mt-2 w-full text-sm"/></label>
