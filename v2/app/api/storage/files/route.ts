@@ -79,7 +79,7 @@ export async function GET() {
       }
     }))
 
-  return NextResponse.json({ files })
+  return NextResponse.json({ files }, { headers: { 'Cache-Control': 'private, no-store' } })
 }
 
 /** Uploads one private file into the authenticated user's storage folder. */
