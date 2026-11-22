@@ -28,7 +28,7 @@ function contentToAnthropic(content: AIRequest['messages'][number]['content']): 
     }
     const url = (part as { image_url?: { url?: unknown } })?.image_url?.url
     if (part?.type === 'image_url' && typeof url === 'string') {
-      const match = /^data:(image\\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(url)
+      const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(url)
       if (match) blocks.push({ type: 'image', source: { type: 'base64', media_type: match[1], data: match[2] } })
     }
   }
