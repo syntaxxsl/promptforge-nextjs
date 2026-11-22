@@ -74,6 +74,10 @@ export const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    title: 'Tasarım Araçları',
+    items: [{ icon: 'layers', label: 'Design Toolbox', href: '/design-toolbox' }]
+  },
+  {
     title: 'Kişisel Alan',
     items: [
       { icon: 'sparkles', label: 'AI Memory', href: '/memory' },
