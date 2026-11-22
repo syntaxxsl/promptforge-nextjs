@@ -5,5 +5,5 @@ export default async function DatabaseDesignerPage() {
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user)redirect('/login')
- return <DatabaseDesignerStudio/>
+ return <DatabaseDesignerStudio userId={data.user.id}/>
 }
