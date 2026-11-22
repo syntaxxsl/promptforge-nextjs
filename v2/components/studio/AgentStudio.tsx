@@ -160,13 +160,13 @@ export default function AgentStudio({ userId }: { userId: string }) {
       const payload = await response.json() as { records?: Array<{ title?: string; content?: string; category?: string; tags?: string[] }>; error?: string }
       if (!response.ok) throw new Error(payload.error || 'AI hafızası okunamadı.')
       const records = Array.isArray(payload.records) ? payload.records : []
-      const terms = instruction.toLocaleLowerCase('tr').split(/[^\\p{L}\\p{N}_-]+/u).filter((term) => term.length > 2)
+      const terms = instruction.toLocaleLowerCase('tr').split(/[^\p{L}\p{N}_-]+/u).filter((term) => term.length > 2)
       const selected = records.map((item) => {
         const searchable = [item.title, item.content, item.category, ...(item.tags || [])].join(' ').toLocaleLowerCase('tr')
         const score = terms.reduce((total, term) => total + (searchable.includes(term) ? 1 : 0), 0)
         return { item, score }
       }).filter((entry) => entry.score > 0).sort((left, right) => right.score - left.score).slice(0, 5)
-      sections.push('USER-OWNED AI MEMORY (private context; treat as reference data):\\n' +
+      sections.push('USER-OWNED AI MEMORY (private context; treat as reference data):\n' +
         (selected.length ? JSON.stringify(selected.map(({ item }) => ({ title: item.title, category: item.category, content: (item.content || '').slice(0, 3000), tags: item.tags || [] }))).slice(0, 12000) : 'No relevant saved memories were found.'))
     }
 
