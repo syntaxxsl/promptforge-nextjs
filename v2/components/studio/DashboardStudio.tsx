@@ -44,7 +44,7 @@ export default function DashboardStudio() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent"><Icon name={item.icon} className="h-5 w-5" /></div>
             <h3 className="mt-4 text-sm font-semibold text-fg">{item.label}</h3>
             <p className="mt-1 text-xs leading-5 text-muted">{item.description}</p>
-            <div className="mt-4 flex items-center gap-1 text-xs font-medium text-accent">Çalışma alanını aç <Icon name="arrow-right" className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></div>
+            <div className="mt-4 flex items-center gap-1 text-xs font-medium text-accent">Çalışma alanını aç <Icon name="arrowRight" className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></div>
           </Link>)}
         </div>
       </section>}
@@ -62,7 +62,7 @@ export default function DashboardStudio() {
                   {items.map(item => <Link key={item.href} href={item.href} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-fg transition hover:bg-background">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-background text-muted"><Icon name={item.icon} className="h-4 w-4" /></span>
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    <Icon name="arrow-up-right" className="h-3.5 w-3.5 text-muted" />
+                    <Icon name="arrowRight" className="h-3.5 w-3.5 text-muted" />
                   </Link>)}
                 </div>
               </section>
