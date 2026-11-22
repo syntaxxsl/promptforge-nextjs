@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protect the Command Center using the trusted Supabase app_metadata role.
-  if (user && pathname.startsWith('/command-center') && user.app_metadata?.role !== 'admin') {
+  if (user && (pathname.startsWith('/command-center') || pathname.startsWith('/vercel-manager')) && user.app_metadata?.role !== 'admin') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
