@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable @next/next/no-img-element -- these previews render user/provider data URLs directly. */
+
 // Image Studio — prompt authoring, real OpenAI image generation and job history.
 //
 // Rendering is performed by the authenticated server route. The user's own
