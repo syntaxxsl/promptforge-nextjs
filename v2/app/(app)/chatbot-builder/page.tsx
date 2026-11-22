@@ -5,5 +5,5 @@ export default async function ChatbotBuilderPage() {
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user)redirect('/login')
- return <ChatbotBuilderStudio/>
+ return <ChatbotBuilderStudio userId={data.user.id}/>
 }
