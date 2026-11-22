@@ -44,24 +44,28 @@ export function routeModel(request: AIRequest): RouteResult | null {
     verified: isVerified(model)
   })
 
+  const requiredCapabilities = request.preferredCapabilities?.length
+    ? request.preferredCapabilities
+    : request.task === 'vision' ? ['vision' as const] : []
+  const supportsRequired = (model: ModelConfig) =>
+    requiredCapabilities.every((capability) => model.capabilities.includes(capability))
+
   if (request.provider) {
     const forProvider = ordered.filter((m) => m.providerId === request.provider)
     if (forProvider.length === 0) return null
 
     if (request.model) {
       const exact = forProvider.find((m) => m.id === request.model)
-      // Explicit model that is not routable → reject; never silently substitute.
-      return exact ? toResult(exact) : null
+      // Never silently substitute an explicitly selected model or ignore a required capability.
+      return exact && supportsRequired(exact) ? toResult(exact) : null
     }
 
-    const providerDefault = forProvider.find((m) => m.isDefault) || forProvider[0]
-    return toResult(providerDefault)
+    const compatible = forProvider.filter(supportsRequired)
+    const providerDefault = compatible.find((m) => m.isDefault) || compatible[0]
+    return providerDefault ? toResult(providerDefault) : null
   }
 
-  const capabilityFiltered =
-    request.preferredCapabilities && request.preferredCapabilities.length > 0
-      ? ordered.filter((m) => request.preferredCapabilities!.every((c) => m.capabilities.includes(c)))
-      : ordered
+  const capabilityFiltered = ordered.filter(supportsRequired)
 
   if (capabilityFiltered.length === 0) return null
 
