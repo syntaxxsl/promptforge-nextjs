@@ -1,0 +1,45 @@
+name: PromptForge V2 checks
+
+on:
+  push:
+    branches:
+      - promptforge-v2-development
+    paths:
+      - "v2/**"
+      - ".github/workflows/promptforge-v2.yml"
+  pull_request:
+    branches:
+      - promptforge-v2-development
+    paths:
+      - "v2/**"
+      - ".github/workflows/promptforge-v2.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: v2/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: TypeScript check
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
