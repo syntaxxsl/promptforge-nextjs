@@ -20,11 +20,39 @@ export default function DashboardStudio({ userId }: { userId: string }) {
   const [stats, setStats] = useState({ projects: 0, conversations: 0, outputs: 0 })
 
   useEffect(() => {
-    setStats({
-      projects: listProjects(userId).length,
-      conversations: listThreads(userId).length,
-      outputs: readCollection<{ id: string }>(userId, 'studio-outputs').length
-    })
+    let active = true
+    const localProjects = listProjects(userId)
+    const localThreads = listThreads(userId)
+    const localOutputs = readCollection<{ id: string }>(userId, 'studio-outputs')
+    setStats({ projects: localProjects.length, conversations: localThreads.length, outputs: localOutputs.length })
+
+    async function fetchCollection(url: string): Promise<Record<string, unknown> | null> {
+      try {
+        const response = await fetch(url, { cache: 'no-store' })
+        if (!response.ok) return null
+        return await response.json() as Record<string, unknown>
+      } catch { return null }
+    }
+
+    async function hydrateCounts() {
+      const [projectData, outputData, chatData] = await Promise.all([
+        fetchCollection('/api/studio/data?collection=projects'),
+        fetchCollection('/api/studio/data?collection=studio-outputs'),
+        fetchCollection('/api/chat/threads')
+      ])
+      if (!active) return
+      const remoteProjects = Array.isArray(projectData?.records) ? projectData.records as Array<{ id: string }> : []
+      const remoteOutputs = Array.isArray(outputData?.records) ? outputData.records as Array<{ id: string }> : []
+      const remoteThreads = Array.isArray(chatData?.threads) ? chatData.threads as Array<{ id: string }> : []
+      setStats({
+        projects: new Set([...localProjects, ...remoteProjects].map(item => item.id)).size,
+        conversations: new Set([...localThreads, ...remoteThreads].map(item => item.id)).size,
+        outputs: new Set([...localOutputs, ...remoteOutputs].map(item => item.id)).size
+      })
+    }
+
+    void hydrateCounts()
+    return () => { active = false }
   }, [userId])
   const groups = useMemo(() => NAV_GROUPS.filter(group => group.title !== 'Yönetim'), [])
   const tools = useMemo(() => groups.flatMap(group => group.items.map(item => ({ ...item, group: group.title }))), [groups])
