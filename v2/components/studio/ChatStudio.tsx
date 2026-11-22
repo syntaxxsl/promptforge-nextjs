@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import ChatMessageRow from '@/components/studio/ChatMessageRow'
+import StoredFilePicker from '@/components/studio/StoredFilePicker'
 import { ConfirmDialog, PromptDialog } from '@/components/studio/StudioDialogs'
 import { streamChat, type ChatClientMessage } from '@/lib/studio/chat-client'
 import {
@@ -99,6 +100,7 @@ export default function ChatStudio({ userId }: { userId: string }) {
   const [model, setModel] = useState<ModelSelection>(AUTO)
   const [pending, setPending] = useState<ChatAttachment[]>([])
   const [reading, setReading] = useState(false)
+  const [storedPickerOpen, setStoredPickerOpen] = useState(false)
   const [renameTarget, setRenameTarget] = useState<ChatThread | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ChatThread | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -870,6 +872,16 @@ export default function ChatStudio({ userId }: { userId: string }) {
               />
               <button
                 type="button"
+                onClick={() => setStoredPickerOpen(true)}
+                disabled={busy || reading || pending.length >= MAX_ATTACHMENTS}
+                className="pf-btn pf-btn-ghost h-11 shrink-0 px-3 disabled:opacity-40"
+                aria-label="Dosya deposundan ekle"
+                title="Dosya deposundan ekle"
+              >
+                <Icon name="folder" className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={busy || reading || pending.length >= MAX_ATTACHMENTS}
                 className="pf-btn pf-btn-ghost h-11 shrink-0 px-3 disabled:opacity-40"
@@ -916,6 +928,24 @@ export default function ChatStudio({ userId }: { userId: string }) {
           </div>
         </div>
       </div>
+
+      {storedPickerOpen && (
+        <StoredFilePicker
+          title="Sohbete dosya deposundan ekle"
+          onClose={() => setStoredPickerOpen(false)}
+          onSelect={(file) => {
+            const result = addAttachment(pending, {
+              id: 'stored_' + file.id,
+              name: file.name,
+              size: file.size,
+              content: file.content
+            })
+            setPending(result.attachments)
+            if (result.notice) setNotice(result.notice)
+            else setNotice('Dosya sohbet eklerine eklendi.')
+          }}
+        />
+      )}
 
       {/* ------------------------------------------------ dialogs */}
       {renameTarget && (
