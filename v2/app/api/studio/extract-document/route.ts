@@ -16,7 +16,45 @@ export async function POST(request: NextRequest) {
     if (!data.user) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
     const limit = checkRateLimit(rateLimitKey(data.user.id, null), { limit: 12, windowMs: 60_000 })
     if (!limit.allowed) return NextResponse.json({ error: 'Çok sık dosya yükleniyor. Biraz sonra tekrar dene.' }, { status: 429 })
-    const form = await request.formData()
+    const declaredLength = Number(request.headers.get('content-length') || '0')
+    const maxRequestBytes = MAX_FILE_BYTES + 64 * 1024
+    if (declaredLength > maxRequestBytes) {
+      return NextResponse.json({ error: 'Dosya isteği çok büyük.' }, { status: 413 })
+    }
+
+    // Enforce the limit while reading the stream as Content-Length may be absent.
+    const reader = request.body?.getReader()
+    if (!reader) return NextResponse.json({ error: 'Dosya isteği okunamadı.' }, { status: 400 })
+    const chunks: BlobPart[] = []
+    let receivedBytes = 0
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        receivedBytes += value.byteLength
+        if (receivedBytes > maxRequestBytes) {
+          await reader.cancel()
+          return NextResponse.json({ error: 'Dosya isteği çok büyük.' }, { status: 413 })
+        }
+        chunks.push(value.slice().buffer as ArrayBuffer)
+      }
+    } finally {
+      reader.releaseLock()
+    }
+
+    const headers = new Headers(request.headers)
+    headers.delete('content-length')
+    let form: FormData
+    try {
+      const boundedRequest = new Request(request.url, {
+        method: 'POST',
+        headers,
+        body: new Blob(chunks)
+      })
+      form = await boundedRequest.formData()
+    } catch {
+      return NextResponse.json({ error: 'Geçersiz dosya formu.' }, { status: 400 })
+    }
     const file = form.get('file')
     if (!(file instanceof File)) return NextResponse.json({ error: 'Dosya seçilmedi.' }, { status: 400 })
     if (!file.size || file.size > MAX_FILE_BYTES) return NextResponse.json({ error: 'Dosya boş veya 10 MB sınırını aşıyor.' }, { status: 413 })
