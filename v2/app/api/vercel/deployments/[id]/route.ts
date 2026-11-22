@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
 import { getSignedInUser } from '@/lib/admin/authorization'
-import { vercelRequest, VercelApiError } from '@/lib/vercel/api'
+import { getVercelConfig, vercelRequest, VercelApiError } from '@/lib/vercel/api'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const TARGET_BRANCH = 'promptforge-v2-development'
+
 type DeploymentDetails = {
   id?: string
   uid?: string
+  projectId?: string
   url?: string
   name?: string
   readyState?: string
@@ -24,16 +27,28 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   if (!user) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
   if (!isAdmin) return NextResponse.json({ error: 'Yönetici yetkisi gerekli.' }, { status: 403 })
 
+  const config = getVercelConfig()
+  if (!config) return NextResponse.json({ error: 'Vercel bağlantısı yapılandırılmamış.' }, { status: 503 })
+
   const id = params.id
   if (!id || !/^[a-zA-Z0-9_-]{5,160}$/.test(id)) {
     return NextResponse.json({ error: 'Geçersiz deployment kimliği.' }, { status: 400 })
   }
 
   try {
-    const [deployment, logs] = await Promise.all([
-      vercelRequest<DeploymentDetails>(`/v13/deployments/${encodeURIComponent(id)}`),
-      vercelRequest<unknown>(`/v3/deployments/${encodeURIComponent(id)}/events?limit=100&direction=backward&builds=1`).catch(() => null)
-    ])
+    const deployment = await vercelRequest<DeploymentDetails>(`/v13/deployments/${encodeURIComponent(id)}`)
+
+    // Never expose logs for deployments outside the configured V2 project/branch.
+    if (deployment.projectId !== config.projectId || deployment.meta?.githubCommitRef !== TARGET_BRANCH) {
+      return NextResponse.json({ error: 'Bu deployment izin verilen V2 projesine veya branch’ine ait değil.' }, {
+        status: 404,
+        headers: { 'Cache-Control': 'no-store' }
+      })
+    }
+
+    const logs = await vercelRequest<unknown>(
+      `/v3/deployments/${encodeURIComponent(id)}/events?limit=100&direction=backward&builds=1`
+    ).catch(() => null)
 
     return NextResponse.json({
       deployment: {
