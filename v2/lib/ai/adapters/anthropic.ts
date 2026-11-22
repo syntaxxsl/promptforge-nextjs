@@ -17,6 +17,24 @@ function contentToString(content: AIRequest['messages'][number]['content']): str
   return ''
 }
 
+function contentToAnthropic(content: AIRequest['messages'][number]['content']): string | Array<Record<string, unknown>> {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return ''
+  const blocks: Array<Record<string, unknown>> = []
+  for (const part of content) {
+    if (typeof part?.text === 'string') {
+      blocks.push({ type: 'text', text: part.text })
+      continue
+    }
+    const url = (part as { image_url?: { url?: unknown } })?.image_url?.url
+    if (part?.type === 'image_url' && typeof url === 'string') {
+      const match = /^data:(image\\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(url)
+      if (match) blocks.push({ type: 'image', source: { type: 'base64', media_type: match[1], data: match[2] } })
+    }
+  }
+  return blocks
+}
+
 function combineSignal(request: AIRequest): AbortSignal | undefined {
   if (request.signal) return request.signal
   if (request.timeoutMs && request.timeoutMs > 0) return AbortSignal.timeout(request.timeoutMs)
@@ -57,7 +75,7 @@ export class AnthropicAdapter implements AIAdapter {
       system,
       messages: messages.map((m) => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: contentToString(m.content)
+        content: contentToAnthropic(m.content)
       })),
       temperature: request.temperature ?? 0.7,
       top_k: po.topK,
