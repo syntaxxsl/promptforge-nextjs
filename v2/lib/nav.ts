@@ -133,15 +133,6 @@ export const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
-    title: 'Analiz ve Üretim',
-    items: [
-      { icon: 'folder', label: 'File Analyzer', href: '/file-analyzer' },
-      { icon: 'activity', label: 'Data Analyst', href: '/data-analyst' },
-      { icon: 'headset', label: 'Podcast Studio', href: '/podcast-studio' },
-      { icon: 'sparkles', label: 'Game Studio', href: '/game-studio' }
-    ]
-  },
-  {
     title: 'Hesap',
     items: [
       { icon: 'settings', label: 'Ayarlar', href: '/settings' },
@@ -151,6 +142,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Yönetim',
     items: [
+      { icon: 'activity', label: 'Command Center', href: '/command-center' },
       { icon: 'shield', label: 'Vercel Manager', href: '/vercel-manager' }
     ]
   }
