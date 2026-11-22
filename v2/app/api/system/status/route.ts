@@ -26,8 +26,15 @@ export async function GET() {
     }
 
     const database = supabaseStatus()
-    const { error: databaseProbeError } = await supabase.from('studio_records').select('record_id').limit(1)
-    const databaseReachable = !databaseProbeError
+    let databaseReachable = false
+    let databaseProbeError: unknown = null
+    try {
+      const probe = await supabase.from('studio_records').select('record_id').limit(1)
+      databaseProbeError = probe.error
+      databaseReachable = !probe.error
+    } catch (error) {
+      databaseProbeError = error
+    }
     const encryption = Boolean(
       process.env.API_KEY_ENCRYPTION_SECRET &&
       process.env.API_KEY_ENCRYPTION_SECRET.length >= 32
