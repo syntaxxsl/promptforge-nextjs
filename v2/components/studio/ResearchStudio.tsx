@@ -671,7 +671,7 @@ export default function ResearchStudio({ userId }: { userId: string }) {
                   <Markdown content={lastLiveText} />
                 </div>
               ) : active?.report ? (
-                <Markdown content={active.report} /><div className="mt-2"><SaveOutputButton userId={userId} tool="Araştırma raporu" title="Araştırma raporu" content={active.report}/></div>
+                <><Markdown content={active.report} /><div className="mt-2"><SaveOutputButton userId={userId} tool="Araştırma raporu" title="Araştırma raporu" content={active.report}/></div></>
               ) : busy ? (
                 <p className="text-xs text-muted">Rapor hazırlanıyor…</p>
               ) : (
