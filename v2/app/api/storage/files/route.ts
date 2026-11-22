@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     .upload(objectName, file, { contentType: mime, upsert: false, cacheControl: '3600' })
 
   if (uploadError) return error('Dosya yüklenemedi. Depolama kurulumu ve kota ayarlarını kontrol et.', 503, 'upload_failed')
-  return NextResponse.json({ ok: true, file: { name, size: file.size, contentType: mime } }, { status: 201 })
+  return NextResponse.json({ ok: true, file: { name, path: objectName, size: file.size, contentType: mime } }, { status: 201 })
 }
 
 /** Deletes only an object whose path is inside the authenticated user's folder. */
