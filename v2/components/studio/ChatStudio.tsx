@@ -35,6 +35,8 @@ import {
   addAttachment,
   describeAttachment,
   formatAttachmentsForPrompt,
+  isTextFile,
+  MAX_ATTACHMENT_BYTES,
   MAX_ATTACHMENTS,
   readAttachment
 } from '@/lib/studio/chat-attachments'
@@ -458,12 +460,46 @@ export default function ChatStudio({ userId }: { userId: string }) {
 
     setReading(true)
     let list = pending
+
     for (const file of files) {
-      const attachment = await readAttachment(file)
+      let attachment: ChatAttachment
+
+      // Keep a helpful local note for unsupported or oversized files. Valid
+      // text files must pass the server-side validation endpoint before they
+      // are shown as attached.
+      if (!isTextFile({ name: file.name, type: file.type }) || file.size > MAX_ATTACHMENT_BYTES) {
+        attachment = await readAttachment(file)
+      } else {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+
+          const response = await fetch('/api/files', {
+            method: 'POST',
+            body: formData
+          })
+          const data = (await response.json()) as {
+            file?: ChatAttachment
+            error?: string
+          }
+
+          if (!response.ok || !data.file) {
+            setNotice(data.error || 'Dosya sunucu tarafından kabul edilmedi.')
+            continue
+          }
+
+          attachment = data.file
+        } catch {
+          setNotice('Dosya yüklenirken sunucuya ulaşılamadı.')
+          continue
+        }
+      }
+
       const result = addAttachment(list, attachment)
       list = result.attachments
       if (result.notice) setNotice(result.notice)
     }
+
     setPending(list)
     setReading(false)
   }
