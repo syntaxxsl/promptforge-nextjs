@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { streamChat } from '@/lib/studio/chat-client'
@@ -15,7 +16,7 @@ const STYLES:{id:DeckStyle;title:string;desc:string;rule:string}[]=[
 ]
 const AUTO:ModelSelection={label:'Otomatik seçim'}
 
-export default function PresentationStudio(){
+export default function PresentationStudio({ userId }: { userId: string }){
  const [topic,setTopic]=useState('')
  const [audience,setAudience]=useState('')
  const [count,setCount]=useState('10')
@@ -59,7 +60,7 @@ export default function PresentationStudio(){
     <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={includeNotes} onChange={e=>setIncludeNotes(e.target.checked)} className="accent-current"/> Konuşmacı notları ekle</label>
     <div className="flex flex-wrap gap-2"><button type="button" onClick={generate} disabled={busy||topic.trim().length<5} className="pf-btn pf-btn-primary"><Icon name="sparkles" className="h-4 w-4"/>{busy?'Hazırlanıyor…':'Sunum oluştur'}</button>{busy&&<button type="button" onClick={stop} className="pf-btn pf-btn-ghost">Durdur</button>}</div>{notice&&<p role="status" className="text-xs text-muted">{notice}</p>}
    </section>
-   <section className="flex min-h-[580px] flex-col rounded-2xl border border-border bg-surface p-4 md:p-5"><div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Slayt taslağı</h2><p className="mt-1 text-xs text-muted">{meta||(busy?'Sunum akışı hazırlanıyor…':'Oluşturulan slaytlar burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={()=>{setResult('');setNotice('')}} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5"/>Kopyala</button></div></div><div className="min-h-[480px] flex-1 overflow-y-auto rounded-xl border border-border bg-background/60 p-4">{result?<Markdown content={result}/>:<div className="flex min-h-[460px] items-center justify-center text-center text-sm text-muted">{busy?'Slaytlar hazırlanıyor…':'Brief bilgilerini doldurup sunum oluştur.'}</div>}</div></section>
+   <section className="flex min-h-[580px] flex-col rounded-2xl border border-border bg-surface p-4 md:p-5"><div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Slayt taslağı</h2><p className="mt-1 text-xs text-muted">{meta||(busy?'Sunum akışı hazırlanıyor…':'Oluşturulan slaytlar burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={()=>{setResult('');setNotice('')}} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5"/>Kopyala</button><SaveOutputButton userId={userId} tool="Sunum Stüdyosu" title={topic.slice(0,100)} content={result}/></div></div><div className="min-h-[480px] flex-1 overflow-y-auto rounded-xl border border-border bg-background/60 p-4">{result?<Markdown content={result}/>:<div className="flex min-h-[460px] items-center justify-center text-center text-sm text-muted">{busy?'Slaytlar hazırlanıyor…':'Brief bilgilerini doldurup sunum oluştur.'}</div>}</div></section>
   </div><p className="text-center text-[11px] text-muted">Bu sürüm düzenlenebilir slayt taslağı ve konuşmacı notları üretir; henüz PPTX dosyası dışa aktarmaz.</p>
  </main>
 }
