@@ -943,7 +943,7 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
 .pf-tool-row-wrap>.pf-tool-row{min-width:0;flex:1}
 .pf-tool-row-wrap>button{display:grid;width:31px;height:31px;flex:none;place-items:center;border:1px solid transparent;border-radius:9px;color:var(--pf-muted,#94a3b8);transition:all .16s}
 .pf-tool-row-wrap>button:hover{border-color:rgba(250,204,21,.25);background:rgba(250,204,21,.07);color:#facc15}
-.pf-tool-row-wrap>button:has(svg[fill="currentColor"]){color:#facc15}
+.pf-tool-row-wrap>button:has(svg path[fill="currentColor"]){color:#facc15}
 
 /* Bespoke accents for additional PromptForge workspaces */
 .pf-brand-studio{--workspace-accent:#f0ab72;--workspace-soft:rgba(240,171,114,.1)}
