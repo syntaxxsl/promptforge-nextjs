@@ -107,6 +107,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: 'bug', label: 'AI Debugger', href: '/debugger' },
       { icon: 'vision', label: 'Görselden Kod', href: '/vision-to-code' },
       { icon: 'terminal', label: 'API Studio', href: '/api-studio' },
+      { icon: 'key', label: 'API Hub', href: '/api-hub' },
       { icon: 'terminal', label: 'SQL Asistanı', href: '/sql' },
       { icon: 'layers', label: 'Database Designer', href: '/db-designer' },
       { icon: 'sparkles', label: 'Prompt Mühendisi', href: '/prompt-engineer' },
