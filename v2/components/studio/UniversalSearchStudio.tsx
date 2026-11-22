@@ -56,7 +56,7 @@ export default function UniversalSearchStudio({ userId }: { userId: string }) {
   const counts = useMemo(() => Object.fromEntries((['Araçlar','Projeler','Dosyalar','Çıktılar','Sohbetler'] as const).map(key => [key, items.filter(item => item.category === key).length])), [items])
   const tabs: Tab[] = ['Tümü','Araçlar','Projeler','Dosyalar','Çıktılar','Sohbetler']
 
-  return <main className="mx-auto w-full max-w-[1250px] space-y-5 p-4 md:p-7">
+  return <main className="pf-universal-search-studio mx-auto w-full max-w-[1250px] space-y-5 p-4 md:p-7">
     <header className="rounded-3xl border border-border bg-surface p-5 md:p-7">
       <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-3 py-1.5 text-[10px] font-bold tracking-[.2em] text-accent"><Icon name="search" className="h-3.5 w-3.5"/> WORKSPACE INDEX</div>
       <h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">Universal Search</h1>
