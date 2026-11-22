@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { streamChat } from '@/lib/studio/chat-client'
@@ -37,7 +38,7 @@ const MODES: { id: PromptMode; title: string; description: string; instruction: 
 
 const AUTO: ModelSelection = { label: 'Otomatik seçim' }
 
-export default function PromptEngineerStudio() {
+export default function PromptEngineerStudio({ userId }: { userId: string }) {
   const [mode, setMode] = useState<PromptMode>('improve')
   const [input, setInput] = useState('')
   const [context, setContext] = useState('')
@@ -151,7 +152,7 @@ export default function PromptEngineerStudio() {
             </div>
             <div className="text-sm font-semibold text-fg">{item.title}</div>
             <p className="mt-1 text-xs leading-5 text-muted">{item.description}</p>
-          </button>
+          </button><SaveOutputButton userId={userId} tool="Prompt Engineer" title="Prompt Engineer" content={output}/>
         ))}
       </div>
 
