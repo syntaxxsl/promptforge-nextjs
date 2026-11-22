@@ -32,7 +32,7 @@ export default function TeamStudio({ userId }: { userId: string }) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [runs, setRuns] = useState<TeamRun[]>([])
   const [task, setTask] = useState('')
-  const [model, setModel] = useState<ModelSelection>({})
+  const [model, setModel] = useState<ModelSelection>({ label: 'Otomatik seçim' })
   const [includeReview, setIncludeReview] = useState(true)
   const [liveSteps, setLiveSteps] = useState<TeamStep[]>([])
   const [busy, setBusy] = useState(false)
