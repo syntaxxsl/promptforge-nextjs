@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       const form = new FormData()
       form.append('model', model === 'gpt-image-2.6-flare' ? 'gpt-image-2.6-sunburst' : model)
       form.append('prompt', fullPrompt)
-      form.append('image[]', new Blob([bytes], { type: mime }), 'promptforge-reference.' + extension)
+      form.append('image[]', new Blob([new Uint8Array(bytes).buffer], { type: mime }), 'promptforge-reference.' + extension)
       form.append('size', SIZES[aspect] || 'auto')
       form.append('quality', quality)
       form.append('output_format', 'png')

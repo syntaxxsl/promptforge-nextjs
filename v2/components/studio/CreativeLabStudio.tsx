@@ -74,7 +74,7 @@ const CONFIG: Record<CreativeTool, {
     styleOptions: ['Doğal rötuş', 'Sinematik renk', 'Ürün fotoğrafı', 'Portre ışık düzeni', 'Sosyal medya görünümü'],
     system: 'Sen dikkatli ve doğal sonuçları önceleyen bir fotoğraf editörüsün. Görsel varsa onu analiz et; kişilerin kimliğini veya hassas özelliklerini tahmin etme. İstenen değişiklikleri uygulanabilir adımlara ve başka bir editörde kullanılabilecek ayrıntılı bir düzenleme promptuna dönüştür. Görseli gerçekten değiştirdiğini iddia etme.',
     outputLabel: 'Fotoğraf düzenleme planı',
-    note: 'Fotoğraf analizi ve düzenleme yönergesi hazırlanır; bu stüdyoda piksel düzeyinde fotoğraf render servisi bağlı değildir.'
+    note: 'Yüklenen fotoğraf OpenAI Images API ile düzenlenir. Kendi OpenAI API anahtarın ve kullanım ücreti gerekir.'
   }
 }
 
@@ -258,7 +258,7 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
           <p>{config.description}</p>
           <div className="pf-creative-pills"><span>PromptForge AI</span><span>Proje bağlantılı çıktı</span><span>{svgMode ? 'SVG workspace' : tool === 'scene3d' ? 'Blender workflow' : 'Creative brief'}</span></div>
         </div>
-        <div className="pf-creative-model"><span>MODEL</span><ModelPicker value={model} onChange={setModel} disabled={busy} requiredCapability={tool === 'photo' && image ? 'vision' : undefined} /></div>
+        {!(tool === 'photo' && image) && <div className="pf-creative-model"><span>MODEL</span><ModelPicker value={model} onChange={setModel} disabled={busy} requiredCapability={tool === 'photo' ? 'vision' : undefined} /></div>}
       </div>
     </header>
 

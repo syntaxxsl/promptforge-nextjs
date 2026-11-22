@@ -2,10 +2,8 @@
 
 // Image and video job repositories (local-first).
 //
-// IMPORTANT: no image or video provider is connected in this version. These
-// repositories store *job definitions* so the UI, the history and the gallery
-// are real and usable, but they never claim a render happened. A job starts as
-// 'draft'; it only becomes 'queued' when a provider is wired in.
+// Image jobs can now be rendered through the user's own OpenAI Images API key.
+// Video jobs remain prompt drafts until a video provider is integrated.
 
 import { createId, nowIso, readCollection, removeById, upsert } from './store'
 import type { ImageJob, VideoJob } from './types'
