@@ -37,7 +37,7 @@ const MODES: { id: PromptMode; title: string; description: string; instruction: 
 
 const AUTO: ModelSelection = { label: 'Otomatik seçim' }
 
-export default function PromptEngineerStudio({ userId }: { userId: string }) {
+export default function PromptEngineerStudio() {
   const [mode, setMode] = useState<PromptMode>('improve')
   const [input, setInput] = useState('')
   const [context, setContext] = useState('')
@@ -129,7 +129,7 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
           <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent">
             <Icon name="sparkles" className="h-4 w-4" /> PromptForge Workspace
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Prompt Mühendisi</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">Prompt Mühendisi</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted">Fikirlerini daha net, güçlü ve tekrar kullanılabilir yapay zekâ talimatlarına dönüştür.</p>
         </div>
         <ModelPicker value={model} onChange={setModel} disabled={busy} />
@@ -147,9 +147,9 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
           >
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs text-muted">0{index + 1}</span>
-              {mode === item.id && <Icon name="check-circle" className="h-4 w-4 text-accent" />}
+              {mode === item.id && <Icon name="check" className="h-4 w-4 text-accent" />}
             </div>
-            <div className="text-sm font-semibold text-foreground">{item.title}</div>
+            <div className="text-sm font-semibold text-fg">{item.title}</div>
             <p className="mt-1 text-xs leading-5 text-muted">{item.description}</p>
           </button>
         ))}
@@ -159,11 +159,11 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
         <section className="rounded-2xl border border-border bg-surface p-4 md:p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Girdi</h2>
+              <h2 className="text-sm font-semibold text-fg">Girdi</h2>
               <p className="mt-1 text-xs text-muted">{selected.description}</p>
             </div>
             <button type="button" onClick={() => { setInput(''); setContext(''); setOutput(''); setNotice('') }} className="pf-btn pf-btn-ghost text-xs">
-              <Icon name="rotate-ccw" className="h-3.5 w-3.5" /> Temizle
+              Temizle
             </button>
           </div>
           <label className="mb-2 block text-xs font-medium text-muted" htmlFor="prompt-input">Ne yapmak istiyorsun?</label>
@@ -191,7 +191,7 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
             <button type="button" onClick={generate} disabled={busy || input.trim().length < 5} className="pf-btn pf-btn-primary">
               <Icon name="sparkles" className="h-4 w-4" /> {busy ? 'Hazırlanıyor…' : 'Prompt oluştur'}
             </button>
-            {busy && <button type="button" onClick={stop} className="pf-btn pf-btn-ghost text-xs"><Icon name="square" className="h-3.5 w-3.5" /> Durdur</button>}
+            {busy && <button type="button" onClick={stop} className="pf-btn pf-btn-ghost text-xs">Durdur</button>}
           </div>
           {notice && <p role="status" className="mt-3 text-xs text-muted">{notice}</p>}
         </section>
@@ -199,7 +199,7 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
         <section className="flex min-h-[440px] flex-col rounded-2xl border border-border bg-surface p-4 md:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Sonuç</h2>
+              <h2 className="text-sm font-semibold text-fg">Sonuç</h2>
               <p className="mt-1 text-xs text-muted">{meta || (busy ? 'Yapay zekâ yanıtı hazırlanıyor…' : 'Oluşturulan prompt burada görünecek.')}</p>
             </div>
             <button type="button" onClick={copyOutput} disabled={!output.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40">
@@ -209,8 +209,8 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
           <div className="min-h-[340px] flex-1 rounded-xl border border-border bg-background/60 p-4">
             {output ? <Markdown content={output} /> : (
               <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center">
-                <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-accent"><Icon name="wand-sparkles" className="h-6 w-6" /></div>
-                <p className="text-sm font-medium text-foreground">{busy ? 'Prompt hazırlanıyor' : 'Henüz sonuç yok'}</p>
+                <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-accent"><Icon name="sparkles" className="h-6 w-6" /></div>
+                <p className="text-sm font-medium text-fg">{busy ? 'Prompt hazırlanıyor' : 'Henüz sonuç yok'}</p>
                 <p className="mt-1 max-w-xs text-xs leading-5 text-muted">Sol tarafta isteğini yaz ve Prompt oluştur butonuna bas.</p>
               </div>
             )}
