@@ -65,7 +65,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         event.preventDefault()
         setCommandOpen(true)
       }
-      if (event.key === 'Escape') setCommandOpen(false)
+      if (event.key === 'Escape') { setCommandOpen(false); setAssistantOpen(false) }
     }
     window.addEventListener('keydown', handleShortcut)
     return () => window.removeEventListener('keydown', handleShortcut)
