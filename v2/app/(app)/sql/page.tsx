@@ -5,5 +5,5 @@ export default async function SQLPage() {
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user)redirect('/login')
- return <SQLStudio/>
+ return <SQLStudio userId={data.user.id}/>
 }
