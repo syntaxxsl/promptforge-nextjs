@@ -14,7 +14,6 @@ import {
   createProject,
   deleteProject,
   filterProjects,
-  getProject,
   linkTool,
   listFiles,
   listOutputs,
@@ -131,12 +130,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
         }
 
         cloudReadyRef.current = true
-        setProjects(filterProjects(userId, { query, favoritesOnly, tool: toolFilter || undefined }))
-        setVersions(readCollection<ProjectFileVersion>(userId, 'project-file-versions').filter((item) => !activeId || item.projectId === activeId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
-        if (activeId) {
-          setFiles(listFiles(userId, activeId))
-          setOutputs(listOutputs(userId, activeId))
-        }
+        setProjects(filterProjects(userId, {}))
       } catch {
         if (!cancelled) setNotice('Bulut proje eşitlemesi kullanılamıyor. Yerel proje ve dosyaların korunuyor.')
       }
@@ -197,8 +191,8 @@ export default function ProjectManager({ userId }: { userId: string }) {
   }, [projects, files, outputs, versions, userId])
 
   useEffect(() => {
-    refresh()
-  }, [query, favoritesOnly, toolFilter])
+    setProjects(filterProjects(userId, { query, favoritesOnly, tool: toolFilter || undefined }))
+  }, [userId, query, favoritesOnly, toolFilter])
 
   useEffect(() => {
     if (!activeId) {
