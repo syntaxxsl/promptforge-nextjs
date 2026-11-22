@@ -27,7 +27,7 @@ export default function DashboardStudio() {
           <h1 className="max-w-2xl text-3xl font-semibold leading-tight tracking-[-.04em] text-fg md:text-[46px]">Fikrini al. <span className="pf-gradient-text">Üretime dönüştür.</span></h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-muted md:text-[15px]">Yazma, tasarlama, araştırma ve geliştirme araçların tek bir çalışma alanında. Bugün ne oluşturmak istiyorsun?</p>
           <label className="pf-search mt-7 flex max-w-[580px] items-center gap-3 rounded-2xl px-4 py-3.5">
-            <Icon name="search" className="h-[18px] w-[18px] shrink-0 text-muted" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Bir araç ara... ör. görsel, kod, araştırma" className="min-w-0 flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-muted" />
+            <Icon name="search" className="h-[18px] w-[18px] shrink-0 text-muted" /><input aria-label="Çalışma alanlarında ara" value={query} onChange={event => setQuery(event.target.value)} placeholder="Bir araç ara... ör. görsel, kod, araştırma" className="min-w-0 flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-muted" />
             <kbd className="hidden rounded-md border border-border bg-surface px-2 py-1 text-[10px] text-muted sm:inline">ARA</kbd>{query && <button type="button" onClick={() => setQuery('')} className="text-xs text-muted hover:text-fg">Temizle</button>}
           </label>
         </div>
