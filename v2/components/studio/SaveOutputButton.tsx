@@ -82,6 +82,7 @@ export default function SaveOutputButton({
   }
 
   return <div className="flex flex-col items-end gap-1">
+    {projects.length > 0 && <select aria-label="Projeye bağla" value={projectId} onChange={event => setProjectId(event.target.value)} className="pf-input max-w-[190px] text-[11px]"><option value="">Projeye bağlama</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select>}
     <button type="button" onClick={save} disabled={saving || !content.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40">
       <Icon name="plus" className="h-3.5 w-3.5"/>{saving ? 'Kaydediliyor…' : 'Çıktılarıma kaydet'}
     </button>
