@@ -16,11 +16,14 @@ export async function resolveApiKey(
   providerId: ProviderId,
   userId?: string
 ): Promise<ResolvedKey | null> {
-  // 1. User-owned key (RLS-protected table, read via user session).
-  if (userId) {
+  const admin = getSupabaseAdminClient()
+
+  // 1. User-owned key. The service client is used only server-side and the
+  // userId must come from a verified session or trusted scheduled-job record.
+  // This also enables background workflows, which have no browser cookie jar.
+  if (userId && admin) {
     try {
-      const supabase = await createSupabaseServerClient()
-      const { data } = await supabase
+      const { data } = await admin
         .from('user_api_keys')
         .select('key_encrypted')
         .eq('user_id', userId)
@@ -34,8 +37,32 @@ export async function resolveApiKey(
         try {
           return { source: 'user', apiKey: decryptSecret(String(data.key_encrypted)), providerId }
         } catch {
-          // A stored user key exists but cannot be decrypted. Fail closed:
-          // never silently bill an admin-pool or platform key instead.
+          // A stored user key exists but cannot be decrypted. Fail closed.
+          return null
+        }
+      }
+    } catch {
+      // If the admin client/table is unavailable, try the session-scoped path.
+    }
+  }
+
+  // Interactive requests can still use the caller's RLS-scoped session.
+  if (userId) {
+    try {
+      const supabase = await createSupabaseServerClient()
+      const { data } = await supabase
+        .from('user_api_keys')
+        .select('key_encrypted')
+        .eq('user_id', userId)
+        .eq('provider', providerId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (data?.key_encrypted) {
+        try {
+          return { source: 'user', apiKey: decryptSecret(String(data.key_encrypted)), providerId }
+        } catch {
           return null
         }
       }
@@ -45,7 +72,6 @@ export async function resolveApiKey(
   }
 
   // 2. Admin-managed pool key (service role).
-  const admin = getSupabaseAdminClient()
   if (admin) {
     try {
       const now = new Date().toISOString()
