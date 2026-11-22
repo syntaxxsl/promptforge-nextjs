@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     let format = ''
     if (name.endsWith('.pdf') || file.type === 'application/pdf') {
       if (bytes.subarray(0, 5).toString() !== '%PDF-') return NextResponse.json({ error: 'Geçerli bir PDF dosyası değil.' }, { status: 400 })
-      const document = await pdfjs.getDocument({ data: new Uint8Array(bytes), isEvalSupported: false, useSystemFonts: true }).promise
+      const document = await pdfjs.getDocument({ data: new Uint8Array(bytes), useSystemFonts: true }).promise
       pages = document.numPages
       if (pages > 150) return NextResponse.json({ error: 'PDF en fazla 150 sayfa olabilir.' }, { status: 413 })
       const output: string[] = []
@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
       }
       text = output.join('\n\n')
       format = 'PDF'
-      await document.destroy()
     } else if (name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       if (bytes.subarray(0, 2).toString() !== 'PK') return NextResponse.json({ error: 'Geçerli bir DOCX dosyası değil.' }, { status: 400 })
       const extracted = await mammoth.extractRawText({ buffer: bytes })

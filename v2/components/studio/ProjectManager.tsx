@@ -589,7 +589,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
                     </div>
                     <div className="ml-auto flex gap-1.5">
                       <button onClick={() => importInputRef.current?.click()} className="pf-btn pf-btn-ghost text-xs"><Icon name="paperclip" className="h-3.5 w-3.5" />Paket içe aktar</button>
-                      <button onClick={exportProjectBundle} className="pf-btn pf-btn-ghost text-xs"><Icon name="download" className="h-3.5 w-3.5" />Paylaşılabilir paket</button><button onClick={createShareLink} disabled={sharing} className="pf-btn pf-btn-ghost text-xs"><Icon name="link" className="h-3.5 w-3.5" />{sharing ? 'Bağlantı hazırlanıyor…' : 'Paylaşım bağlantısı'}</button>
+                      <button onClick={exportProjectBundle} className="pf-btn pf-btn-ghost text-xs"><Icon name="download" className="h-3.5 w-3.5" />Paylaşılabilir paket</button><button onClick={createShareLink} disabled={sharing} className="pf-btn pf-btn-ghost text-xs"><Icon name="paperclip" className="h-3.5 w-3.5" />{sharing ? 'Bağlantı hazırlanıyor…' : 'Paylaşım bağlantısı'}</button>
                       <button onClick={rename} className="pf-btn pf-btn-ghost text-xs">
                         <Icon name="pen" className="h-3.5 w-3.5" />
                         Adlandır
