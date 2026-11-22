@@ -6,5 +6,5 @@ export default async function SEOPage(){
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user) redirect('/login')
- return <SEOStudio/>
+ return <SEOStudio userId={data.user.id}/>
 }
