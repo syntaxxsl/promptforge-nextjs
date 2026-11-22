@@ -50,4 +50,18 @@ $$;
 revoke all on function public.get_project_share(text) from public;
 grant execute on function public.get_project_share(text) to anon, authenticated;
 
+
+-- Keep version snapshots compatible with an already-created studio_records table.
+do $
+begin
+  if to_regclass('public.studio_records') is not null then
+    alter table public.studio_records drop constraint if exists studio_records_collection_check;
+    alter table public.studio_records add constraint studio_records_collection_check check (collection in (
+      'code-workspaces', 'projects', 'project-files', 'project-outputs', 'project-file-versions',
+      'agents', 'agent-runs', 'image-jobs', 'video-jobs', 'studio-outputs', 'memories', 'canvas-boards'
+    ));
+  end if;
+end
+$;
+
 commit;
