@@ -291,7 +291,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
         <header className="relative mb-5 flex flex-wrap items-center gap-3">
         <div>
           <h1 className="text-xl font-semibold flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10"><Icon name="bot" className="h-5 w-5 text-primary" /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10"><Icon name="sparkles" className="h-5 w-5 text-primary" /></span>
             AI Agent Studio
           </h1>
           <p className="mt-1 text-sm text-muted">
@@ -466,7 +466,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
                   disabled={busy}
                 />
                 <label className="pf-btn pf-btn-ghost cursor-pointer text-xs">
-                  <Icon name="image-plus" className="h-4 w-4" />
+                  <Icon name="image" className="h-4 w-4" />
                   {imageBusy ? 'Görsel okunuyor…' : 'Görsel ekle'}
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" disabled={busy || imageBusy} onChange={(event) => { void attachImage(event.target.files?.[0]); event.currentTarget.value = '' }} />
                 </label>
