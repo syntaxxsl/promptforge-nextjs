@@ -65,6 +65,8 @@ export interface Automation {
   scheduleTimezone?: string
   /** Fixed input text supplied to every scheduled run. */
   scheduleInput?: string
+  /** Exact event name accepted by the authenticated event dispatcher. */
+  eventName?: string
   nodes: AutomationNode[]
   enabled: boolean
   createdAt: string
@@ -136,6 +138,7 @@ export function createAutomation(
     trigger: patch.trigger ?? 'manual',
     scheduleLabel: '0 9 * * 1-5',
     scheduleTimezone: 'Europe/Istanbul',
+    eventName: 'manual.event',
     nodes: patch.nodes ?? [makeNode('trigger'), makeNode('ai_action'), makeNode('output')],
     enabled: true,
     createdAt: now,
