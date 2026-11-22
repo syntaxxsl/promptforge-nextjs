@@ -134,6 +134,20 @@ describe('POST /api/storage/files validation', () => {
     expect(upload).not.toHaveBeenCalled()
   })
 
+  it('accepts a PDF when extension, MIME type, and signature agree', async () => {
+    signedIn()
+    const form = new FormData()
+    form.set('file', new File(['%PDF-1.7 valid test content'], 'report.pdf', { type: 'application/pdf' }))
+    const request = new NextRequest(URL, { method: 'POST' })
+    vi.spyOn(request, 'formData').mockResolvedValue(form)
+
+    const response = (await POST(request))!
+    expect(response.status).toBe(201)
+    expect(upload).toHaveBeenCalledOnce()
+    expect(upload.mock.calls[0][1]).toBeInstanceOf(File)
+    expect(upload.mock.calls[0][2]).toMatchObject({ contentType: 'application/pdf', upsert: false })
+  })
+
   it('rejects files larger than the configured limit', async () => {
     signedIn()
     const request = new NextRequest(URL, {
