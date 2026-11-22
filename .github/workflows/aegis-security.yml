@@ -1,0 +1,61 @@
+name: PromptForge V2 — Aegis Security Scan
+
+on:
+  push:
+    branches:
+      - promptforge-v2-development
+    paths:
+      - "v2/**"
+      - ".github/workflows/aegis-security.yml"
+  pull_request:
+    branches:
+      - promptforge-v2-development
+    paths:
+      - "v2/**"
+      - ".github/workflows/aegis-security.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  aegis:
+    name: Aegis static security review
+    runs-on: ubuntu-latest
+    # Advisory on the first runs: inspect findings before making this a required gate.
+    continue-on-error: true
+    steps:
+      - name: Checkout V2 source
+        uses: actions/checkout@v4
+
+      - name: Set up Node 24 (required by Aegis CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Map PromptForge SQL migrations for Aegis
+        working-directory: v2
+        run: |
+          mkdir -p supabase/migrations
+          cp db/migrations/*.sql supabase/migrations/
+
+      - name: Run Aegis scanner
+        working-directory: v2
+        run: npx --yes @aegiskit/cli@0.3.0 ci --severity HIGH --sarif-out aegis.sarif --annotations
+
+      - name: Upload Aegis SARIF report
+        if: always() && hashFiles('v2/aegis.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: v2/aegis.sarif
+          category: aegis-promptforge-v2
+
+      - name: Preserve human-readable report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptforge-v2-aegis-report
+          path: v2/aegis.sarif
+          if-no-files-found: ignore
+          retention-days: 14
