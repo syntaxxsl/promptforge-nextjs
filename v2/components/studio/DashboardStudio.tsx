@@ -79,12 +79,29 @@ export default function DashboardStudio({ userId }: { userId: string }) {
         <div><span className="pf-stat-icon"><Icon name="layers" className="h-4 w-4" /></span><span><strong>{stats.outputs}</strong><small>Kaydedilen çıktılar</small></span><Link href="/outputs" aria-label="Çıktı kütüphanesine git"><Icon name="arrowRight" className="h-4 w-4" /></Link></div>
         <div className="pf-stat-note"><span className="h-2 w-2 rounded-full bg-emerald-400" /><span>Çalışma alanın hazır</span><small>Projelerin ve çıktıların tek yerde</small></div>
       </section>}
+      {!query && <section className="pf-launchpad">
+        <div className="pf-launchpad-head"><div><span className="pf-eyebrow">PROMPTFORGE UNIVERSE</span><h2>Fikirden <em>gerçeğe.</em></h2><p>Yaratıcı araçların, projelerin ve üretim alanların tek bir yerde birleşiyor.</p></div><div className="pf-launchpad-orbit"><i/><i/><i/><span>✦</span></div></div>
+        <div className="pf-launchpad-actions">
+          <Link href="/chat"><span className="pf-launchpad-action-icon"><Icon name="message" className="h-4 w-4"/></span><span><b>Yeni sohbet</b><small>AI ile fikir geliştir</small></span><Icon name="arrowRight" className="ml-auto h-4 w-4"/></Link>
+          <Link href="/image"><span className="pf-launchpad-action-icon"><Icon name="image" className="h-4 w-4"/></span><span><b>Görsel oluştur</b><small>Image Studio'yu aç</small></span><Icon name="arrowRight" className="ml-auto h-4 w-4"/></Link>
+          <Link href="/projects"><span className="pf-launchpad-action-icon"><Icon name="folder" className="h-4 w-4"/></span><span><b>Projelerine dön</b><small>Çalışmalarını yönet</small></span><Icon name="arrowRight" className="ml-auto h-4 w-4"/></Link>
+        </div>
+      </section>}
       {!query && <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="pf-eyebrow">Hızlı başlangıç</div><h2 className="mt-1 text-xl font-semibold tracking-tight text-fg">Nereden başlayalım?</h2></div><span className="text-xs text-muted">Öne çıkan çalışma alanları</span></div>
         <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">{featured.map(item => <Link key={item.href} href={item.href} className={`pf-feature-card group tone-${item.tone}`}>
           <div className="flex items-start justify-between"><span className="pf-feature-icon"><Icon name={item.icon} className="h-5 w-5" /></span><Icon name="arrowRight" className="h-4 w-4 text-muted transition group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-fg" /></div>
           <h3 className="mt-5 text-[15px] font-semibold text-fg">{item.label}</h3><p className="mt-2 min-h-[42px] text-xs leading-5 text-muted">{item.description}</p><span className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-fg">Çalışma alanını aç <Icon name="arrowRight" className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
         </Link>)}</div>
+      </section>}
+      {!query && <section className="pf-discover-band">
+        <div className="pf-discover-heading"><div><span className="pf-eyebrow">EXPLORE BY CREATIVE MODE</span><h2>Bugün hangi dünyadasın?</h2></div><span>Bir kategori seç ve keşfet</span></div>
+        <div className="pf-discover-grid">
+          <Link href="/image" className="pf-discover-tile tile-image"><span>01 / VISUAL</span><Icon name="image" className="h-6 w-6"/><b>Görsel dünya</b><small>Image, Photo, Logo ve Thumbnail</small></Link>
+          <Link href="/video" className="pf-discover-tile tile-motion"><span>02 / MOTION</span><Icon name="play" className="h-6 w-6"/><b>Hareketli içerik</b><small>Video ve medya stüdyoları</small></Link>
+          <Link href="/code" className="pf-discover-tile tile-code"><span>03 / BUILD</span><Icon name="code" className="h-6 w-6"/><b>Ürün geliştir</b><small>Kod, web ve API araçları</small></Link>
+          <Link href="/research" className="pf-discover-tile tile-research"><span>04 / THINK</span><Icon name="compass" className="h-6 w-6"/><b>Araştır ve keşfet</b><small>Research, Search ve Knowledge</small></Link>
+        </div>
       </section>}
       <section className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="pf-eyebrow">{query ? 'Arama' : 'Keşfet'}</div><h2 className="mt-1 text-xl font-semibold tracking-tight text-fg">{query ? 'Arama sonuçları' : 'Tüm çalışma alanları'}</h2><p className="mt-1 text-xs text-muted">{query ? filtered.length : tools.length} araç ve çalışma alanı</p></div><div className="pf-chip"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Workspace hazır</div></div>
