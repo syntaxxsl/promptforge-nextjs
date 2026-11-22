@@ -17,7 +17,7 @@ on:
       - ".github/workflows/promptforge-v2.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -39,6 +39,40 @@ jobs:
           cache-dependency-path: v2/package-lock.json
       - name: Generate lockfile for isolated dependency upgrade
         run: npm install --package-lock-only --ignore-scripts --no-audit
+      - name: Migrate async Supabase cookie calls
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const root = process.cwd();
+          const changed = [];
+
+          function visit(directory) {
+            for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+              if (entry.name === 'node_modules' || entry.name === '.next') continue;
+              const file = path.join(directory, entry.name);
+              if (entry.isDirectory()) {
+                visit(file);
+                continue;
+              }
+              if (!/\\.tsx?$/.test(entry.name) || file.endsWith(path.join('lib', 'supabase', 'server.ts'))) continue;
+
+              const source = fs.readFileSync(file, 'utf8');
+              const migrated = source.replace(
+                /(?<!function )(?<!await )createSupabaseServerClient\\(\\)/g,
+                'await createSupabaseServerClient()'
+              );
+              if (migrated !== source) {
+                fs.writeFileSync(file, migrated);
+                changed.push(path.relative(root, file));
+              }
+            }
+          }
+
+          visit(root);
+          console.log(changed.length ? changed.join('\\n') : 'No remaining synchronous Supabase client calls.');
+          NODE
       - name: Install dependencies
         run: npm ci
       - name: Upload generated lockfile
@@ -115,3 +149,16 @@ jobs:
         run: npm run typecheck
       - name: Production build
         run: npm run build
+      - name: Commit verified Next.js 16 migration
+        if: success() && github.ref == 'refs/heads/promptforge-v2-next16-upgrade'
+        run: |
+          git add -u v2
+          git add v2/proxy.ts v2/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No generated migration changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: complete Next.js 16 async request API migration"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
