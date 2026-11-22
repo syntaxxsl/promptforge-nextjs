@@ -35,6 +35,8 @@ export default function AgentStudio({ userId }: { userId: string }) {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [model, setModel] = useState<ModelSelection>(AUTO)
+  const [attachedImage, setAttachedImage] = useState<{ name: string; dataUrl: string } | null>(null)
+  const [imageBusy, setImageBusy] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
 
@@ -156,22 +158,60 @@ export default function AgentStudio({ userId }: { userId: string }) {
     return sections.join('\n\n')
   }
 
+  async function attachImage(file?: File) {
+    if (!file) return
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setNotice('Yalnızca PNG, JPEG veya WebP görselleri yükleyebilirsin.')
+      return
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setNotice('Görsel en fazla 4 MB olabilir. Daha küçük bir görsel seç.')
+      return
+    }
+    setImageBusy(true)
+    setNotice(null)
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Görsel okunamadı.'))
+        reader.onerror = () => reject(new Error('Görsel okunamadı.'))
+        reader.readAsDataURL(file)
+      })
+      setAttachedImage({ name: file.name, dataUrl })
+    } catch (error) {
+      setNotice((error as Error).message || 'Görsel eklenemedi.')
+    } finally {
+      setImageBusy(false)
+    }
+  }
+
   async function run() {
-    if (!active || !task.trim() || busy) return
+    if (!active || (!task.trim() && !attachedImage) || busy) return
     const controller = new AbortController()
     abortRef.current = controller
     setBusy(true)
     setNotice(null)
 
     try {
-      const toolContext = await collectToolContext(active, task.trim(), controller.signal)
+      const prompt = task.trim() || 'Eklediğim görseli ayrıntılı şekilde analiz et.'
+      const toolContext = task.trim()
+        ? await collectToolContext(active, task.trim(), controller.signal)
+        : ''
+      const userPrompt = `${prompt}${toolContext ? `\\n\\nTool context:\\n${toolContext}` : ''}`
+      const userContent = attachedImage
+        ? [
+            { type: 'text', text: userPrompt },
+            { type: 'image_url', image_url: { url: attachedImage.dataUrl } }
+          ]
+        : userPrompt
       const result = await completeChat({
         messages: [
           { role: 'system', content: buildSystemPrompt(active) },
-          { role: 'user', content: toolContext ? `${task.trim()}\n\nTool context:\n${toolContext}` : task.trim() }
+          { role: 'user', content: userContent }
         ],
         provider: model.provider,
         model: model.model,
+        task: attachedImage ? 'vision' : 'chat',
         signal: controller.signal
       })
       addRun(userId, {
@@ -184,6 +224,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
       })
       setRuns(listRuns(userId))
       setTask('')
+      setAttachedImage(null)
     } catch (error) {
       const message = (error as Error)?.message || 'Ajan çalıştırılamadı.'
       addRun(userId, {
@@ -203,16 +244,17 @@ export default function AgentStudio({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      <header className="mb-5 flex flex-wrap items-center gap-3">
+    <div className="mx-auto max-w-7xl space-y-5 p-3 sm:p-5 lg:p-7">
+      <section className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-primary/10 p-5 sm:p-7">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+        <header className="relative mb-5 flex flex-wrap items-center gap-3">
         <div>
           <h1 className="text-xl font-semibold flex items-center gap-2">
-            <Icon name="users" className="h-5 w-5 text-primary" />
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10"><Icon name="bot" className="h-5 w-5 text-primary" /></span>
             AI Agent Studio
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Sistem talimatı, model ve bildirilen yeteneklerle ajan tanımlayın; gerçek model çağrısıyla
-            çalıştırın.
+            Kendi yapay zekâ ajanlarını oluştur, araçlarını seç ve görevlerini tek bir çalışma alanından yönet.
           </p>
         </div>
         <button onClick={newAgent} className="pf-btn pf-btn-primary text-sm ml-auto">
@@ -241,13 +283,13 @@ export default function AgentStudio({ userId }: { userId: string }) {
           </p>
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           {/* Agent list */}
-          <aside className="space-y-2">
+          <aside className="space-y-3"><div className="flex items-center justify-between px-1"><h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Ajan kitaplığı</h2><span className="text-[10px] text-muted">{agents.length} kayıt</span></div>
             {agents.map((agent) => (
               <div
                 key={agent.id}
-                className={`rounded-lg border p-2.5 ${
+                className={`rounded-xl border p-3 transition-all ${
                   agent.id === activeId
                     ? 'border-primary/40 bg-primary/5'
                     : 'border-border hover:border-border/80'
@@ -275,7 +317,8 @@ export default function AgentStudio({ userId }: { userId: string }) {
 
           {/* Editor + runner */}
           <div className="space-y-5">
-            <section className="pf-card p-4 space-y-3">
+            <section className="pf-card space-y-4 rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-3 border-b border-border pb-3"><div><h2 className="text-sm font-semibold">Ajan yapılandırması</h2><p className="mt-0.5 text-[11px] text-muted">Kimliğini, davranışını ve araçlarını düzenle.</p></div><span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-medium text-primary">Düzenleyici</span></div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium mb-1.5" htmlFor="agent-name">
@@ -368,8 +411,8 @@ export default function AgentStudio({ userId }: { userId: string }) {
             </section>
 
             <section className="pf-card p-4 space-y-3">
-              <h2 className="text-sm font-semibold">Görev çalıştır</h2>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold">Görev alanı</h2><p className="mt-0.5 text-[11px] text-muted">Metin veya görsel göndererek ajanı çalıştır.</p></div><span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-500">AI Runtime</span></div>
+              <div className="flex flex-col gap-3">
                 <input
                   value={task}
                   onChange={(e) => setTask(e.target.value)}
@@ -380,9 +423,15 @@ export default function AgentStudio({ userId }: { userId: string }) {
                   className="pf-input text-sm flex-1"
                   disabled={busy}
                 />
+                <label className="pf-btn pf-btn-ghost cursor-pointer text-xs">
+                  <Icon name="image-plus" className="h-4 w-4" />
+                  {imageBusy ? 'Görsel okunuyor…' : 'Görsel ekle'}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" disabled={busy || imageBusy} onChange={(event) => { void attachImage(event.target.files?.[0]); event.currentTarget.value = '' }} />
+                </label>
+                <span className="text-[10px] text-muted">PNG / JPG / WebP · en fazla 4 MB</span>
                 <button
                   onClick={() => void run()}
-                  disabled={busy || !task.trim()}
+                  disabled={busy || imageBusy || (!task.trim() && !attachedImage)}
                   className="pf-btn pf-btn-primary text-sm disabled:opacity-40"
                 >
                   <Icon name="play" className="h-4 w-4" />
@@ -395,6 +444,15 @@ export default function AgentStudio({ userId }: { userId: string }) {
                   >
                     Durdur
                   </button>
+                )}
+              </div>
+
+                {attachedImage && (
+                  <div className="flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 p-2.5">
+                    <img src={attachedImage.dataUrl} alt="Yüklenecek görsel" className="h-16 w-16 rounded-lg object-cover" />
+                    <div className="min-w-0"><p className="truncate text-xs font-medium">{attachedImage.name}</p><p className="mt-1 text-[10px] text-muted">Görsel analiz için hazır. Seçilen modelin görsel desteği olmalı.</p></div>
+                    <button onClick={() => setAttachedImage(null)} className="ml-auto pf-btn pf-btn-ghost text-xs text-danger">Kaldır</button>
+                  </div>
                 )}
               </div>
 
