@@ -42,6 +42,9 @@ function resolveSignal(request: AIRequest): AbortSignal | undefined {
 
 export async function runAI(request: AIRequest): Promise<AIResult> {
   const routed = routeModel(request)
+  if (!routed && (request.task === 'vision' || (request.preferredCapabilities?.length ?? 0) > 0)) {
+    throw new AIProviderError('no_model', 'Seçilen sağlayıcı veya model bu görev için gerekli yeteneği desteklemiyor.', { providerId: request.provider })
+  }
   const providerId = request.provider || routed?.providerId
   if (!providerId) {
     throw new AIProviderError('no_model', 'Bu istek için uygun model sağlayıcısı bulunamadı.', { providerId })
@@ -73,6 +76,9 @@ export async function runAI(request: AIRequest): Promise<AIResult> {
 
 export async function* streamAI(request: AIRequest) {
   const routed = routeModel(request)
+  if (!routed && (request.task === 'vision' || (request.preferredCapabilities?.length ?? 0) > 0)) {
+    throw new AIProviderError('no_model', 'Seçilen sağlayıcı veya model bu görev için gerekli yeteneği desteklemiyor.', { providerId: request.provider })
+  }
   const providerId = request.provider || routed?.providerId
   if (!providerId) {
     throw new AIProviderError('no_model', 'Bu istek için uygun model sağlayıcısı bulunamadı.', { providerId })
