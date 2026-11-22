@@ -4,6 +4,7 @@ import path from 'path'
 export default defineConfig({
   esbuild: { jsx: 'automatic' },
   test: {
+    clearMocks: false,
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
