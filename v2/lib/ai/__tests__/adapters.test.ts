@@ -232,6 +232,21 @@ describe('Anthropic adapter', () => {
     expect((captured[0].body.messages as Array<{ role: string }>).every((m) => m.role !== 'system')).toBe(true)
   })
 
+  it('converts base64 image URLs to Anthropic image blocks', async () => {
+    const { captured } = captureFetch({ content: [{ type: 'text', text: 'seen' }] })
+    await new AnthropicAdapter(getProvider('anthropic')).complete({
+      ...baseRequest,
+      model: 'claude-sonnet-4-5',
+      messages: [{ role: 'user', content: [
+        { type: 'text', text: 'Describe this image.' },
+        { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,aGVsbG8=' } }
+      ] }]
+    }, KEY)
+    const content = (captured[0].body.messages as Array<{ content: Array<Record<string, unknown>> }>)[0].content
+    expect(content[0]).toEqual({ type: 'text', text: 'Describe this image.' })
+    expect(content[1]).toEqual({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'aGVsbG8=' } })
+  })
+
   it('streams content_block_delta text', async () => {
     captureStream([
       'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi"}}',
@@ -273,7 +288,24 @@ describe('Gemini adapter', () => {
     expect(result.usage?.totalTokens).toBe(3)
   })
 
-  it('maps assistant turns to the model role', async () => {
+  it('maps assistant turns to the model role', async () => {  it('converts base64 image URLs to Gemini inlineData parts', async () => {
+    const { captured } = captureFetch({ candidates: [{ content: { parts: [{ text: 'seen' }] } }] })
+    await new GeminiAdapter(getProvider('gemini')).complete({
+      ...baseRequest,
+      model: 'gemini-2.5-flash',
+      messages: [{ role: 'user', content: [
+        { type: 'text', text: 'Describe this image.' },
+        { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,aGVsbG8=' } }
+      ] }]
+    }, KEY)
+    const contents = captured[0].body.contents as Array<{ parts: Array<Record<string, unknown>> }>
+    expect(contents[0].parts).toEqual([
+      { text: 'Describe this image.' },
+      { inlineData: { mimeType: 'image/jpeg', data: 'aGVsbG8=' } }
+    ])
+  })
+
+
     const { captured } = captureFetch({ candidates: [{ content: { parts: [{ text: 'x' }] } }] })
     await new GeminiAdapter(getProvider('gemini')).complete(
       {
