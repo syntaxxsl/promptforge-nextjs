@@ -85,7 +85,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           {!collapsed && <button onClick={toggleCollapsed} className="pf-icon-btn hidden md:inline-flex" aria-label="Menüyü daralt"><Icon name="chevronLeft" className="h-4 w-4" /></button>}
           {collapsed && <button onClick={toggleCollapsed} className="pf-icon-btn hidden md:inline-flex" aria-label="Menüyü genişlet"><Icon name="chevronRight" className="h-4 w-4" /></button>}
-          <button onClick={() => setNavOpen(false)} className="pf-icon-btn md:hidden" aria-label="Menüyü kapat"><Icon name="x" className="h-4 w-4" /></button>
+          <button onClick={() => setNavOpen(false)} className="pf-icon-btn md:hidden" aria-label="Menüyü kapat"><Icon name="chevronLeft" className="h-4 w-4" /></button>
         </div>
         <div className={`px-3 pt-5 ${collapsed ? 'md:px-2' : ''}`}>
           <Link href="/dashboard" className={`pf-sidebar-home ${isActive('/dashboard') ? 'is-active' : ''} ${collapsed ? 'md:justify-center md:px-0' : ''}`}>
