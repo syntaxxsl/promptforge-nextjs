@@ -180,7 +180,6 @@ export default function ChatStudio({ userId }: { userId: string }) {
 
         const local = listThreads(userId)
         const remote = Array.isArray(data.threads) ? data.threads : []
-        const remoteById = new Map(remote.map((thread) => [thread.id, thread]))
         const merged = new Map<string, ChatThread>()
 
         for (const thread of [...remote, ...local]) {
