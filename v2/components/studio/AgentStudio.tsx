@@ -186,12 +186,32 @@ export default function AgentStudio({ userId }: { userId: string }) {
     setImageBusy(true)
     setNotice(null)
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
+      const source = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Görsel okunamadı.'))
         reader.onerror = () => reject(new Error('Görsel okunamadı.'))
         reader.readAsDataURL(file)
       })
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const element = new Image()
+        element.onload = () => resolve(element)
+        element.onerror = () => reject(new Error('Görsel açılamadı.'))
+        element.src = source
+      })
+      const scale = Math.min(1, 768 / Math.max(image.width, image.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(image.width * scale))
+      canvas.height = Math.max(1, Math.round(image.height * scale))
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('Görsel işlenemedi.')
+      context.drawImage(image, 0, 0, canvas.width, canvas.height)
+      let quality = 0.68
+      let dataUrl = canvas.toDataURL('image/jpeg', quality)
+      while (dataUrl.length > 70_000 && quality > 0.32) {
+        quality -= 0.08
+        dataUrl = canvas.toDataURL('image/jpeg', quality)
+      }
+      if (dataUrl.length > 70_000) throw new Error('Görsel istek sınırına sığmadı; daha küçük bir görsel dene.')
       setAttachedImage({ name: file.name, dataUrl })
     } catch (error) {
       setNotice((error as Error).message || 'Görsel eklenemedi.')
@@ -480,7 +500,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
                     Görev geçmişi ({runs.filter((run) => run.agentId === activeId).length})
                   </span>
                 </div>
-                {runs.length === 0 ? (
+                {runs.filter((run) => run.agentId === activeId).length === 0 ? (
                   <p className="text-[11px] text-muted">Henüz görev çalıştırılmadı.</p>
                 ) : (
                   <ul className="space-y-2 max-h-96 overflow-y-auto pf-scroll">
