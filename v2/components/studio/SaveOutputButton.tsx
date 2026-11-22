@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Icon from '@/components/Icon'
 import { createId, nowIso, readCollection, upsert } from '@/lib/studio/store'
+import { addOutput } from '@/lib/studio/project-store'
 
 type SavedOutput = {
   id: string
@@ -11,6 +12,7 @@ type SavedOutput = {
   title: string
   tool: string
   content: string
+  projectId?: string
 }
 
 export default function SaveOutputButton({
@@ -26,6 +28,13 @@ export default function SaveOutputButton({
 }) {
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([])
+  const [projectId, setProjectId] = useState('')
+
+  useEffect(() => {
+    if (!userId) return
+    setProjects(readCollection<{ id: string; name: string }>(userId, 'projects'))
+  }, [userId])
 
   async function save() {
     if (saving || !content.trim()) return
@@ -38,13 +47,23 @@ export default function SaveOutputButton({
       updatedAt: timestamp,
       title: title.trim().slice(0, 160) || 'İsimsiz çıktı',
       tool: tool.slice(0, 60),
-      content: content.slice(0, 200_000)
+      content: content.slice(0, 200_000),
+      ...(projectId ? { projectId } : {})
     }
 
     if (!userId || !upsert(userId, 'studio-outputs', record)) {
       setStatus('Yerel kayıt yapılamadı. Tarayıcı depolama alanını kontrol et.')
       setSaving(false)
       return
+    }
+
+    if (projectId) {
+      const linked = addOutput(userId, projectId, tool, record.title, record.content)
+      if (linked) {
+        try {
+          await fetch('/api/studio/data?collection=project-outputs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ record: linked }) })
+        } catch { /* local project copy remains available */ }
+      }
     }
 
     try {
