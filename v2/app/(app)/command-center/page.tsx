@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react'
 import Icon from '@/components/Icon'
 
+type SystemStatus = {
+  database?: { configured: boolean; missing?: string[] }
+  encryption?: { configured: boolean }
+  serverProviders?: string[]
+}
+
 type Overview = {
   configured?: boolean
   ready?: boolean
@@ -20,16 +26,24 @@ export default function CommandCenterPage() {
   const [answer, setAnswer] = useState('')
   const [assistantError, setAssistantError] = useState('')
   const [asking, setAsking] = useState(false)
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null)
+  const [statusLoading, setStatusLoading] = useState(true)
 
   async function refresh() {
     setLoading(true); setError('')
     try {
+      const statusPromise = fetch('/api/system/status', { cache: 'no-store' })
+        .then(async (response) => response.ok ? await response.json() as SystemStatus : null)
+        .catch(() => null)
       const res = await fetch('/api/admin/overview', { cache: 'no-store' })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Yönetim verileri alınamadı.')
       setData(json)
+      setStatusLoading(true)
+      const status = await statusPromise
+      setSystemStatus(status)
     } catch (err) { setError(err instanceof Error ? err.message : 'Bir hata oluştu.') }
-    finally { setLoading(false) }
+    finally { setLoading(false); setStatusLoading(false) }
   }
   useEffect(() => { void refresh() }, [])
 
@@ -52,6 +66,14 @@ export default function CommandCenterPage() {
     <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
       {[['7 günlük etkinlik', data?.metrics?.events7d], ['Aktif kullanıcı', data?.metrics?.activeUsers7d], ['Toplam hesap', data?.metrics?.totalUsers ?? '—'], ['Sayfa görüntüleme', data?.metrics?.pageViews7d]].map(([label, value]) => <div key={String(label)} className="pf-card p-4"><div className="text-sm text-muted">{label}</div><div className="text-3xl font-semibold mt-3">{loading ? '…' : value ?? '—'}</div><div className="text-xs text-muted mt-2">Son 7 gün / mevcut yapılandırma</div></div>)}
     </div>
+    <section className="pf-card p-5 space-y-3">
+      <div className="flex items-center justify-between gap-3"><h2 className="font-semibold flex items-center gap-2"><Icon name="shield"/> Sistem yapılandırması</h2><span className="text-[10px] text-muted">Gizli değerler gösterilmez</span></div>
+      {statusLoading ? <p className="text-sm text-muted">Kontrol ediliyor…</p> : systemStatus ? <div className="grid sm:grid-cols-3 gap-3">
+        <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">Supabase ayarları</div><div className="mt-2 text-sm font-semibold">{systemStatus.database?.configured ? 'Yapılandırılmış' : 'Eksik'}</div>{systemStatus.database?.missing?.length ? <p className="mt-1 text-[10px] text-muted">{systemStatus.database.missing.join(', ')}</p> : null}</div>
+        <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">API anahtarı şifreleme</div><div className="mt-2 text-sm font-semibold">{systemStatus.encryption?.configured ? 'Hazır' : 'Anahtar eksik'}</div><p className="mt-1 text-[10px] text-muted">Değer güvenlik nedeniyle okunamaz.</p></div>
+        <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">Sunucu AI sağlayıcıları</div><div className="mt-2 text-sm font-semibold">{systemStatus.serverProviders?.length ?? 0} yapılandırılmış</div><p className="mt-1 text-[10px] text-muted">{systemStatus.serverProviders?.join(', ') || 'Sunucu ortamında sağlayıcı anahtarı yok.'}</p></div>
+      </div> : <p className="text-sm text-muted">Sistem durumu alınamadı. Oturum ve API erişimini kontrol et.</p>}
+    </section>
     <div className="grid xl:grid-cols-[1.1fr_.9fr] gap-4">
       <section className="pf-card p-5 space-y-4"><h2 className="font-semibold flex items-center gap-2"><Icon name="activity"/> Ortak izleme altyapısı</h2>
         <div className="grid sm:grid-cols-2 gap-3">{[['API','API istekleri ve servis yanıtları'],['AI Engine','Model ve sağlayıcı katmanı'],['Güvenlik','Rol ve erişim kontrolleri'],['Veritabanı','Supabase ve analitik tabloları'],['Araçlar','Çalışma alanı gezinme etkinlikleri']].map(([name,desc]) => <div key={name} className="rounded-xl border border-border p-3"><div className="font-medium">{name}</div><p className="text-xs text-muted mt-1">{desc}</p></div>)}</div>
