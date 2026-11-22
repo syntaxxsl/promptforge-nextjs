@@ -38,7 +38,18 @@ const TOOL_LABELS: { id: StudioToolId; label: string }[] = [
   { id: 'code', label: 'Code Studio' },
   { id: 'image', label: 'Image Studio' },
   { id: 'video', label: 'Video Studio' },
-  { id: 'agents', label: 'Agent Studio' }
+  { id: 'agents', label: 'Agent Studio' },
+  { id: 'website-builder', label: 'Website Builder' },
+  { id: 'writer', label: 'AI Writer' },
+  { id: 'research', label: 'Research Studio' },
+  { id: 'presentation', label: 'Presentation Studio' },
+  { id: 'logo', label: 'Logo Studio' },
+  { id: 'thumbnail', label: 'Thumbnail Studio' },
+  { id: 'scene3d', label: '3D Studio' },
+  { id: 'music', label: 'Music Studio' },
+  { id: 'voice', label: 'Voice Studio' },
+  { id: 'photo', label: 'Photo Studio' },
+  { id: 'canvas', label: 'Canvas Studio' }
 ]
 
 export default function ProjectManager({ userId }: { userId: string }) {

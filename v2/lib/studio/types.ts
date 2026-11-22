@@ -5,7 +5,7 @@
 
 import type { ProviderId } from '@/lib/ai/types'
 
-export type StudioToolId = 'chat' | 'code' | 'image' | 'video' | 'agents' | 'projects'
+export type StudioToolId = 'chat' | 'code' | 'image' | 'video' | 'agents' | 'projects' | 'website-builder' | 'writer' | 'research' | 'presentation' | 'logo' | 'thumbnail' | 'scene3d' | 'music' | 'voice' | 'photo' | 'canvas'
 
 // ---------------------------------------------------------------- chat
 
