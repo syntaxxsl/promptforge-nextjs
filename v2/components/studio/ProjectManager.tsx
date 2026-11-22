@@ -287,6 +287,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
   }
 
   return (
+    <>
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <header className="mb-5 flex flex-wrap items-center gap-3">
         <div>
@@ -676,5 +677,6 @@ export default function ProjectManager({ userId }: { userId: string }) {
           onSelect={importStoredFile}
         />
       )}
+    </>
   )
 }
