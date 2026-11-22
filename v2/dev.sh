@@ -1,3 +1,3 @@
 #!/bin/sh
-# Bind Next.js dev server to localhost. Extra args from the IDE tool are ignored.
-exec ./node_modules/.bin/next dev -H 127.0.0.1
+# Bind Next.js dev server to localhost and keep the configured webpack path.
+exec ./node_modules/.bin/next dev --webpack -H 127.0.0.1
