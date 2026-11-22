@@ -52,6 +52,8 @@ const TOOL_LABELS: { id: StudioToolId; label: string }[] = [
   { id: 'canvas', label: 'Canvas Studio' }
 ]
 
+type ProjectFileVersion = { id: string; projectId: string; fileId: string; fileName: string; content: string; createdAt: string };
+
 export default function ProjectManager({ userId }: { userId: string }) {
   const [projects, setProjects] = useState<ProjectEntry[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -65,6 +67,8 @@ export default function ProjectManager({ userId }: { userId: string }) {
   const [notice, setNotice] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [storedPickerOpen, setStoredPickerOpen] = useState(false)
+  const [versions, setVersions] = useState<ProjectFileVersion[]>([])
+  const importInputRef = useRef<HTMLInputElement>(null)
   const [formName, setFormName] = useState('')
   const [formDesc, setFormDesc] = useState('')
   const [formColor, setFormColor] = useState(PROJECT_COLORS[0])
@@ -204,6 +208,52 @@ export default function ProjectManager({ userId }: { userId: string }) {
     setActiveFileId(null)
   }, [userId, activeId])
 
+  useEffect(() => {
+    const all = readCollection<ProjectFileVersion>(userId, 'project-file-versions')
+    setVersions(activeId ? all.filter((item) => item.projectId === activeId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : [])
+  }, [userId, activeId])
+
+  function saveVersion() {
+    if (!active || !activeFile) return
+    const all = readCollection<ProjectFileVersion>(userId, 'project-file-versions')
+    const version: ProjectFileVersion = { id: crypto.randomUUID(), projectId: active.id, fileId: activeFile.id, fileName: activeFile.name, content: activeFile.content, createdAt: new Date().toISOString() }
+    const next = [version, ...all].filter((item) => item.fileId !== activeFile.id || item.id === version.id || all.findIndex((old) => old.id === item.id) < 30)
+    writeCollection(userId, 'project-file-versions', next)
+    setVersions(next.filter((item) => item.projectId === active.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+    setNotice('Dosya sürümü kaydedildi.')
+  }
+
+  function restoreVersion(version: ProjectFileVersion) {
+    if (!active || !activeFile || !window.confirm('Bu sürüm mevcut dosya içeriğinin yerine yüklensin mi?')) return
+    saveVersion()
+    updateFile(userId, activeFile.id, version.content)
+    setFiles(listFiles(userId, active.id))
+    setNotice('Seçilen sürüm geri yüklendi. Önceki içerik için yeni bir sürüm kaydedildi.')
+  }
+
+  function exportProjectBundle() {
+    if (!active) return
+    const bundle = { format: 'promptforge-project', version: 1, exportedAt: new Date().toISOString(), project: { name: active.name, description: active.description, color: active.color, linkedTools: active.linkedTools }, files: files.map((file) => ({ name: file.name, content: file.content })), outputs: outputs.map((output) => ({ title: output.title, tool: output.tool, payload: output.payload })) }
+    const url = URL.createObjectURL(new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }))
+    const link = document.createElement('a'); link.href = url; link.download = active.name.replace(/[^a-zA-Z0-9-_]+/g, '-').toLowerCase() + '.promptforge.json'; link.click(); URL.revokeObjectURL(url)
+    setNotice('Paylaşılabilir proje paketi indirildi. Dosyayı başka biriyle paylaşabilir veya başka hesaba aktarabilirsin.')
+  }
+
+  async function importProjectBundle(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]; event.target.value = ''
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { setNotice('Proje paketi en fazla 5 MB olabilir.'); return }
+    try {
+      const value = JSON.parse(await file.text()) as { format?: string; version?: number; project?: { name?: string; description?: string; color?: string; linkedTools?: StudioToolId[] }; files?: Array<{ name?: string; content?: string }>; outputs?: Array<{ title?: string; tool?: string; payload?: string }> }
+      if (value.format !== 'promptforge-project' || value.version !== 1 || !value.project || !Array.isArray(value.files) || !Array.isArray(value.outputs)) throw new Error('Bu dosya geçerli bir PromptForge proje paketi değil.')
+      const project = createProject(userId, { name: (value.project.name || 'İçe aktarılan proje').slice(0, 100), description: (value.project.description || '').slice(0, 500), color: PROJECT_COLORS.includes(value.project.color || '') ? value.project.color! : PROJECT_COLORS[0] })
+      if (!project) throw new Error('Proje oluşturulamadı; tarayıcı depolaması dolu olabilir.')
+      for (const item of value.files.slice(0, 100)) if (typeof item.name === 'string' && typeof item.content === 'string') addFile(userId, project.id, item.name.slice(0, 160), item.content.slice(0, 500000))
+      for (const item of value.outputs.slice(0, 100)) if (typeof item.title === 'string' && typeof item.payload === 'string') addOutput(userId, project.id, (item.tool || 'import').slice(0, 60), item.title.slice(0, 160), item.payload.slice(0, 200000))
+      refresh(); setActiveId(project.id); setNotice('Proje paketi içe aktarıldı. Dosyaları ve çıktıları kontrol edebilirsin.')
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Proje paketi okunamadı.') }
+  }
+
   function create() {
     if (!formName.trim()) {
       setNotice('Proje adı gerekli.')
@@ -299,6 +349,7 @@ export default function ProjectManager({ userId }: { userId: string }) {
 
   return (
     <>
+    <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => void importProjectBundle(event)} />
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <header className="mb-5 flex flex-wrap items-center gap-3">
         <div>
@@ -497,6 +548,8 @@ export default function ProjectManager({ userId }: { userId: string }) {
                       </p>
                     </div>
                     <div className="ml-auto flex gap-1.5">
+                      <button onClick={() => importInputRef.current?.click()} className="pf-btn pf-btn-ghost text-xs"><Icon name="upload" className="h-3.5 w-3.5" />Paket içe aktar</button>
+                      <button onClick={exportProjectBundle} className="pf-btn pf-btn-ghost text-xs"><Icon name="share" className="h-3.5 w-3.5" />Paylaşılabilir paket</button>
                       <button onClick={rename} className="pf-btn pf-btn-ghost text-xs">
                         <Icon name="pen" className="h-3.5 w-3.5" />
                         Adlandır
@@ -608,12 +661,11 @@ export default function ProjectManager({ userId }: { userId: string }) {
                       </ul>
                       <div>
                         {activeFile ? (
-                          <textarea
-                            value={activeFile.content}
-                            onChange={(e) => saveFileContent(e.target.value)}
-                            className="pf-input min-h-48 font-mono text-xs resize-y"
-                            placeholder="Dosya içeriği…"
-                          />
+                          <>
+                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><span className="text-[11px] text-muted">{versions.filter((item) => item.fileId === activeFile.id).length} kayıtlı sürüm</span><button type="button" onClick={saveVersion} className="pf-btn pf-btn-ghost text-[11px]"><Icon name="clock" className="h-3.5 w-3.5"/>Sürüm kaydet</button></div>
+                            <textarea value={activeFile.content} onChange={(e) => saveFileContent(e.target.value)} className="pf-input min-h-48 font-mono text-xs resize-y" placeholder="Dosya içeriği…" />
+                            {versions.filter((item) => item.fileId === activeFile.id).slice(0, 8).length > 0 && <div className="mt-3 space-y-1.5"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted">Sürüm geçmişi</p>{versions.filter((item) => item.fileId === activeFile.id).slice(0, 8).map((version) => <div key={version.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-2.5 py-2"><span className="text-[11px] text-muted">{new Date(version.createdAt).toLocaleString('tr-TR')}</span><button type="button" onClick={() => restoreVersion(version)} className="text-[11px] text-primary hover:underline">Geri yükle</button></div>)}</div>}
+                          </>
                         ) : (
                           <p className="text-[11px] text-muted">Düzenlemek için bir dosya seçin.</p>
                         )}
