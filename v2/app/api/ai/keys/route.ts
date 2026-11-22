@@ -71,7 +71,11 @@ export async function POST(request: NextRequest) {
 
     let body: unknown
     try {
-      body = await request.json()
+      const rawBody = await request.text()
+      if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+        return error('İstek çok büyük.', 413, 'body_too_large')
+      }
+      body = JSON.parse(rawBody)
     } catch {
       return error('Geçerli JSON gönderilmedi.', 400, 'invalid_json')
     }
