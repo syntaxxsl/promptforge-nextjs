@@ -30,6 +30,10 @@ export const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    title: 'Keşif',
+    items: [{ icon: 'search', label: 'Universal Search', href: '/search' }]
+  },
+  {
     title: 'Asistanlar',
     items: [
       { icon: 'message', label: 'AI Chat', href: '/chat' },
