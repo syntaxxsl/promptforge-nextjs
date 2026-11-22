@@ -37,7 +37,10 @@ export function useCloudCollection<T extends CloudRecord>({
   const cloudIdsRef = useRef<Set<string>>(new Set())
   const errorNotifiedRef = useRef(false)
   const callbacksRef = useRef({ setRecords, sort, onUnavailable })
-  callbacksRef.current = { setRecords, sort, onUnavailable }
+
+  useEffect(() => {
+    callbacksRef.current = { setRecords, sort, onUnavailable }
+  }, [setRecords, sort, onUnavailable])
 
   const reportUnavailable = useCallback(() => {
     if (errorNotifiedRef.current) return
