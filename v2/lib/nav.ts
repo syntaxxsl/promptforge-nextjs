@@ -31,7 +31,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: 'Keşif',
-    items: [{ icon: 'search', label: 'Universal Search', href: '/search' }]
+    items: [{ icon: 'search', label: 'Universal Search', href: '/search' }, { icon: 'play', label: 'Playground', href: '/playground' }, { icon: 'sliders', label: 'Model Comparison', href: '/model-comparison' }]
   },
   {
     title: 'Asistanlar',
