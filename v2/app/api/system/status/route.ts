@@ -37,7 +37,12 @@ export async function GET() {
     return NextResponse.json({
       database: { configured: database.configured, missing: database.missing },
       encryption: { configured: encryption },
-      serverProviders
+      serverProviders,
+      automationScheduler: {
+        cronSecretConfigured: Boolean(process.env.CRON_SECRET?.trim()),
+        adminDatabaseConfigured: Boolean(process.env.SUPABASE_SECRET_KEY?.trim() && process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()),
+        configured: Boolean(process.env.CRON_SECRET?.trim() && process.env.SUPABASE_SECRET_KEY?.trim() && process.env.NEXT_PUBLIC_SUPABASE_URL?.trim())
+      }
     }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch {
     return NextResponse.json({ error: 'Sistem durumu alınamadı.' }, { status: 503 })
