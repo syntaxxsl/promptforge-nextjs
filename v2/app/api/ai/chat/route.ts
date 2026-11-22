@@ -9,7 +9,7 @@ import {
   rateLimitKey,
   validateChatBody
 } from '@/lib/ai/guards'
-import type { AIMessage, AIRequest, ProviderId } from '@/lib/ai/types'
+import type { AIMessage, AIRequest, ModelCapability, ProviderId } from '@/lib/ai/types'
 import { isProviderId } from '@/lib/ai/providers'
 
 export const runtime = 'nodejs'
@@ -114,6 +114,9 @@ export async function POST(request: NextRequest) {
       ? (body.provider as ProviderId)
       : undefined
     const model = typeof body.model === 'string' && body.model.trim() ? body.model.trim() : undefined
+    const requestedTask = typeof body.task === 'string' ? body.task : 'chat'
+    const task = ['chat', 'code', 'vision', 'summarize'].includes(requestedTask) ? requestedTask : 'chat'
+    const preferredCapabilities: ModelCapability[] = task === 'vision' ? ['vision'] : []
     const stream = body.stream !== false
     const temperature = typeof body.temperature === 'number' ? body.temperature : undefined
     const maxTokens = typeof body.maxTokens === 'number' ? body.maxTokens : undefined
@@ -126,7 +129,8 @@ export async function POST(request: NextRequest) {
       maxTokens,
       stream,
       userId: user.id,
-      task: typeof body.task === 'string' ? body.task : 'chat',
+      task,
+      preferredCapabilities,
       signal: request.signal,
       timeoutMs: 55_000,
       retries: 1
