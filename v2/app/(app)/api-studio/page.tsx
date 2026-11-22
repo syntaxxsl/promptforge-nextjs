@@ -5,5 +5,5 @@ export default async function APIStudioPage() {
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user)redirect('/login')
- return <APIStudio/>
+ return <APIStudio userId={data.user.id}/>
 }
