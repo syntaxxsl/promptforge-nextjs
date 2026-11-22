@@ -31,7 +31,7 @@ import {
 const TRIGGERS: { id: TriggerKind; label: string; note: string }[] = [
   { id: 'manual', label: 'Manuel', note: 'Butonla çalıştırılır' },
   { id: 'schedule', label: 'Zamanlanmış', note: 'Cron ile otomatik çalışır' },
-  { id: 'event', label: 'Olay', note: 'Olay tetikleyicileri henüz etkin değil' }
+  { id: 'event', label: 'Olay', note: 'Adlandırılmış olay geldiğinde çalışır' }
 ]
 
 export default function AutomationStudio({ userId }: { userId: string }) {
@@ -170,6 +170,29 @@ export default function AutomationStudio({ userId }: { userId: string }) {
     } finally {
       setBusy(false)
       abortRef.current = null
+    }
+  }
+
+  async function dispatchEvent() {
+    if (!active || !active.eventName?.trim() || busy) return
+    setError(null)
+    setBusy(true)
+    try {
+      const response = await fetch('/api/studio/automations/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventName: active.eventName.trim(), input })
+      })
+      const payload = await response.json() as { error?: string; matched?: number; runs?: Array<{ status: string; name: string }> }
+      if (!response.ok) throw new Error(payload.error || 'Olay gönderilemedi.')
+      refresh()
+      setTab('runs')
+      if (!payload.matched) setError(`“${active.eventName}” adına bağlı aktif otomasyon bulunamadı.`)
+      else if (payload.runs?.some((run) => run.status === 'failed')) setError('Olay çalıştı ancak en az bir otomasyon adımı hata verdi.')
+    } catch (err) {
+      setError((err as Error)?.message || 'Olay tetiklenemedi.')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -329,11 +352,41 @@ export default function AutomationStudio({ userId }: { userId: string }) {
               </div>
             )}
 
+            {active.trigger === 'event' && (
+              <div className="mb-3 rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/[0.05] p-3 space-y-3">
+                <label className="block text-[11px] text-white/65">
+                  Olay adı
+                  <input
+                    value={active.eventName || 'manual.event'}
+                    onChange={(event) => patch({ eventName: event.target.value })}
+                    maxLength={80}
+                    placeholder="örn. project.updated"
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white"
+                  />
+                </label>
+                <label className="block text-[11px] text-white/65">
+                  Olay verisi / girdi
+                  <textarea
+                    value={input}
+                    onChange={(event) => setInput(event.target.value)}
+                    rows={3}
+                    maxLength={12000}
+                    placeholder="Bu olayla birlikte otomasyona aktarılacak veri…"
+                    className="mt-1 w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white"
+                  />
+                </label>
+                <button type="button" disabled={busy || !active.enabled || !active.eventName?.trim()} onClick={() => void dispatchEvent()} className="rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/15 px-3 py-2 text-xs font-medium text-fuchsia-100 disabled:opacity-40">
+                  {busy ? 'Olay işleniyor…' : 'Olayı gönder ve otomasyonu çalıştır'}
+                </button>
+                <p className="text-[10px] text-white/40">Bu test, oturum açmış hesabındaki aynı olay adına bağlı etkin otomasyonları tetikler. Harici webhook entegrasyonu değildir.</p>
+              </div>
+            )}
+
             {active.trigger !== 'manual' && (
               <p className="mb-3 rounded-lg border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2 text-[11px] text-amber-200/80">
                 {active.trigger === 'schedule'
                   ? 'Zamanlama Vercel Cron üzerinden dakikada bir kontrol edilir. Cron Secret ve Supabase servis anahtarı sunucuda yapılandırılmış olmalıdır.'
-                  : 'Olay tetikleyicileri henüz etkin değil; bu akışı manuel başlatabilirsiniz.'}
+                  : 'Adlandırılmış olay tetikleyicisi etkin. Aynı olay adına bağlı otomasyonlar güvenli oturum üzerinden çalıştırılır.'}
               </p>
             )}
 
