@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable @next/next/no-img-element -- the attached image is a temporary in-memory data URL preview. */
+
 // AI Agent Studio — create, configure and run agents with explicit tool context.
 // Web search and private project-file reading execute before the model call.
 // Unsupported tools remain disabled instead of being advertised as working.
