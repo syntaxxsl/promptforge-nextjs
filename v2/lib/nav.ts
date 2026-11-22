@@ -31,8 +31,6 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'Asistanlar',
     items: [
       { icon: 'message', label: 'AI Chat', href: '/chat' },
-      { icon: 'sparkles', label: 'Command Center', href: '/command' },
-      { icon: 'pulse', label: 'AI Arena', href: '/arena' },
       { icon: 'user', label: 'Asistanım', href: '/assistant' },
       { icon: 'users', label: 'AI Teams', href: '/teams' }
     ]
@@ -40,14 +38,23 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Otomasyon',
     items: [
-      { icon: 'activity', label: 'AI Agents', href: '/agents' },
-      { icon: 'layers', label: 'Workflows', href: '/workflows' },
-      { icon: 'terminal', label: 'Playground', href: '/playground' }
+      { icon: 'users', label: 'AI Agents', href: '/agents' },
+      { icon: 'activity', label: 'Automation', href: '/automation' },
+      { icon: 'search', label: 'Web Search', href: '/web-search' }
+    ]
+  },
+  {
+    title: 'Araştırma',
+    items: [
+      { icon: 'compass', label: 'Research Studio', href: '/research' },
+      { icon: 'folder', label: 'Knowledge Base', href: '/knowledge' }
     ]
   },
   {
     title: 'Oluştur',
     items: [
+      { icon: 'image', label: 'Image Studio', href: '/image' },
+      { icon: 'vision', label: 'Video Studio', href: '/video' },
       { icon: 'code', label: 'Website Builder', href: '/website-builder' },
       { icon: 'pen', label: 'AI Writer', href: '/writer' },
       { icon: 'layers', label: 'Sunum', href: '/presentation' },
@@ -61,7 +68,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Geliştir',
     items: [
-      { icon: 'bug', label: 'Code Studio', href: '/code' },
+      { icon: 'code', label: 'Code Studio', href: '/code' },
       { icon: 'bug', label: 'AI Debugger', href: '/debugger' },
       { icon: 'vision', label: 'Görselden Kod', href: '/vision-to-code' },
       { icon: 'terminal', label: 'API Studio', href: '/api-studio' },
@@ -78,13 +85,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: 'compass', label: 'Dil Araçları', href: '/language' },
       { icon: 'pulse', label: 'Test Üretici', href: '/quiz' },
       { icon: 'pulse', label: 'Matematik', href: '/math' },
-      { icon: 'user', label: 'CV Oluşturucu', href: '/resume' },
-      { icon: 'compass', label: 'Research AI', href: '/research' }
+      { icon: 'user', label: 'CV Oluşturucu', href: '/resume' }
     ]
-  },
-  {
-    title: 'Stüdyolar (yakında)',
-    items: [{ icon: 'image', label: 'Stüdyolar', href: '/studios', soon: true }]
   },
   {
     title: 'Hesap',

@@ -1,0 +1,28 @@
+{
+  "//": "Sandbox typecheck scope. The full `tsc --noEmit` needs more RAM than this device has, so this config checks the Chat Studio slice (store, client, attachments, UI) plus its tests. It is not used by `next build`.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "noEmit": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "lib/studio/types.ts",
+    "lib/studio/store.ts",
+    "lib/studio/chat-store.ts",
+    "lib/studio/chat-client.ts",
+    "lib/studio/chat-attachments.ts",
+    "lib/studio/project-store.ts",
+    "lib/studio/agent-store.ts",
+    "lib/studio/__tests__/chat-attachments.test.ts",
+    "lib/studio/__tests__/chat-store.test.ts",
+    "lib/studio/__tests__/chat-studio.test.tsx",
+    "components/studio/ChatStudio.tsx",
+    "components/studio/ChatMessageRow.tsx",
+    "components/studio/StudioDialogs.tsx",
+    "components/Icon.tsx",
+    "components/Markdown.tsx",
+    "components/ModelPicker.tsx"
+  ],
+  "exclude": ["node_modules", ".next"]
+}

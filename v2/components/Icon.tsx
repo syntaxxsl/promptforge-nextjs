@@ -35,6 +35,10 @@ export type IconName =
   | 'layers'
   | 'users'
   | 'download'
+  | 'play'
+  | 'search'
+  | 'check'
+  | 'paperclip'
 
 const paths: Record<IconName, React.ReactNode> = {
   overview: (<><rect x="3" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6" /></>),
@@ -70,7 +74,11 @@ const paths: Record<IconName, React.ReactNode> = {
   map: (<><path d="M9 4 3 6.2v13.6L9 17.6l6 2.2 6-2.2V4l-6 2.2Z" /><path d="M9 4v13.6M15 6.2v13.6" /></>),
   layers: (<><path d="M12 3 3 8l9 5 9-5Z" /><path d="m3 12.5 9 5 9-5" /><path d="m3 16.5 9 5 9-5" /></>),
   users: (<><circle cx="9" cy="8.5" r="3.2" /><path d="M3 19.5c0-3 2.7-4.9 6-4.9s6 1.9 6 4.9" /><path d="M16 5.6a3.2 3.2 0 0 1 0 6M17.5 14.9c2.1.4 3.5 1.9 3.5 4.6" /></>),
-  download: (<><path d="M12 4v11" /><path d="m7.5 11 4.5 4.5 4.5-4.5" /><path d="M4 20h16" /></>)
+  download: (<><path d="M12 4v11" /><path d="m7.5 11 4.5 4.5 4.5-4.5" /><path d="M4 20h16" /></>),
+  play: (<path d="M8 5.2v13.6c0 .8.9 1.3 1.6.9l10-6.8c.6-.4.6-1.4 0-1.8l-10-6.8c-.7-.4-1.6.1-1.6.9Z" />),
+  search: (<><circle cx="11" cy="11" r="7" /><path d="m16.2 16.2 4.3 4.3" /></>),
+  check: (<path d="m5 12.5 4.5 4.5L19 7.5" />),
+  paperclip: (<path d="M20 11.5 12.2 19.3a4.6 4.6 0 0 1-6.5-6.5l8-8a3.2 3.2 0 0 1 4.5 4.5l-8 8a1.8 1.8 0 0 1-2.5-2.5l7.2-7.2" />)
 }
 
 export default function Icon({ name, className = 'h-[18px] w-[18px]', strokeWidth = 1.6 }: { name: IconName; className?: string; strokeWidth?: number }) {
