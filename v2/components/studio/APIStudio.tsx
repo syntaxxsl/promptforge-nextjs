@@ -10,9 +10,7 @@ export default function APIStudio({ userId }: { userId: string }) {
  const [method,setMethod]=useState<Method>('GET')
  const [url,setUrl]=useState('https://api.example.com/v1/items')
  const [headers,setHeaders]=useState<Pair[]>([{id:1,key:'Accept',value:'application/json'}])
- const [body,setBody]=useState('{
-  "name": "Example"
-}')
+ const [body,setBody]=useState(JSON.stringify({ name: 'Example' }, null, 2))
  const [tab,setTab]=useState<'headers'|'body'>('headers')
  const [language,setLanguage]=useState<'fetch'|'curl'>('fetch')
  const [notice,setNotice]=useState('')
