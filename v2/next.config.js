@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Next config remains CommonJS.
 const path = require('node:path')
 
 /**
