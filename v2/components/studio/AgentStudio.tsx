@@ -168,7 +168,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
       const result = await completeChat({
         messages: [
           { role: 'system', content: buildSystemPrompt(active) },
-          { role: 'user', content: toolContext ? `${task.trim()}\\n\\nTool context:\\n${toolContext}` : task.trim() }
+          { role: 'user', content: toolContext ? `${task.trim()}\n\nTool context:\n${toolContext}` : task.trim() }
         ],
         provider: model.provider,
         model: model.model,
