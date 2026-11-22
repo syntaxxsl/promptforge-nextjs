@@ -18,6 +18,25 @@ const featured = [
 export default function DashboardStudio({ userId }: { userId: string }) {
   const [query, setQuery] = useState('')
   const [stats, setStats] = useState({ projects: 0, conversations: 0, outputs: 0 })
+  const [favoriteTools, setFavoriteTools] = useState<string[]>([])
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('pf-v2-favorite-tools:' + userId)
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved)
+        if (Array.isArray(parsed)) setFavoriteTools(parsed.filter((value): value is string => typeof value === 'string'))
+      }
+    } catch { /* Ignore malformed local preferences. */ }
+  }, [userId])
+
+  function toggleFavorite(href: string) {
+    setFavoriteTools(current => {
+      const next = current.includes(href) ? current.filter(item => item !== href) : [...current, href]
+      try { window.localStorage.setItem('pf-v2-favorite-tools:' + userId, JSON.stringify(next)) } catch { /* Storage may be unavailable. */ }
+      return next
+    })
+  }
 
   useEffect(() => {
     let active = true
@@ -87,12 +106,16 @@ export default function DashboardStudio({ userId }: { userId: string }) {
           <Link href="/projects"><span className="pf-launchpad-action-icon"><Icon name="folder" className="h-4 w-4"/></span><span><b>Projelerine dön</b><small>Çalışmalarını yönet</small></span><Icon name="arrowRight" className="ml-auto h-4 w-4"/></Link>
         </div>
       </section>}
+      {!query && favoriteTools.length > 0 && <section className="pf-favorites-section">
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="pf-eyebrow">KİŞİSEL KISAYOLLAR</div><h2 className="mt-1 text-xl font-semibold tracking-tight text-fg">Favori çalışma alanların</h2></div><span className="text-xs text-muted">{favoriteTools.length} sabitlenmiş araç</span></div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{tools.filter(item => favoriteTools.includes(item.href)).map(item => <div key={item.href} className="pf-favorite-item"><Link href={item.href}><span className="pf-tool-icon"><Icon name={item.icon} className="h-4 w-4" /></span><span><b>{item.label}</b><small>{item.group}</small></span></Link><button type="button" onClick={() => toggleFavorite(item.href)} aria-label={item.label + ' favorilerden çıkar'} title="Favorilerden çıkar"><Icon name="starFilled" className="h-4 w-4" /></button></div>)}</div>
+      </section>}
       {!query && <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="pf-eyebrow">Hızlı başlangıç</div><h2 className="mt-1 text-xl font-semibold tracking-tight text-fg">Nereden başlayalım?</h2></div><span className="text-xs text-muted">Öne çıkan çalışma alanları</span></div>
-        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">{featured.map(item => <Link key={item.href} href={item.href} className={`pf-feature-card group tone-${item.tone}`}>
+        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">{featured.map(item => <div key={item.href} className="pf-feature-wrap"><Link href={item.href} className={`pf-feature-card group tone-${item.tone}`}>
           <div className="flex items-start justify-between"><span className="pf-feature-icon"><Icon name={item.icon} className="h-5 w-5" /></span><Icon name="arrowRight" className="h-4 w-4 text-muted transition group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-fg" /></div>
           <h3 className="mt-5 text-[15px] font-semibold text-fg">{item.label}</h3><p className="mt-2 min-h-[42px] text-xs leading-5 text-muted">{item.description}</p><span className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-fg">Çalışma alanını aç <Icon name="arrowRight" className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
-        </Link>)}</div>
+        </Link><button type="button" className={'pf-feature-favorite ' + (favoriteTools.includes(item.href) ? 'is-favorite' : '')} onClick={() => toggleFavorite(item.href)} aria-label={favoriteTools.includes(item.href) ? item.label + ' favorilerden çıkar' : item.label + ' favorilere ekle'} title={favoriteTools.includes(item.href) ? 'Favorilerden çıkar' : 'Favorilere ekle'}><Icon name={favoriteTools.includes(item.href) ? 'starFilled' : 'star'} className="h-4 w-4" /></button></div>)}</div>
       </section>}
       {!query && <section className="pf-discover-band">
         <div className="pf-discover-heading"><div><span className="pf-eyebrow">EXPLORE BY CREATIVE MODE</span><h2>Bugün hangi dünyadasın?</h2></div><span>Bir kategori seç ve keşfet</span></div>
