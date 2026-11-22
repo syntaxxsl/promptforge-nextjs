@@ -17,6 +17,8 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "mammoth": "1.13.0",
+    "pdfjs-dist": "6.5.438",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.39.0",
     "clsx": "^2.1.1",
