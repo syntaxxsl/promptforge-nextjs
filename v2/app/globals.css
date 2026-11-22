@@ -319,3 +319,23 @@ body{background:radial-gradient(ellipse at 15% -10%,rgba(113,88,255,.10),transpa
 .pf-code-studio>div>div.shrink-0.border-t .pf-btn-primary{background:linear-gradient(110deg,#8b75ff,#634bd7)}
 .pf-code-studio>div>div.shrink-0.border-t .rounded-lg.border{border-color:rgba(155,135,255,.18);background:#0b0e16}
 @media(max-width:767px){.pf-code-studio{height:calc(100dvh - 76px);min-height:0}.pf-code-studio>aside{width:100%;max-width:none;max-height:45dvh;overflow:auto;border-right:0}.pf-code-studio>div>header{padding-left:9px;padding-right:9px}.pf-code-studio>div>div.shrink-0.border-t>div{padding:10px}.pf-code-studio>div>textarea{font-size:12px;padding:12px}}
+
+
+/* Website Builder — brief-to-build creative workbench */
+.pf-website-studio{max-width:1600px;padding-top:30px;padding-bottom:48px}
+.pf-website-studio>header{position:relative;padding:22px 24px;border:1px solid var(--pf-border);border-radius:19px;background:linear-gradient(110deg,var(--pf-surface),color-mix(in srgb,var(--pf-surface) 85%,#7560df));overflow:hidden}
+.pf-website-studio>header:after{content:"";position:absolute;right:-65px;top:-125px;width:270px;height:270px;border-radius:50%;background:rgba(139,117,255,.12);filter:blur(48px);pointer-events:none}
+.pf-website-studio>header>div,.pf-website-studio>header>button{position:relative;z-index:1}
+.pf-website-studio>header h1{font-size:27px;letter-spacing:-.045em}
+.pf-website-studio>header p{max-width:720px;line-height:1.7}
+.pf-website-studio>div:nth-of-type(1)>button{min-height:105px;border-radius:15px;background:var(--pf-surface);border-color:var(--pf-border);transition:transform .18s,border-color .18s,background .18s}
+.pf-website-studio>div:nth-of-type(1)>button:hover{transform:translateY(-2px);border-color:rgba(155,135,255,.38)}
+.pf-website-studio>div:nth-of-type(1)>button[aria-pressed=true]{border-color:rgba(155,135,255,.55);background:linear-gradient(145deg,rgba(139,117,255,.16),var(--pf-surface));box-shadow:inset 0 0 0 1px rgba(155,135,255,.12),0 10px 25px rgba(0,0,0,.12)}
+.pf-website-studio>div:nth-of-type(2)>section{border-radius:18px;border-color:var(--pf-border);background:var(--pf-surface);box-shadow:var(--pf-shadow-sm)}
+.pf-website-studio>div:nth-of-type(2)>section:first-child{padding:20px}
+.pf-website-studio label{line-height:1.6}
+.pf-website-studio .pf-input{border-radius:10px;background:var(--pf-bg);border-color:var(--pf-border);padding:10px 12px}
+.pf-website-studio textarea.pf-input{line-height:1.7}
+.pf-website-studio .pf-btn-primary{min-height:40px;border-radius:10px;background:linear-gradient(110deg,#8b75ff,#634bd7)}
+.pf-website-studio .rounded-xl.border-border.bg-background\/60{border-radius:15px;border-color:var(--pf-border);background:#0b0e16;line-height:1.7}
+@media(max-width:767px){.pf-website-studio{padding:14px 12px 30px}.pf-website-studio>header{padding:18px;border-radius:15px}.pf-website-studio>header h1{font-size:23px}.pf-website-studio>div:nth-of-type(1)>button{min-height:88px;padding:12px}.pf-website-studio>div:nth-of-type(2)>section:first-child{padding:15px}}
