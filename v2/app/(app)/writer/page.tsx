@@ -6,5 +6,5 @@ export default async function WriterPage() {
  const supabase = createSupabaseServerClient()
  const { data } = await supabase.auth.getUser()
  if (!data.user) redirect('/login')
- return <WriterStudio />
+ return <WriterStudio userId={data.user.id} />
 }
