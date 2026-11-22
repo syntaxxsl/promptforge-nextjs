@@ -1,19 +1,17 @@
 // PromptForge 2.0 — Studio persistence layer
 //
 // WHY THIS EXISTS
-// The studio workspaces (chat, code, image, video, agents, projects) need
-// durable per-user state. The Supabase tables for that state do not exist yet
-// and creating them requires a migration, which is out of scope for this
-// package. So this module provides a *local-first* repository:
+// Studio repositories use localStorage as the immediate, resilient local copy.
+// Components that opt in to useCloudCollection also hydrate and synchronize the
+// same records through the authenticated /api/studio/data route and Supabase's
+// per-user studio_records table. This module itself remains browser-only and
+// never talks to the network.
 //
-//   - every write goes to localStorage under a versioned key,
-//   - every repository is scoped by userId, so two signed-in users on the same
-//     browser never see each other's data,
-//   - the interface is async and shaped like a database repository, so swapping
-//     in Supabase later means replacing this file, not the UI.
+//   - writes are scoped by userId and a versioned collection key,
+//   - unavailable storage is reported instead of pretending a write succeeded,
+//   - cloud synchronization is owned by useCloudCollection, not this repository.
 //
-// It is deliberately NOT called "Supabase" anywhere: nothing here talks to a
-// server, and the UI must not claim that cloud sync exists.
+// A collection without the cloud hook remains local to this browser.
 
 export const STORAGE_NAMESPACE = 'pf-v2'
 export const STORAGE_VERSION = 1
