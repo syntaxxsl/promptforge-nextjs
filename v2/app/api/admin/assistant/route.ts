@@ -13,8 +13,13 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
   if (!isAdmin) return NextResponse.json({ error: 'Yönetici yetkisi gerekli.' }, { status: 403 })
 
+  const declaredLength = Number(request.headers.get('content-length') || '0')
+  if (declaredLength > 8 * 1024) return NextResponse.json({ error: 'İstek çok büyük.' }, { status: 413 })
+  let raw: string
+  try { raw = await request.text() } catch { return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 }) }
+  if (new TextEncoder().encode(raw).byteLength > 8 * 1024) return NextResponse.json({ error: 'İstek çok büyük.' }, { status: 413 })
   let parsed
-  try { parsed = schema.safeParse(await request.json()) } catch { return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 }) }
+  try { parsed = schema.safeParse(JSON.parse(raw)) } catch { return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 }) }
   if (!parsed.success) return NextResponse.json({ error: 'İstek 3–3000 karakter olmalı.' }, { status: 400 })
 
   try {
