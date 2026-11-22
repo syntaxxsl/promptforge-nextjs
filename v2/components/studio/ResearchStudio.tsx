@@ -67,7 +67,7 @@ export default function ResearchStudio({ userId }: { userId: string }) {
   const [topic, setTopic] = useState('')
   const [goal, setGoal] = useState('')
   const [depth, setDepth] = useState<ResearchRun['depth']>('standard')
-  const [model, setModel] = useState<ModelSelection>({})
+  const [model, setModel] = useState<ModelSelection>({ label: 'Otomatik seçim' })
   const [tab, setTab] = useState<Tab>('report')
 
   const [liveStages, setLiveStages] = useState<ResearchStageResult[]>([])
