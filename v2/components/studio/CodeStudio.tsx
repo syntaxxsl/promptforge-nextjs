@@ -290,7 +290,7 @@ export default function CodeStudio({ userId }: { userId: string }) {
 
   return (
     <>
-    <div className="flex flex-col md:h-screen md:flex-row">
+    <div className="pf-code-studio flex flex-col md:h-screen md:flex-row">
       {/* Files */}
       <aside
         className={`${
