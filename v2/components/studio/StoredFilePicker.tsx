@@ -93,7 +93,7 @@ export default function StoredFilePicker({
             <h2 className="text-sm font-semibold">{title}</h2>
             <p className="mt-1 text-[11px] text-muted">Yalnızca metin dosyaları araçlara aktarılabilir.</p>
           </div>
-          <button type="button" onClick={onClose} className="pf-icon-btn" aria-label="Kapat"><Icon name="x" /></button>
+          <button type="button" onClick={onClose} className="pf-icon-btn" aria-label="Kapat">×</button>
         </div>
         {notice && <p role="status" className="mb-3 rounded-md border border-warning/40 bg-surface-2 p-2 text-xs text-warning">{notice}</p>}
         {loading ? (
@@ -105,12 +105,12 @@ export default function StoredFilePicker({
             {textFiles.map((file) => (
               <li key={file.id}>
                 <button type="button" onClick={() => void choose(file)} disabled={busyId !== null} className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-surface-2 disabled:opacity-50">
-                  <Icon name="file-text" className="h-4 w-4 shrink-0 text-primary" />
+                  <Icon name="folder" className="h-4 w-4 shrink-0 text-primary" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-medium">{file.name}</span>
                     <span className="block text-[10px] text-muted">{file.size == null ? 'Boyut bilinmiyor' : (file.size / 1024).toFixed(1) + ' KB'}</span>
                   </span>
-                  {busyId === file.id ? <span className="text-[10px] text-muted">Aktarılıyor…</span> : <Icon name="arrow-down-to-line" className="h-4 w-4 text-muted" />}
+                  {busyId === file.id ? <span className="text-[10px] text-muted">Aktarılıyor…</span> : <Icon name="download" className="h-4 w-4 text-muted" />}
                 </button>
               </li>
             ))}
