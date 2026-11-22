@@ -18,7 +18,6 @@ import ChatMessageRow from '@/components/studio/ChatMessageRow'
 import StoredFilePicker from '@/components/studio/StoredFilePicker'
 import { ConfirmDialog, PromptDialog } from '@/components/studio/StudioDialogs'
 import { streamChat, type ChatClientMessage } from '@/lib/studio/chat-client'
-import { readCollection } from '@/lib/studio/store'
 import {
   appendMessage,
   createThread,
