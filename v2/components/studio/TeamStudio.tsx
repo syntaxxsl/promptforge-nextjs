@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import {
@@ -439,7 +440,7 @@ export default function TeamStudio({ userId }: { userId: string }) {
                       </button>
                     </div>
                     <div className="pf-scroll max-h-64 overflow-y-auto">
-                      <Markdown content={lastRun.finalReport} />
+                      <Markdown content={lastRun.finalReport} /><div className="mt-2"><SaveOutputButton userId={userId} tool="AI Team raporu" title="AI Team raporu" content={lastRun.finalReport}/></div>
                     </div>
                   </div>
                 )}
