@@ -33,4 +33,4 @@ async function visit(directory) {
 }
 
 for (const root of roots) await visit(root)
-console.log(\`Ensured async Supabase client calls: \${changedCalls} call(s) across \${changedFiles} file(s).\`)
+console.log('Ensured async Supabase client calls: ' + changedCalls + ' call(s) across ' + changedFiles + ' file(s).')
