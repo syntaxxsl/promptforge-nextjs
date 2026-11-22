@@ -39,7 +39,7 @@ export default function AutomationStudio({ userId }: { userId: string }) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [runs, setRuns] = useState<AutomationRun[]>([])
   const [input, setInput] = useState('')
-  const [model, setModel] = useState<ModelSelection>({})
+  const [model, setModel] = useState<ModelSelection>({ label: 'Otomatik seçim' })
   const [liveNodes, setLiveNodes] = useState<NodeRun[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
