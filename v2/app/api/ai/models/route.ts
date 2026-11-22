@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { listModels, listRoutableModels } from '@/lib/ai/model-manager'
-import { getAllCatalogs } from '@/lib/ai/model-catalog'
+import { getProviderCatalog } from '@/lib/ai/model-catalog'
 import { listProviders } from '@/lib/ai/providers'
+import { resolveApiKey } from '@/lib/ai/key-manager'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { checkRateLimit, rateLimitKey } from '@/lib/ai/guards'
 import type { ProviderId } from '@/lib/ai/types'
@@ -12,32 +12,12 @@ export const runtime = 'nodejs'
 const MODELS_RATE_LIMIT = { limit: 20, windowMs: 60_000 }
 
 /**
- * Collects the server-side provider keys for the live catalogue lookup.
- *
- * The keys never leave this process: `getAllCatalogs` only returns model
- * metadata plus a status object. Providers without an env key are reported as
- * `fallback` with an explicit reason instead of being silently skipped.
- */
-function serverKeys(): Partial<Record<ProviderId, string>> {
-  const keys: Partial<Record<ProviderId, string>> = {}
-  for (const provider of listProviders()) {
-    const value = process.env[provider.apiKeyEnvVar]
-    if (typeof value === 'string' && value.trim().length > 0) {
-      keys[provider.id] = value.trim()
-    }
-  }
-  return keys
-}
-
-/**
  * GET /api/ai/models
  *
- * Returns the model catalog for the model pickers. Requires a session so an
- * unauthenticated caller cannot enumerate the platform's provider setup.
- *
- * `available: false` means the model has never been confirmed against the
- * provider's own /models endpoint. The UI must render those as unavailable
- * rather than offering them.
+ * Resolve the same per-user -> admin pool -> server environment key priority
+ * used by the AI engine. Always refresh this endpoint's provider catalogues:
+ * the catalogue cache is process-wide, while users may have different keys
+ * and therefore different model access.
  */
 export async function GET() {
   const supabase = createSupabaseServerClient()
@@ -57,16 +37,46 @@ export async function GET() {
     )
   }
 
-  const catalogs = await getAllCatalogs(serverKeys())
+  const catalogs = await Promise.all(
+    listProviders().map(async (provider) => {
+      const providerId = provider.id as ProviderId
+      const key = await resolveApiKey(providerId, data.user.id)
 
-  return NextResponse.json({
-    models: listModels(),
-    routable: listRoutableModels().map((model) => ({
+      if (!key) {
+        return {
+          models: [],
+          status: {
+            providerId,
+            status: 'fallback' as const,
+            reason: 'Bu sağlayıcı için kullanıcı, havuz veya sunucu API anahtarı bulunamadı.',
+            modelCount: 0,
+            fetchedAt: Date.now(),
+            cached: false
+          }
+        }
+      }
+
+      return getProviderCatalog(providerId, {
+        apiKey: key.apiKey,
+        forceRefresh: true
+      })
+    })
+  )
+
+  const models = catalogs.flatMap((catalog) => catalog.models)
+  const routable = models
+    .filter((model) => model.isEnabled !== false && model.available !== false)
+    .map((model) => ({
       providerId: model.providerId,
       id: model.id,
       displayName: model.displayName,
-      capabilities: model.capabilities
-    })),
+      capabilities: model.capabilities,
+      available: model.available === true
+    }))
+
+  return NextResponse.json({
+    models,
+    routable,
     providers: listProviders().map((provider) => ({
       id: provider.id,
       displayName: provider.displayName,
