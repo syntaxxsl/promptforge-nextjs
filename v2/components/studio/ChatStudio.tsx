@@ -135,6 +135,15 @@ export default function ChatStudio({ userId }: { userId: string }) {
     refresh()
   }, [refresh])
 
+  // Accept a draft handed off by the global AI Assistant launcher.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const prompt = params.get('prompt')
+    if (!prompt) return
+    setInput(prompt.slice(0, 4000))
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [])
+
   // Load user-managed AI Memory from local storage first, then merge the cloud copy.
   useEffect(() => {
     let cancelled = false
