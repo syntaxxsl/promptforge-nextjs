@@ -33,7 +33,7 @@ function clientIp(request: NextRequest): string | null {
 }
 
 async function requireUser() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   return data.user ?? null
 }

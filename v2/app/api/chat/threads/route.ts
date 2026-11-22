@@ -16,7 +16,7 @@ function jsonError(message: string, status: number, code: string) {
 }
 
 async function getAuth() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase.auth.getUser()
   if (error || !data.user) return null
   const rate = checkRateLimit(rateLimitKey(data.user.id, null), RATE_LIMIT)

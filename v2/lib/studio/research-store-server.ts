@@ -98,7 +98,7 @@ function unavailable(): StoreResult<never> {
 export async function listResearchRuns(userId: string, limit = 50): Promise<StoreResult<ResearchRun[]>> {
   if (!supabaseConfigured()) return unavailable()
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from(RESEARCH_TABLE)
     .select(
@@ -116,7 +116,7 @@ export async function listResearchRuns(userId: string, limit = 50): Promise<Stor
 export async function saveResearchRun(userId: string, run: ResearchRun): Promise<StoreResult<ResearchRun>> {
   if (!supabaseConfigured()) return unavailable()
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from(RESEARCH_TABLE)
     .upsert(toRow(userId, run), { onConflict: 'id' })
@@ -133,7 +133,7 @@ export async function saveResearchRun(userId: string, run: ResearchRun): Promise
 export async function deleteResearchRun(userId: string, id: string): Promise<StoreResult<{ id: string }>> {
   if (!supabaseConfigured()) return unavailable()
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from(RESEARCH_TABLE).delete().eq('id', id).eq('user_id', userId)
   if (error) return { ok: false, error: 'Araştırma kaydı silinemedi.' }
   return { ok: true, data: { id } }

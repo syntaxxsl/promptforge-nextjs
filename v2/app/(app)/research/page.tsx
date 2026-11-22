@@ -3,7 +3,7 @@ import ResearchStudio from '@/components/studio/ResearchStudio'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export default async function ResearchPage() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   if (!data.user) redirect('/login')
 
