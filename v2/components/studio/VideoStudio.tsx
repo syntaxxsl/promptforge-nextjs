@@ -31,7 +31,7 @@ export default function VideoStudio({ userId }: { userId: string }) {
   const [jobs, setJobs] = useState<VideoJob[]>([])
   const [notice, setNotice] = useState<string | null>(null)
 
-  useCloudCollection({ userId, collection: 'video-jobs', records: jobs, setRecords: setJobs, sort: (a, b) => b.createdAt.localeCompare(a.createdAt) })
+  useCloudCollection({ userId, collection: 'video-jobs', records: jobs, setRecords: setJobs, sort: (a, b) => b.createdAt.localeCompare(a.createdAt), onUnavailable: () => setNotice('Bulut Video Studio eşitlemesi kullanılamıyor; taslakların bu cihazda korunuyor.') })
 
   const provider = useMemo(() => videoProviderStatus(), [])
 
