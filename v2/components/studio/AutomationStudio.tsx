@@ -183,9 +183,12 @@ export default function AutomationStudio({ userId }: { userId: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventName: active.eventName.trim(), input })
       })
-      const payload = await response.json() as { error?: string; matched?: number; runs?: Array<{ status: string; name: string }> }
+      const payload = await response.json() as { error?: string; matched?: number; runs?: AutomationRun[] }
       if (!response.ok) throw new Error(payload.error || 'Olay gönderilemedi.')
-      refresh()
+      if (payload.runs?.length) {
+        payload.runs.forEach((run) => saveRun(userId, run))
+        setRuns(listRuns(userId))
+      }
       setTab('runs')
       if (!payload.matched) setError(`“${active.eventName}” adına bağlı aktif otomasyon bulunamadı.`)
       else if (payload.runs?.some((run) => run.status === 'failed')) setError('Olay çalıştı ancak en az bir otomasyon adımı hata verdi.')
