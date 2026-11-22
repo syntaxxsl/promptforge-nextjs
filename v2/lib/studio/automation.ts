@@ -3,9 +3,9 @@
 // EXECUTION MODEL
 // A workflow is an ordered list of nodes. Running it walks the list top-down,
 // threading the previous node's output into the next one. Conditions can skip
-// the remainder of the run. There is no background scheduler in this build:
-// "scheduled" triggers are stored and shown, but nothing fires them — the UI
-// states that explicitly and offers manual runs.
+// the remainder of the run. Scheduled workflows are dispatched by the
+// authenticated /api/cron/automations route. Supabase Cron provides the
+// minute-level schedule; see docs/AUTOMATION-SCHEDULER-SETUP.md for setup.
 
 import { createId, nowIso, readCollection, removeById, upsert } from './store'
 import { completeChat } from './chat-client'
