@@ -188,13 +188,13 @@ export interface VideoJob {
 
 // ---------------------------------------------------------------- agents
 
-export type AgentToolId = 'web_search' | 'code_interpreter' | 'file_read' | 'image_view'
+export type AgentToolId = 'web_search' | 'code_interpreter' | 'file_read' | 'image_view' | 'memory_read'
 
 export const AGENT_TOOLS: { id: AgentToolId; label: string; note: string }[] = [
   { id: 'web_search', label: 'Web arama', note: 'Görev öncesinde web araması yapar ve sonuçları bağlama ekler.' },
   { id: 'code_interpreter', label: 'Kod çalıştırma', note: 'Henüz etkin değil.' },
   { id: 'file_read', label: 'Dosya okuma', note: 'Özel proje dosyalarını arar ve ilgili içerikleri bağlama ekler.' },
-  { id: 'image_view', label: 'Görsel okuma', note: 'PNG, JPEG veya WebP görsellerini destekleyen modellerle analiz eder.' }
+  { id: 'image_view', label: 'Görsel okuma', note: 'PNG, JPEG veya WebP görsellerini destekleyen modellerle analiz eder.' },\n  { id: 'memory_read', label: 'AI hafızası', note: 'Kullanıcının kendi hafıza kayıtlarından görevle ilgili bilgileri bağlama ekler.' }
 ]
 
 export interface AgentRunMessage {
