@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { streamChat } from '@/lib/studio/chat-client'
@@ -17,7 +18,7 @@ const PLATFORMS:{id:Platform;name:string;hint:string}[]=[
 ]
 const AUTO:ModelSelection={label:'Otomatik seçim'}
 
-export default function SocialStudio(){
+export default function SocialStudio({ userId }: { userId: string }){
  const [platform,setPlatform]=useState<Platform>('instagram')
  const [goal,setGoal]=useState('engagement')
  const [topic,setTopic]=useState('')
@@ -55,7 +56,7 @@ export default function SocialStudio(){
  async function copy(){try{await navigator.clipboard.writeText(result);setNotice('İçerik kopyalandı.')}catch{setNotice('Kopyalama başarısız; metni seçerek kopyalayabilirsin.')}}
  return <main className="mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
   <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="message" className="h-4 w-4"/> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">Sosyal Medya Stüdyosu</h1><p className="mt-1 text-sm text-muted">Farklı platformlar için özgün paylaşım fikirleri ve içerikler üret.</p></div><ModelPicker value={model} onChange={setModel} disabled={busy}/></header>
-  <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{PLATFORMS.map((p,index)=><button key={p.id} type="button" onClick={()=>setPlatform(p.id)} disabled={busy} aria-pressed={platform===p.id} className={`rounded-xl border p-4 text-left transition ${platform===p.id?'border-accent/60 bg-accent/10':'border-border bg-surface hover:border-accent/30'}`}><div className="flex items-center justify-between"><span className="text-sm font-semibold text-fg">{p.name}</span><span className="text-xs text-muted">0{index+1}</span></div><p className="mt-1 text-xs text-muted">{p.hint}</p></button>)}</section>
+  <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{PLATFORMS.map((p,index)=><button key={p.id} type="button" onClick={()=>setPlatform(p.id)} disabled={busy} aria-pressed={platform===p.id} className={`rounded-xl border p-4 text-left transition ${platform===p.id?'border-accent/60 bg-accent/10':'border-border bg-surface hover:border-accent/30'}`}><div className="flex items-center justify-between"><span className="text-sm font-semibold text-fg">{p.name}</span><span className="text-xs text-muted">0{index+1}</span></div><p className="mt-1 text-xs text-muted">{p.hint}</p></button><SaveOutputButton userId={userId} tool="Sosyal Medya Stüdyosu" title="Sosyal Medya Stüdyosu" content={result}/>)}</section>
   <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
    <section className="space-y-4 rounded-2xl border border-border bg-surface p-4 md:p-5"><div><h2 className="text-sm font-semibold text-fg">İçerik brief'i</h2><p className="mt-1 text-xs text-muted">Platform: {selected.name}</p></div>
     <label htmlFor="social-topic" className="block text-xs font-medium text-muted">Konu / kampanya<textarea id="social-topic" value={topic} onChange={e=>setTopic(e.target.value)} rows={7} maxLength={12000} placeholder="Ne hakkında paylaşım hazırlıyoruz? Ürün, kampanya, duyuru veya fikir..." className="pf-input mt-2 w-full resize-y text-sm leading-6"/></label>
