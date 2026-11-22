@@ -639,3 +639,46 @@ body{background:radial-gradient(ellipse at 15% -10%,rgba(113,88,255,.10),transpa
 .pf-toolbox-footnote{border-top:1px solid var(--pf-border);padding-top:12px}
 @media(max-width:950px){.pf-toolbox-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.pf-toolbox-hero{padding:17px}.pf-toolbox-grid{grid-template-columns:1fr}.pf-palette-swatches{gap:4px}.pf-palette-swatches button{min-height:110px;padding:4px}.pf-palette-swatches span{font-size:7px}.pf-toolbox-panel{padding:13px}.pf-toolbox-panel-head{align-items:flex-start;flex-direction:column}}
+
+
+/* Neon Universe refresh — shared navigation, auth and dashboard polish */
+.pf-workspace-rail{position:sticky;top:76px;z-index:25;overflow-x:auto;border-bottom:1px solid var(--pf-border);background:color-mix(in srgb,var(--pf-bg) 84%,transparent);backdrop-filter:blur(22px)}
+.pf-workspace-rail-inner{display:flex;min-width:max-content;align-items:center;gap:7px;padding:10px 24px}
+.pf-workspace-rail-label{margin-right:7px;color:#9b87ff;font-size:9px;font-weight:900;letter-spacing:.2em}
+.pf-workspace-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;border-radius:999px;padding:8px 12px;color:var(--pf-muted);font-size:11px;font-weight:650;transition:transform .22s ease,color .22s ease,background .22s ease,border-color .22s ease,box-shadow .22s ease}
+.pf-workspace-pill:hover{transform:translateY(-2px);border-color:rgba(139,117,255,.24);background:rgba(139,117,255,.09);color:var(--pf-fg)}
+.pf-workspace-pill.is-active{border-color:rgba(139,117,255,.32);background:linear-gradient(110deg,rgba(139,117,255,.2),rgba(39,194,255,.08));color:var(--pf-fg);box-shadow:0 0 24px rgba(139,117,255,.12)}
+.pf-workspace-pill svg{color:#a996ff}
+.pf-auth-page{isolation:isolate;background:#070811;color:#f7f7ff}
+.pf-auth-grid{position:absolute;inset:0;z-index:-1;opacity:.2;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at center,#000,transparent 78%)}
+.pf-auth-glow{position:absolute;z-index:-1;border-radius:999px;filter:blur(100px);pointer-events:none;animation:pf-auth-float 12s ease-in-out infinite alternate}
+.pf-auth-glow-a{top:-170px;left:-130px;width:520px;height:520px;background:rgba(113,66,255,.3)}
+.pf-auth-glow-b{right:-130px;bottom:-190px;width:560px;height:560px;background:rgba(0,181,255,.2);animation-delay:-5s}
+.pf-auth-shell{background:rgba(14,16,29,.88);box-shadow:0 35px 120px rgba(0,0,0,.55),0 0 80px rgba(112,83,255,.1);backdrop-filter:blur(28px)}
+.pf-auth-showcase{background:linear-gradient(145deg,#17132e 0%,#101b35 54%,#101827 100%)}
+.pf-auth-showcase:after{position:absolute;inset:0;content:"";pointer-events:none;background:radial-gradient(circle at 78% 18%,rgba(158,91,255,.24),transparent 30%),radial-gradient(circle at 15% 80%,rgba(0,197,255,.15),transparent 35%)}
+.pf-auth-showcase-orb{position:absolute;border:1px solid rgba(192,174,255,.18);border-radius:50%;pointer-events:none}
+.pf-auth-showcase-orb-one{width:420px;height:420px;right:-170px;top:90px;box-shadow:0 0 80px rgba(140,100,255,.12),inset 0 0 80px rgba(140,100,255,.08)}
+.pf-auth-showcase-orb-two{width:270px;height:270px;right:-95px;top:165px;border-color:rgba(57,206,255,.2);box-shadow:0 0 75px rgba(57,206,255,.1)}
+.pf-auth-logo{display:inline-flex;width:42px;height:42px;align-items:center;justify-content:center;border:1px solid rgba(203,188,255,.3);border-radius:14px;background:linear-gradient(140deg,#9b70ff,#536cff 65%,#24c5e8);color:#fff;font-size:23px;box-shadow:0 8px 30px rgba(118,91,255,.35)}
+.pf-auth-kicker{display:inline-flex;border:1px solid rgba(173,145,255,.25);border-radius:999px;padding:8px 12px;background:rgba(148,112,255,.1);color:#c9b9ff;font-size:9px;font-weight:900;letter-spacing:.22em}
+.pf-auth-gradient{background:linear-gradient(100deg,#c3a8ff,#7d9dff 55%,#5be0ed);background-clip:text;-webkit-background-clip:text;color:transparent}
+.pf-auth-mini-card{display:flex;min-height:112px;flex-direction:column;align-items:flex-start;gap:7px;border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:14px;background:rgba(255,255,255,.045);backdrop-filter:blur(14px)}
+.pf-auth-mini-card strong{color:#f4f1ff;font-size:12px}.pf-auth-mini-card small{color:#9da5bd;font-size:10px}
+.pf-auth-mini-icon{display:flex;width:28px;height:28px;align-items:center;justify-content:center;border-radius:9px;font-size:16px}
+.pf-auth-mini-icon.tone-purple{background:rgba(161,119,255,.18);color:#c5a9ff}.pf-auth-mini-icon.tone-cyan{background:rgba(48,203,240,.15);color:#74e6f5}
+.pf-auth-form-side{background:linear-gradient(145deg,rgba(17,19,33,.97),rgba(12,15,26,.97))}
+.pf-auth-form-side form{border:1px solid rgba(255,255,255,.09)!important;border-radius:22px!important;background:rgba(255,255,255,.035)!important;padding:30px!important;box-shadow:0 18px 55px rgba(0,0,0,.2)}
+.pf-auth-form-side form h1{margin-bottom:7px;color:#f7f6ff;font-size:28px;letter-spacing:-.04em}
+.pf-auth-form-side form input{min-height:48px;border:1px solid rgba(173,165,220,.16);border-radius:12px;background:rgba(5,8,18,.58);color:#f5f4ff;padding:0 14px;transition:border-color .2s,box-shadow .2s}
+.pf-auth-form-side form input:focus{border-color:#9477ff;box-shadow:0 0 0 3px rgba(148,119,255,.13);outline:none}
+.pf-auth-form-side form button{min-height:48px;border:0;border-radius:12px;background:linear-gradient(105deg,#875dff,#596cff 58%,#21bfe4);color:#fff;font-weight:750;box-shadow:0 10px 28px rgba(112,91,255,.25);transition:transform .2s,box-shadow .2s}
+.pf-auth-form-side form button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 14px 34px rgba(112,91,255,.36)}
+.pf-auth-form-side form a{color:#b7a4ff}
+.pf-auth-form-side form p{color:#9da4ba}
+.pf-auth-form-side form [role=alert]{border:1px solid rgba(255,95,125,.2);border-radius:10px;background:rgba(255,70,100,.08);padding:10px}
+.pf-feature-card.tone-violet{--pf-tool:#a78bfa}.pf-feature-card.tone-blue{--pf-tool:#38bdf8}.pf-feature-card.tone-pink{--pf-tool:#f472b6}.pf-feature-card.tone-green{--pf-tool:#34d399}
+.pf-feature-card:focus-visible,.pf-workspace-pill:focus-visible{outline:2px solid var(--pf-tool,#a78bfa);outline-offset:3px}
+@keyframes pf-auth-float{from{transform:translate3d(0,-18px,0) scale(.96)}to{transform:translate3d(35px,25px,0) scale(1.08)}}
+@media(max-width:767px){.pf-workspace-rail-inner{padding:9px 14px}.pf-workspace-pill{padding:8px 10px}.pf-auth-form-side{min-height:unset;padding:42px 18px}.pf-auth-form-side form{padding:23px!important}.pf-auth-shell{border-radius:24px}}
+@media(prefers-reduced-motion:reduce){.pf-auth-glow{animation:none}}

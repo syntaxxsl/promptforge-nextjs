@@ -139,7 +139,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2"><button type="button" onClick={() => { setCommandQuery(""); setCommandOpen(true) }} className="pf-command-trigger"><Icon name="search" className="h-4 w-4" /><span className="hidden sm:inline">Araç ve sayfa ara</span><kbd className="hidden rounded-md border border-border px-1.5 py-0.5 text-[9px] text-muted sm:inline">⌘ K</kbd></button><Link href="/projects" className="pf-top-action hidden lg:inline-flex"><Icon name="folder" className="h-4 w-4" /> Projeler</Link><Link href="/settings" className="pf-icon-btn" aria-label="Ayarlar"><Icon name="settings" className="h-[18px] w-[18px]" /></Link><span className="hidden h-8 w-px bg-border sm:block" /><span className="pf-avatar hidden sm:flex"><Icon name="user" className="h-4 w-4" /></span></div>
         </header>
-        <main className="pf-main min-h-[calc(100vh-76px)]">{children}</main>
+        <nav className="pf-workspace-rail pf-scroll" aria-label="AI çalışma alanları">
+          <div className="pf-workspace-rail-inner">
+            <span className="pf-workspace-rail-label">EXPLORE</span>
+            {commandItems.filter(item => !item.soon).map(item => (
+              <Link key={item.href} href={item.href} className={`pf-workspace-pill ${isActive(item.href) ? 'is-active' : ''}`}>
+                <Icon name={item.icon} className="h-4 w-4" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+        <main className="pf-main min-h-[calc(100vh-126px)]">{children}</main>
       </div>
       {commandOpen && <div className="pf-command-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setCommandOpen(false) }}>
         <section className="pf-command-panel" role="dialog" aria-modal="true" aria-label="PromptForge hızlı arama">
