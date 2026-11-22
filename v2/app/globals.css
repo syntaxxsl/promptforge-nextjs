@@ -231,3 +231,37 @@ body{background:radial-gradient(ellipse at 15% -10%,rgba(113,88,255,.10),transpa
 .pf-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--pf-border);border-radius:999px;padding:6px 10px;color:var(--pf-muted);font-size:10px}
 .pf-empty{border:1px dashed var(--pf-border);border-radius:18px;padding:48px 20px;text-align:center;background:var(--pf-surface)}
 @media(max-width:767px){.pf-hero{border-radius:22px}.pf-feature-card{min-height:195px}}
+
+
+/* AI Chat Studio — dedicated workspace treatment */
+.pf-chat-studio{gap:0;background:radial-gradient(ellipse at 55% 0%,rgba(125,99,255,.07),transparent 42rem),var(--pf-bg);overflow:hidden}
+.pf-chat-studio>aside{width:17.5rem;max-width:85vw;background:color-mix(in srgb,var(--pf-surface) 96%,transparent);border-color:var(--pf-border);padding:12px}
+.pf-chat-studio>aside>div:first-child{padding:10px 4px 14px;border-color:var(--pf-border)}
+.pf-chat-studio>aside>div:first-child>.pf-btn-primary{min-height:42px;border-radius:12px;background:linear-gradient(110deg,#8268f5,#6248d8);box-shadow:0 8px 24px rgba(110,82,230,.2)}
+.pf-chat-studio>aside>div:first-child>.pf-input{margin-top:8px;border-radius:11px;background:var(--pf-bg);border-color:var(--pf-border)}
+.pf-chat-studio>aside .group{min-height:58px;padding:8px;border:1px solid transparent;border-radius:12px;transition:background .16s,border-color .16s}
+.pf-chat-studio>aside .group:hover{background:var(--pf-surface-2)}
+.pf-chat-studio>aside .group.bg-surface-2{border-color:rgba(155,135,255,.18);background:linear-gradient(110deg,rgba(139,117,255,.14),rgba(139,117,255,.045))}
+.pf-chat-studio>aside .group>button:first-child span:first-child{font-size:12px;font-weight:600;color:var(--pf-fg)}
+.pf-chat-studio>aside>div:last-child{border-color:var(--pf-border);padding:12px 4px 4px}
+.pf-chat-studio>aside>div:last-child .pf-btn{min-height:38px;border-radius:11px}
+.pf-chat-studio>div:nth-of-type(2){min-width:0;background:transparent}
+.pf-chat-studio>div:nth-of-type(2)>header{background:color-mix(in srgb,var(--pf-surface) 88%,transparent);backdrop-filter:blur(18px);border-color:var(--pf-border);padding:7px 10px}
+.pf-chat-studio>div:nth-of-type(2)>header .pf-input{min-height:36px;border-radius:10px;background:var(--pf-bg)}
+.pf-chat-studio>div:nth-of-type(2)>header .pf-icon-btn{border:1px solid var(--pf-border);border-radius:10px}
+.pf-chat-studio>div:nth-of-type(2)>div:nth-of-type(1){scrollbar-gutter:stable}
+.pf-chat-studio>div:nth-of-type(2)>div:nth-of-type(1)>div:first-child:has(>div>svg){background:radial-gradient(circle,rgba(139,117,255,.09),transparent 62%)}
+.pf-chat-studio>div:nth-of-type(2)>div:nth-of-type(1)>div:first-child>div:first-child{width:58px;height:58px;border:1px solid rgba(155,135,255,.22);border-radius:19px;background:linear-gradient(145deg,rgba(139,117,255,.2),rgba(75,105,210,.08));box-shadow:0 12px 38px rgba(0,0,0,.15)}
+.pf-chat-studio>div:nth-of-type(2)>div:nth-of-type(1)>div:first-child h2{font-size:23px;letter-spacing:-.04em}
+.pf-chat-studio>div:nth-of-type(2)>div:nth-of-type(1)>div:first-child p{line-height:1.8}
+.pf-chat-studio>div:nth-of-type(2)>div:last-child{background:color-mix(in srgb,var(--pf-surface) 94%,transparent);border-color:var(--pf-border);padding-top:13px}
+.pf-chat-studio>div:nth-of-type(2)>div:last-child .pf-input{min-height:48px;border-radius:14px;background:var(--pf-bg);border-color:var(--pf-border);padding:12px 14px}
+.pf-chat-studio>div:nth-of-type(2)>div:last-child .pf-btn{height:46px;border-radius:13px}
+.pf-chat-studio>div:nth-of-type(2)>div:last-child .pf-btn-primary{min-width:46px;justify-content:center;background:linear-gradient(135deg,#8c76ff,#624bd7);box-shadow:0 7px 22px rgba(110,82,230,.2)}
+.pf-chat-studio .pf-chip{border-radius:999px}
+@media(max-width:767px){
+  .pf-chat-studio{height:calc(100dvh - 76px)!important}
+  .pf-chat-studio>aside{padding:10px}
+  .pf-chat-studio>div:nth-of-type(2)>header{padding:6px}
+  .pf-chat-studio>div:nth-of-type(2)>div:last-child{padding-left:9px;padding-right:9px}
+}
