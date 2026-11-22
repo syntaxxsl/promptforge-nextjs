@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import ResearchAnalyticsPanel from '@/components/studio/ResearchAnalyticsPanel'
@@ -670,7 +671,7 @@ export default function ResearchStudio({ userId }: { userId: string }) {
                   <Markdown content={lastLiveText} />
                 </div>
               ) : active?.report ? (
-                <Markdown content={active.report} />
+                <Markdown content={active.report} /><div className="mt-2"><SaveOutputButton userId={userId} tool="Araştırma raporu" title="Araştırma raporu" content={active.report}/></div>
               ) : busy ? (
                 <p className="text-xs text-muted">Rapor hazırlanıyor…</p>
               ) : (
