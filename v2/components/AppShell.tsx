@@ -7,6 +7,17 @@ import { supabase } from '@/lib/supabase/client'
 import Icon from '@/components/Icon'
 import { NAV_GROUPS } from '@/lib/nav'
 
+const QUICK_TOOL_LINKS = [
+  { label: 'AI Chat', href: '/chat', icon: 'message' as const },
+  { label: 'Image Studio', href: '/image', icon: 'image' as const },
+  { label: 'Video Studio', href: '/video', icon: 'play' as const },
+  { label: 'Code Studio', href: '/code', icon: 'code' as const },
+  { label: 'Website Builder', href: '/website-builder', icon: 'terminal' as const },
+  { label: 'Vision to Code', href: '/vision-to-code', icon: 'vision' as const },
+  { label: '3D Studio', href: '/3d-studio', icon: 'layers' as const },
+  { label: 'Research', href: '/research', icon: 'compass' as const }
+]
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -142,7 +153,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="pf-workspace-rail pf-scroll" aria-label="AI çalışma alanları">
           <div className="pf-workspace-rail-inner">
             <span className="pf-workspace-rail-label">EXPLORE</span>
-            {commandItems.filter(item => !item.soon).map(item => (
+            {QUICK_TOOL_LINKS.map(item => (
               <Link key={item.href} href={item.href} className={`pf-workspace-pill ${isActive(item.href) ? 'is-active' : ''}`}>
                 <Icon name={item.icon} className="h-4 w-4" />
                 <span>{item.label}</span>
