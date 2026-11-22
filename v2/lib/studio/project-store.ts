@@ -120,7 +120,7 @@ export function listOutputs(userId: string, projectId: string): ProjectOutputEnt
 export function addOutput(
   userId: string,
   projectId: string,
-  tool: StudioToolId,
+  tool: string,
   title: string,
   payload: string
 ): ProjectOutputEntry | null {
