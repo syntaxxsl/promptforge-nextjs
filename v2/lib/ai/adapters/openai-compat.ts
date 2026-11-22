@@ -53,7 +53,7 @@ export class OpenAICompatAdapter implements AIAdapter {
   private body(request: AIRequest, stream: boolean) {
     return {
       model: request.model || this.defaultModelId(),
-      messages: request.messages.map((m) => ({ role: m.role, content: contentToString(m.content) })),
+      messages: request.messages.map((m) => ({ role: m.role, content: Array.isArray(m.content) ? m.content : contentToString(m.content) })),
       temperature: request.temperature ?? 0.7,
       max_tokens: request.maxTokens,
       stream,
