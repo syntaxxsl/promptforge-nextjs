@@ -938,3 +938,9 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
 .pf-favorite-item>button{display:grid;width:30px;height:30px;flex:none;place-items:center;border-radius:9px;color:#facc15}
 .pf-favorite-item>button:hover{background:rgba(250,204,21,.1)}
 @media(max-width:767px){.pf-favorites-section{padding:14px;border-radius:16px}.pf-feature-favorite{top:12px;right:12px}.pf-feature-wrap>.pf-feature-card{padding-right:48px}}
+
+.pf-tool-row-wrap{display:flex;min-width:0;align-items:center;gap:5px}
+.pf-tool-row-wrap>.pf-tool-row{min-width:0;flex:1}
+.pf-tool-row-wrap>button{display:grid;width:31px;height:31px;flex:none;place-items:center;border:1px solid transparent;border-radius:9px;color:var(--pf-muted,#94a3b8);transition:all .16s}
+.pf-tool-row-wrap>button:hover{border-color:rgba(250,204,21,.25);background:rgba(250,204,21,.07);color:#facc15}
+.pf-tool-row-wrap>button:has(svg[fill="currentColor"]){color:#facc15}
