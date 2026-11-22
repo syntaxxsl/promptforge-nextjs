@@ -58,7 +58,7 @@ export default function VideoStudio({ userId }: { userId: string }) {
     void streamChat({
       messages: [
         { role: 'system', content: 'Sen profesyonel bir video prompt ve storyboard tasarımcısısın. Kullanıcının kısa fikrini sahne, kamera hareketi, zamanlama, ışık, ortam, hareket ve ses tasarımı içeren net bir video üretim promptuna dönüştür. Kullanıcının niyetini koru; var olan film veya yönetmenleri taklit etme. Sadece iyileştirilmiş promptu ver.' },
-        { role: 'user', content: 'Bu fikri ayrıntılı ve üretime hazır bir prompta dönüştür. En-boy oranı: aspect. Süre: duration saniye. Kalite hedefi: quality. Fikir: ' + original }
+        { role: 'user', content: 'Bu fikri ayrıntılı ve üretime hazır bir prompta dönüştür. En-boy oranı: ' + aspect + '. Süre: ' + duration + ' saniye. Kalite hedefi: ' + quality + '. Fikir: ' + original }
       ],
       provider: model.provider,
       model: model.model,

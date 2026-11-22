@@ -59,7 +59,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
     void streamChat({
       messages: [
         { role: 'system', content: 'Sen profesyonel bir görsel üretim prompt tasarımcısısın. Kullanıcının kısa fikrini net, ayrıntılı ve modelden bağımsız bir görsel promptuna dönüştür. Kompozisyon, ana konu, arka plan, ışık, kamera, renk paleti, malzeme ve kalite detaylarını düzenle. Kullanıcının niyetini koru; olmayan marka veya gerçek iddia uydurma. Sadece iyileştirilmiş promptu ver.' },
-        { role: 'user', content: 'Bu fikri ayrıntılı ve üretime hazır bir prompta dönüştür. Görsel stili: style. En-boy oranı: aspect. Negatif prompt: negative. Fikir: ' + original }
+        { role: 'user', content: 'Bu fikri ayrıntılı ve üretime hazır bir prompta dönüştür. Görsel stili: ' + style + '. En-boy oranı: ' + aspect + '. Negatif prompt: ' + (negative || 'Belirtilmedi') + '. Fikir: ' + original }
       ],
       provider: model.provider,
       model: model.model,
