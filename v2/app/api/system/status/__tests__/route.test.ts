@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { getUser } = vi.hoisted(() => ({ getUser: vi.fn() }))
