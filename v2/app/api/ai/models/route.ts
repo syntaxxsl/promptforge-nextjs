@@ -20,7 +20,7 @@ const MODELS_RATE_LIMIT = { limit: 20, windowMs: 60_000 }
  * and therefore different model access.
  */
 export async function GET() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   if (!data.user) {
     return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
