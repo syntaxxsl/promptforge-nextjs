@@ -301,6 +301,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
           Yeni ajan
         </button>
       </header>
+      </section>
 
       {notice && (
         <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 mb-4 text-xs text-warning">
