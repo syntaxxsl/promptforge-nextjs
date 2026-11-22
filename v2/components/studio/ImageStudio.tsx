@@ -32,7 +32,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
   const [jobs, setJobs] = useState<ImageJob[]>([])
   const [notice, setNotice] = useState<string | null>(null)
 
-  useCloudCollection({ userId, collection: 'image-jobs', records: jobs, setRecords: setJobs, sort: (a, b) => b.createdAt.localeCompare(a.createdAt) })
+  useCloudCollection({ userId, collection: 'image-jobs', records: jobs, setRecords: setJobs, sort: (a, b) => b.createdAt.localeCompare(a.createdAt), onUnavailable: () => setNotice('Bulut Image Studio eşitlemesi kullanılamıyor; taslakların bu cihazda korunuyor.') })
 
   const provider = useMemo(() => imageProviderStatus(), [])
 
