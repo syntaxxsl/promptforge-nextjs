@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function AuthGroupLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="pf-auth-page relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:px-6">
@@ -8,10 +10,10 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
         <section className="pf-auth-showcase relative hidden min-h-[680px] flex-col justify-between overflow-hidden p-10 lg:flex xl:p-14">
           <div className="pf-auth-showcase-orb pf-auth-showcase-orb-one" />
           <div className="pf-auth-showcase-orb pf-auth-showcase-orb-two" />
-          <a href="/" className="relative z-10 flex items-center gap-3">
+          <Link href="/" className="relative z-10 flex items-center gap-3">
             <span className="pf-auth-logo">✦</span>
             <span><strong className="block text-lg tracking-tight text-white">PromptForge</strong><small className="block text-[10px] font-bold uppercase tracking-[.24em] text-violet-200/70">Creative AI Workspace</small></span>
-          </a>
+          </Link>
           <div className="relative z-10 max-w-lg">
             <span className="pf-auth-kicker">CREATE WITHOUT LIMITS</span>
             <h1 className="mt-6 text-5xl font-semibold leading-[1.08] tracking-[-.055em] text-white xl:text-6xl">Fikirlerini <span className="pf-auth-gradient">geleceğe</span> taşı.</h1>
@@ -24,7 +26,7 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
           <div className="relative z-10 flex items-center justify-between text-[11px] text-slate-400/70"><span>© {new Date().getFullYear()} PromptForge</span><span>Made for curious minds</span></div>
         </section>
         <section className="pf-auth-form-side flex min-h-[620px] flex-col justify-center px-6 py-12 sm:px-12 lg:px-14">
-          <a href="/" className="mb-10 flex items-center gap-3 lg:hidden"><span className="pf-auth-logo">✦</span><strong className="text-lg text-white">PromptForge</strong></a>
+          <Link href="/" className="mb-10 flex items-center gap-3 lg:hidden"><span className="pf-auth-logo">✦</span><strong className="text-lg text-white">PromptForge</strong></Link>
           <div className="mx-auto w-full max-w-md">{children}</div>
           <p className="mt-10 text-center text-[10px] text-slate-500">Güvenli oturum · PromptForge AI Workspace</p>
         </section>
