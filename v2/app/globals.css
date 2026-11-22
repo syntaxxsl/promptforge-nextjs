@@ -794,3 +794,20 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
 @media(max-width:420px){.pf-dashboard-stats{gap:8px}.pf-dashboard-stats>div{padding:10px}.pf-discover-grid{gap:7px}.pf-discover-tile{min-height:132px;padding:10px}.pf-discover-tile b{font-size:12px}.pf-feature-card{padding:15px}}
 @media(hover:none){.pf-feature-card:hover,.pf-category-card:hover,.pf-discover-tile:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.pf-hero-orb-one,.pf-hero-orb-two,.pf-gradient-text{animation:none}}
+
+/* Auth form controls and compact workspace shortcut rail */
+.pf-auth-form-heading{margin-bottom:5px}
+.pf-auth-form-kicker{display:inline-block;margin-bottom:10px;color:#a78bfa;font-size:9px;font-weight:850;letter-spacing:.2em}
+.pf-auth-form-heading h1{color:#f5f3ff;font-size:clamp(25px,4vw,32px);font-weight:800;letter-spacing:-.05em;line-height:1.12}
+.pf-auth-form-heading p{margin-top:8px;color:#a6a6bd;font-size:12px;line-height:1.65}
+.pf-auth-field{display:grid;gap:8px;color:#c7c5dc;font-size:11px;font-weight:700}
+.pf-auth-field>span>small{float:right;color:#85859e;font-size:10px;font-weight:500}
+.pf-auth-password-wrap{position:relative;display:block}
+.pf-auth-password-wrap .pf-input{width:100%;padding-right:76px}
+.pf-auth-password-toggle{position:absolute;top:50%;right:10px;min-height:34px;min-width:52px;transform:translateY(-50%);border:1px solid rgba(167,139,250,.16);border-radius:9px;background:rgba(139,92,246,.1);padding:0 9px;color:#c4b5fd;font-size:10px;font-weight:750}
+.pf-auth-password-toggle:hover{background:rgba(139,92,246,.2);color:#fff}
+.pf-auth-forgot-row{display:flex;justify-content:flex-end;margin-top:-5px}
+.pf-auth-text-button{min-height:34px;color:#b9a7f7;font-size:11px;font-weight:650}
+.pf-auth-text-button:disabled{opacity:.55;cursor:wait}
+.pf-auth-text-button:hover:not(:disabled){color:#e0d7ff;text-decoration:underline}
+@media(max-width:767px){.pf-workspace-rail-inner{padding-left:12px;padding-right:12px}.pf-auth-form-heading h1{font-size:28px}.pf-auth-field{font-size:12px}.pf-auth-password-toggle{min-height:38px;min-width:56px}}
