@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSignedInUser } from '@/lib/admin/authorization'
+import { checkRateLimit, rateLimitKey } from '@/lib/ai/guards'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,8 +11,15 @@ export async function POST(request: Request) {
   const { supabase, user } = await getSignedInUser()
   if (!user) return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
 
+  const limit = checkRateLimit(rateLimitKey(user.id, null), { limit: 60, windowMs: 60_000 })
+  if (!limit.allowed) return NextResponse.json({ error: 'Çok fazla etkinlik isteği.' }, { status: 429 })
+  const declaredLength = Number(request.headers.get('content-length') || '0')
+  if (declaredLength > 8 * 1024) return NextResponse.json({ error: 'İstek çok büyük.' }, { status: 413 })
+  let rawBody: string
+  try { rawBody = await request.text() } catch { return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 }) }
+  if (new TextEncoder().encode(rawBody).byteLength > 8 * 1024) return NextResponse.json({ error: 'İstek çok büyük.' }, { status: 413 })
   let body: unknown
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 }) }
+  try { body = JSON.parse(rawBody) } catch { return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 }) }
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 })
   const payload = body as Record<string, unknown>
   const event = typeof payload.event === 'string' ? payload.event : ''
