@@ -6,5 +6,5 @@ export default async function MindMapPage() {
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   if (!data.user) redirect('/login')
-  return <MindMapStudio />
+  return <MindMapStudio userId={data.user.id} />
 }
