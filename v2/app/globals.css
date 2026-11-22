@@ -811,3 +811,34 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
 .pf-auth-text-button:disabled{opacity:.55;cursor:wait}
 .pf-auth-text-button:hover:not(:disabled){color:#e0d7ff;text-decoration:underline}
 @media(max-width:767px){.pf-workspace-rail-inner{padding-left:12px;padding-right:12px}.pf-auth-form-heading h1{font-size:28px}.pf-auth-field{font-size:12px}.pf-auth-password-toggle{min-height:38px;min-width:56px}}
+
+/* Tool-specific accent systems: each workspace keeps its own identity. */
+.pf-image-studio{--media-accent:#f472b6;--media-glow:rgba(236,72,153,.16)}
+.pf-video-studio{--media-accent:#67e8f9;--media-glow:rgba(6,182,212,.16)}
+.pf-image-studio>header{border-color:rgba(244,114,182,.22);background:linear-gradient(115deg,color-mix(in srgb,var(--pf-surface) 90%,#ec4899 10%),var(--pf-surface))}
+.pf-video-studio>header{border-color:rgba(103,232,249,.2);background:linear-gradient(115deg,color-mix(in srgb,var(--pf-surface) 90%,#0891b2 10%),var(--pf-surface))}
+.pf-image-studio>header:after{background:rgba(236,72,153,.17)}
+.pf-video-studio>header:after{background:rgba(6,182,212,.17)}
+.pf-image-studio>div:nth-of-type(2)>section:focus-within{border-color:rgba(244,114,182,.3)}
+.pf-video-studio>div:nth-of-type(2)>section:focus-within{border-color:rgba(103,232,249,.3)}
+.pf-code-studio{--code-accent:#6ee7b7;--code-glow:rgba(16,185,129,.14)}
+.pf-code-studio>aside .pf-btn-primary{background:linear-gradient(110deg,#059669,#0f766e);box-shadow:0 8px 24px rgba(16,185,129,.14)}
+.pf-code-studio>aside .group.bg-surface-2{border-color:rgba(52,211,153,.22);background:rgba(16,185,129,.1)}
+.pf-code-studio>div>header .pf-btn-primary{background:linear-gradient(105deg,#059669,#0e7490)}
+.pf-code-studio>div>textarea{caret-color:#6ee7b7}
+.pf-website-studio{--website-accent:#fbbf24;--website-glow:rgba(245,158,11,.13)}
+.pf-website-studio>header{border-color:rgba(251,191,36,.2);background:linear-gradient(110deg,var(--pf-surface),color-mix(in srgb,var(--pf-surface) 88%,#f59e0b))}
+.pf-website-studio>header:after{background:rgba(245,158,11,.16)}
+.pf-website-studio>div:nth-of-type(1)>button[aria-pressed=true]{border-color:rgba(251,191,36,.42);background:linear-gradient(145deg,rgba(245,158,11,.12),var(--pf-surface));box-shadow:inset 0 0 0 1px rgba(251,191,36,.08),0 10px 25px rgba(0,0,0,.12)}
+.pf-website-studio .pf-btn-primary{background:linear-gradient(105deg,#d97706,#b45309)}
+@media(max-width:767px){
+ .pf-media-studio{padding:16px 12px 32px}
+ .pf-media-studio>header{padding:19px 17px;border-radius:17px}
+ .pf-media-studio>div:nth-of-type(2)>section{padding:15px}
+ .pf-code-studio{height:auto;min-height:calc(100dvh - 64px);overflow:visible}
+ .pf-code-studio>aside{width:min(86vw,280px)}
+ .pf-code-studio>div{min-height:55dvh}
+ .pf-website-studio{padding:16px 12px 32px}
+ .pf-website-studio>header{padding:18px 16px}
+}
+@media(prefers-reduced-motion:reduce){.pf-website-studio>div:nth-of-type(1)>button{transition:none}}
