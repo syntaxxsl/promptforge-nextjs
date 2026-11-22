@@ -32,6 +32,7 @@ import {
   updateFile
 } from '@/lib/studio/code-store'
 import { CODE_LANGUAGES, type CodeLanguage, type CodeTask, type CodeWorkspace } from '@/lib/studio/types'
+import { writeCollection } from '@/lib/studio/store'
 
 const AUTO: ModelSelection = { label: 'Otomatik seçim' }
 
@@ -112,7 +113,6 @@ export default function CodeStudio({ userId }: { userId: string }) {
           b.updatedAt.localeCompare(a.updatedAt)
         )
         // Preserve the browser copy; only replace this collection after a merge.
-        const { writeCollection } = await import('@/lib/studio/store')
         writeCollection(userId, 'code-workspaces', result)
         for (const workspace of remote) {
           cloudSyncRef.current.set(workspace.id, JSON.stringify(workspace))
