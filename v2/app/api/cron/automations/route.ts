@@ -9,15 +9,6 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-/**
- * Debug mode: when CRON_DEBUG=1, the endpoint returns detailed comparison info
- * without exposing the actual secret. Use this to diagnose Vault ↔ Vercel secret
- * mismatches.
- *
- * Usage:
- *   curl -H "Authorization: Bearer $TOKEN" https://.../api/cron/automations
- *   curl -H "Authorization: Bearer <sha256>" ... (to test with a hash)
- */
 const DEBUG_ENABLED = process.env.CRON_DEBUG === '1'
 const SECRET = process.env.CRON_SECRET || ''
 
@@ -25,22 +16,14 @@ function sha256hex(v: string): string {
   return createHash('sha256').update(v).digest('hex')
 }
 
-/**
- * Parse "Bearer <token>" header with tolerance for:
- * - Leading/trailing whitespace
- * - Extra spaces between "Bearer" and token
- */
 function parseBearer(header: string | null): { ok: boolean; scheme?: string; token?: string; reason?: string } {
   if (!header) return { ok: false, reason: 'missing_header' }
   const trimmed = header.trim()
   if (!trimmed) return { ok: false, reason: 'empty_header' }
-
   const m = trimmed.match(/^Bearer\s+(.+)$/i)
   if (!m) return { ok: false, reason: 'invalid_scheme', scheme: trimmed.split(' ')[0] }
-
   const token = m[1].trim()
   if (!token) return { ok: false, reason: 'empty_token' }
-
   return { ok: true, scheme: 'Bearer', token }
 }
 
@@ -48,7 +31,6 @@ export async function GET(request: NextRequest) {
   const header = request.headers.get('authorization')
   const parsed = parseBearer(header)
 
-  // Debug mode: show comparison info without leaking the secret
   if (DEBUG_ENABLED && !parsed.ok) {
     return NextResponse.json({
       error: 'Yetkisiz.',
@@ -64,24 +46,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Yetkisiz.' }, { status: 401 })
   }
 
-  const provided = parsed.token
-  const expected = SECRET
+  const provided = parsed.token.trim()
+  const expected = SECRET.trim()
 
-  // Whitespace-tolerance: Vault may store with trailing spaces
-  const expectedTrimmed = expected.trim()
-  const providedTrimmed = provided.trim()
-
-  // Length check first (fast fail)
-  if (providedTrimmed.length !== expectedTrimmed.length) {
+  if (provided.length !== expected.length) {
     if (DEBUG_ENABLED) {
       return NextResponse.json({
         error: 'Yetkisiz.',
         debug: {
           reason: 'length_mismatch',
-          providedLength: providedTrimmed.length,
-          expectedLength: expectedTrimmed.length,
-          providedSha256: sha256hex(providedTrimmed),
-          expectedSha256: sha256hex(expectedTrimmed),
+          providedLength: provided.length,
+          expectedLength: expected.length,
+          providedSha256: sha256hex(provided),
+          expectedSha256: sha256hex(expected),
           match: false
         }
       }, { status: 401 })
@@ -89,15 +66,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Yetkisiz.' }, { status: 401 })
   }
 
-  // Timing-safe comparison
-  if (!timingSafeEqual(Buffer.from(providedTrimmed, 'utf8'), Buffer.from(expectedTrimmed, 'utf8'))) {
+  if (!timingSafeEqual(Buffer.from(provided, 'utf8'), Buffer.from(expected, 'utf8'))) {
     if (DEBUG_ENABLED) {
       return NextResponse.json({
         error: 'Yetkisiz.',
         debug: {
           reason: 'mismatch',
-          providedSha256: sha256hex(providedTrimmed),
-          expectedSha256: sha256hex(expectedTrimmed),
+          providedSha256: sha256hex(provided),
+          expectedSha256: sha256hex(expected),
           match: false
         }
       }, { status: 401 })
@@ -105,7 +81,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Yetkisiz.' }, { status: 401 })
   }
 
-  // Auth passed
   let admin
   try { admin = createSupabaseAdminClient() } catch {
     return NextResponse.json({ error: 'Supabase admin yapılandırması eksik.' }, { status: 503 })
