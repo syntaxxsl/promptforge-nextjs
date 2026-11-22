@@ -13,6 +13,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [email, setEmail] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
 
   useEffect(() => {
@@ -27,6 +28,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email || '')
+      setIsAdmin(data.user?.app_metadata?.role === 'admin')
     })
   }, [])
 
@@ -92,7 +94,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto pf-scroll px-2 py-3 space-y-4">
-          {NAV_GROUPS.map((group) => (
+          {NAV_GROUPS.filter((group) => group.title !== 'Yönetim' || isAdmin).map((group) => (
             <div key={group.title}>
               {!collapsed && (
                 <div className="px-2 mb-1 text-xs uppercase tracking-wide text-muted">{group.title}</div>
