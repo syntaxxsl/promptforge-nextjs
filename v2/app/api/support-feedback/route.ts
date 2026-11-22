@@ -6,6 +6,16 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const statuses = new Set(['open', 'in_progress', 'resolved', 'closed'])
+const MAX_FEEDBACK_BODY_BYTES = 16 * 1024
+
+async function readJsonBody(request: NextRequest): Promise<{ ok: true; value: unknown } | { ok: false; status: 400 | 413 }> {
+  const declaredLength = Number(request.headers.get('content-length') || '0')
+  if (declaredLength > MAX_FEEDBACK_BODY_BYTES) return { ok: false, status: 413 }
+  let raw: string
+  try { raw = await request.text() } catch { return { ok: false, status: 400 } }
+  if (new TextEncoder().encode(raw).byteLength > MAX_FEEDBACK_BODY_BYTES) return { ok: false, status: 413 }
+  try { return { ok: true, value: JSON.parse(raw) as unknown } } catch { return { ok: false, status: 400 } }
+}
 
 async function context() {
   const supabase = await createSupabaseServerClient()
@@ -30,8 +40,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const auth = await context()
   if ('response' in auth) return auth.response
-  let body: unknown
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Geçersiz JSON.' }, { status: 400 }) }
+  const parsed = await readJsonBody(request)
+  if (!parsed.ok) return NextResponse.json({ error: parsed.status === 413 ? 'İstek çok büyük.' : 'Geçersiz JSON.' }, { status: parsed.status })
+  const body = parsed.value
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 })
   const value = body as Record<string, unknown>
   const kind = value.kind === 'feedback' ? 'feedback' : value.kind === 'support' ? 'support' : null
@@ -51,8 +62,9 @@ export async function PATCH(request: NextRequest) {
   const auth = await context()
   if ('response' in auth) return auth.response
   if (auth.user.app_metadata?.role !== 'admin') return NextResponse.json({ error: 'Yönetici yetkisi gerekli.' }, { status: 403 })
-  let body: unknown
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Geçersiz JSON.' }, { status: 400 }) }
+  const parsed = await readJsonBody(request)
+  if (!parsed.ok) return NextResponse.json({ error: parsed.status === 413 ? 'İstek çok büyük.' : 'Geçersiz JSON.' }, { status: parsed.status })
+  const body = parsed.value
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Geçersiz istek.' }, { status: 400 })
   const value = body as Record<string, unknown>
   const id = typeof value.id === 'string' ? value.id : ''
