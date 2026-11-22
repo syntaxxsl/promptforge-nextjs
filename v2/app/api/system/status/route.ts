@@ -19,7 +19,7 @@ const PROVIDER_ENV: Record<string, string> = {
 /** Secret-free configuration diagnostics for the signed-in account. */
 export async function GET() {
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase.auth.getUser()
     if (error || !data.user) {
       return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 })
