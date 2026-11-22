@@ -1,11 +1,12 @@
 'use client'
 import { useMemo, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 
 type Method='GET'|'POST'|'PUT'|'PATCH'|'DELETE'
 type Pair={id:number;key:string;value:string}
 const METHODS:Method[]=['GET','POST','PUT','PATCH','DELETE']
-export default function APIStudio() {
+export default function APIStudio({ userId }: { userId: string }) {
  const [method,setMethod]=useState<Method>('GET')
  const [url,setUrl]=useState('https://api.example.com/v1/items')
  const [headers,setHeaders]=useState<Pair[]>([{id:1,key:'Accept',value:'application/json'}])
@@ -37,7 +38,7 @@ export default function APIStudio() {
   <header><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="terminal" className="h-4 w-4"/> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">API Studio</h1><p className="mt-1 text-sm text-muted">REST isteklerini tasarla, başlıklarını ve JSON gövdesini düzenle, Fetch veya cURL kodu oluştur.</p></header>
   <section className="space-y-4 rounded-2xl border border-border bg-surface p-4 md:p-5">
    <div className="flex flex-col gap-2 md:flex-row"><select aria-label="HTTP metodu" value={method} onChange={e=>setMethod(e.target.value as Method)} className="pf-input w-full md:w-36">{METHODS.map(m=><option key={m}>{m}</option>)}</select><input aria-label="API adresi" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://api.example.com/endpoint" className="pf-input min-w-0 flex-1 font-mono text-sm"/></div>
-   <div className="flex gap-2 border-b border-border">{(['headers','body'] as const).map(t=><button type="button" key={t} onClick={()=>setTab(t)} className={`border-b-2 px-3 py-2 text-sm ${tab===t?'border-accent text-fg':'border-transparent text-muted'}`}>{t==='headers'?'Headers':'Body'}</button>)}</div>
+   <div className="flex gap-2 border-b border-border">{(['headers','body'] as const).map(t=><button type="button" key={t} onClick={()=>setTab(t)} className={`border-b-2 px-3 py-2 text-sm ${tab===t?'border-accent text-fg':'border-transparent text-muted'}`}>{t==='headers'?'Headers':'Body'}</button><SaveOutputButton userId={userId} tool="API Studio" title="API Studio" content={code}/>)}</div>
    {tab==='headers'&&<div className="space-y-2">{headers.map(h=><div key={h.id} className="grid grid-cols-[1fr_1fr_auto] gap-2"><input aria-label="Header adı" value={h.key} onChange={e=>updateHeader(h.id,'key',e.target.value)} placeholder="Header adı" className="pf-input min-w-0 text-sm"/><input aria-label="Header değeri" value={h.value} onChange={e=>updateHeader(h.id,'value',e.target.value)} placeholder="Değer" className="pf-input min-w-0 text-sm"/><button type="button" onClick={()=>removeHeader(h.id)} aria-label="Header sil" className="pf-btn pf-btn-ghost"><Icon name="trash-2" className="h-4 w-4"/></button></div>)}<button type="button" onClick={addHeader} className="pf-btn pf-btn-ghost text-xs"><Icon name="plus" className="h-3.5 w-3.5"/>Header ekle</button></div>}
    {tab==='body'&&<div><p className="mb-2 text-xs text-muted">JSON gövdesi · GET ve DELETE metotlarında kullanılmaz.</p><textarea value={body} onChange={e=>setBody(e.target.value)} rows={9} spellCheck={false} disabled={method==='GET'||method==='DELETE'} className="pf-input w-full resize-y font-mono text-xs leading-6 disabled:opacity-50"/></div>}
    <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-xs text-muted"><Icon name="shield-check" className="h-4 w-4"/>Yalnızca HTTPS ve localhost adresleri kod taslağına kabul edilir.</div><button type="button" onClick={validate} className="pf-btn pf-btn-primary">Taslağı doğrula</button></div>
