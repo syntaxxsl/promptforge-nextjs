@@ -217,7 +217,9 @@ export default function ProjectManager({ userId }: { userId: string }) {
     if (!active || !activeFile) return
     const all = readCollection<ProjectFileVersion>(userId, 'project-file-versions')
     const version: ProjectFileVersion = { id: crypto.randomUUID(), projectId: active.id, fileId: activeFile.id, fileName: activeFile.name, content: activeFile.content, createdAt: new Date().toISOString() }
-    const next = [version, ...all].filter((item) => item.fileId !== activeFile.id || item.id === version.id || all.findIndex((old) => old.id === item.id) < 30)
+    const ordered = [version, ...all.filter((item) => item.id !== version.id)].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    const counts = new Map<string, number>()
+    const next = ordered.filter((item) => { const count = counts.get(item.fileId) || 0; if (count >= 30) return false; counts.set(item.fileId, count + 1); return true })
     writeCollection(userId, 'project-file-versions', next)
     setVersions(next.filter((item) => item.projectId === active.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
     setNotice('Dosya sürümü kaydedildi.')
