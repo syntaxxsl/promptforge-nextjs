@@ -34,11 +34,13 @@ export class OpenAICompatAdapter implements AIAdapter {
 
   /** Provider-specific body parameters (e.g. Groq service tier). */
   protected extraBodyOptions(_request: AIRequest): Record<string, unknown> {
+    void _request
     return {}
   }
 
   /** Provider-specific headers (e.g. OpenRouter HTTP-Referer / X-Title). */
   protected extraHeaders(_request: AIRequest): Record<string, string> {
+    void _request
     return {}
   }
 
