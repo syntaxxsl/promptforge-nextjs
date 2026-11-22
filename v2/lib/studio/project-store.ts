@@ -144,9 +144,27 @@ export function searchProjects(userId: string, query: string): ProjectEntry[] {
   const q = query.trim().toLowerCase()
   const projects = listProjects(userId)
   if (!q) return projects
-  return projects.filter(
-    (p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
-  )
+  const files = readCollection<ProjectFileEntry>(userId, FILE_COLLECTION)
+  const outputs = readCollection<ProjectOutputEntry>(userId, OUTPUT_COLLECTION)
+
+  return projects.filter((project) => {
+    if (project.name.toLowerCase().includes(q) || project.description.toLowerCase().includes(q)) {
+      return true
+    }
+
+    const matchingFile = files.some((file) =>
+      file.projectId === project.id &&
+      (file.name.toLowerCase().includes(q) || file.content.toLowerCase().includes(q))
+    )
+    if (matchingFile) return true
+
+    return outputs.some((output) =>
+      output.projectId === project.id &&
+      (output.title.toLowerCase().includes(q) ||
+        output.tool.toLowerCase().includes(q) ||
+        output.payload.toLowerCase().includes(q))
+    )
+  })
 }
 
 export function filterProjects(
