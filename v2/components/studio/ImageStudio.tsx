@@ -6,9 +6,11 @@
 // action saves the job as a draft and states that rendering is unavailable.
 // There is no placeholder image, no simulated progress bar and no fake gallery.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useCloudCollection } from '@/lib/studio/use-cloud-collection'
 import Icon from '@/components/Icon'
+import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
+import { streamChat } from '@/lib/studio/chat-client'
 import {
   createImageJob,
   deleteImageJob,
@@ -31,6 +33,9 @@ export default function ImageStudio({ userId }: { userId: string }) {
   const [count, setCount] = useState(1)
   const [jobs, setJobs] = useState<ImageJob[]>([])
   const [notice, setNotice] = useState<string | null>(null)
+  const [model, setModel] = useState<ModelSelection>({ label: 'Otomatik seçim' })
+  const [refining, setRefining] = useState(false)
+  const refineAbort = useRef<AbortController | null>(null)
 
   useCloudCollection({ userId, collection: 'image-jobs', records: jobs, setRecords: setJobs, sort: (a, b) => b.createdAt.localeCompare(a.createdAt), onUnavailable: () => setNotice('Bulut Image Studio eşitlemesi kullanılamıyor; taslakların bu cihazda korunuyor.') })
 
@@ -39,6 +44,41 @@ export default function ImageStudio({ userId }: { userId: string }) {
   useEffect(() => {
     setJobs(listImageJobs(userId))
   }, [userId])
+
+  async function refinePrompt() {
+    if (!prompt.trim() || refining) {
+      if (!prompt.trim()) setNotice('Önce kısa bir görsel fikri yazın.')
+      return
+    }
+    const original = prompt.trim()
+    const controller = new AbortController()
+    refineAbort.current = controller
+    setPrompt('')
+    setRefining(true)
+    setNotice(null)
+    void streamChat({
+      messages: [
+        { role: 'system', content: 'Sen profesyonel bir görsel üretim prompt tasarımcısısın. Kullanıcının kısa fikrini net, ayrıntılı ve modelden bağımsız bir görsel promptuna dönüştür. Kompozisyon, ana konu, arka plan, ışık, kamera, renk paleti, malzeme ve kalite detaylarını düzenle. Kullanıcının niyetini koru; olmayan marka veya gerçek iddia uydurma. Sadece iyileştirilmiş promptu ver.' },
+        { role: 'user', content: 'Bu fikri ayrıntılı ve üretime hazır bir prompta dönüştür. Görsel stili: style. En-boy oranı: aspect. Negatif prompt: negative. Fikir: ' + original }
+      ],
+      provider: model.provider,
+      model: model.model,
+      task: 'chat',
+      temperature: 0.35,
+      maxTokens: 1800,
+      signal: controller.signal,
+      onDelta: delta => setPrompt(current => current + delta),
+      onDone: () => { setRefining(false); refineAbort.current = null; setNotice('Prompt AI tarafından geliştirildi. İstersen düzenleyip taslak olarak kaydedebilirsin.') },
+      onError: message => { setRefining(false); refineAbort.current = null; setNotice(message) }
+    })
+  }
+
+  function stopRefining() {
+    refineAbort.current?.abort()
+    refineAbort.current = null
+    setRefining(false)
+    setNotice('Prompt geliştirme durduruldu; alınan metin korundu.')
+  }
 
   function save() {
     if (!prompt.trim()) {
@@ -69,7 +109,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
 
   return (
     <div className="pf-media-studio pf-image-studio p-4 md:p-6 max-w-6xl mx-auto">
-      <header className="mb-5">
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-xl font-semibold flex items-center gap-2">
           <Icon name="image" className="h-5 w-5 text-primary" />
           Image Studio
@@ -77,6 +117,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
         <p className="mt-1 text-sm text-muted">
           Prompt, oran ve stil ayarlarını hazırlayın; iş geçmişi bulut eşitlemesiyle cihazlar arasında korunur; yerel kopya da tutulur.
         </p>
+        <div className="mt-2"><ModelPicker value={model} onChange={setModel} disabled={refining} /></div>
       </header>
 
       <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 mb-5 text-xs text-warning">
@@ -98,6 +139,10 @@ export default function ImageStudio({ userId }: { userId: string }) {
               className="pf-input min-h-28 resize-y text-sm"
               placeholder="Örn: yağmurlu bir gecede neon ışıklarla aydınlanan dar bir sokak, sinematik ışık"
             />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" onClick={refinePrompt} disabled={refining || !prompt.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="sparkles" className="h-3.5 w-3.5" />{refining ? 'Prompt geliştiriliyor…' : 'AI ile promptu geliştir'}</button>
+              {refining && <button type="button" onClick={stopRefining} className="pf-btn pf-btn-ghost text-xs">Durdur</button>}
+            </div>
             <div className="mt-1.5 flex items-center justify-between">
               <span className="text-[11px] text-muted">{prompt.length} karakter</span>
               <button
