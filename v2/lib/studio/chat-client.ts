@@ -129,6 +129,7 @@ export async function completeChat(options: {
   temperature?: number
   maxTokens?: number
   signal?: AbortSignal
+  task?: string
 }): Promise<{ text: string; provider?: ProviderId; model?: string; latencyMs?: number }> {
   const response = await fetch('/api/ai/chat', {
     method: 'POST',
@@ -139,6 +140,7 @@ export async function completeChat(options: {
       model: options.model,
       temperature: options.temperature,
       maxTokens: options.maxTokens,
+      task: options.task,
       stream: false
     }),
     signal: options.signal
