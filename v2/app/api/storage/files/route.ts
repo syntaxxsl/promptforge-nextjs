@@ -8,6 +8,7 @@ export const maxDuration = 60
 
 const BUCKET = 'user-files'
 const MAX_FILE_BYTES = 4 * 1024 * 1024
+const MAX_FILES_PER_USER = 100
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 }
 const ALLOWED_TYPES = new Set([
   'text/plain', 'text/markdown', 'text/csv', 'application/json',
@@ -99,6 +100,14 @@ export async function POST(request: NextRequest) {
 
   const mime = (file.type || 'application/octet-stream').toLowerCase()
   if (!ALLOWED_TYPES.has(mime)) return error('Bu dosya türü desteklenmiyor.', 415, 'unsupported_type')
+
+  const { data: existingFiles, error: countError } = await context.supabase.storage
+    .from(BUCKET)
+    .list(context.user.id, { limit: MAX_FILES_PER_USER })
+  if (countError) return error('Depolama alanı kontrol edilemedi.', 503, 'storage_unavailable')
+  if ((existingFiles || []).filter((item) => item.id && item.name).length >= MAX_FILES_PER_USER) {
+    return error('Hesap başına en fazla 100 dosya saklanabilir.', 413, 'file_limit_reached')
+  }
 
   const name = safeName(file.name)
   const objectName = context.user.id + '/' + crypto.randomUUID() + '-' + name
