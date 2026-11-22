@@ -6,5 +6,5 @@ export default async function BrandPage(){
  const supabase=createSupabaseServerClient()
  const {data}=await supabase.auth.getUser()
  if(!data.user) redirect('/login')
- return <BrandStudio/>
+ return <BrandStudio userId={data.user.id}/>
 }
