@@ -745,3 +745,52 @@ body{background:radial-gradient(ellipse at 15% -10%,rgba(113,88,255,.10),transpa
 @media(max-width:900px){.pf-discover-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pf-launchpad-orbit{width:85px;height:85px}}
 @media(max-width:600px){.pf-launchpad{padding:18px;border-radius:18px}.pf-launchpad-orbit{display:none}.pf-launchpad-actions{grid-template-columns:1fr}.pf-launchpad-actions>a{padding:10px}.pf-discover-heading{align-items:flex-start;flex-direction:column}.pf-discover-grid{gap:8px}.pf-discover-tile{min-height:140px;padding:12px}}
 @media(prefers-reduced-motion:reduce){.pf-launchpad-orbit,.pf-feature-card{animation:none}}
+
+
+/* Neon Universe responsive polish — shared visual system */
+:root{--pf-neon-violet:#a78bfa;--pf-neon-cyan:#67e8f9;--pf-neon-pink:#f0abfc;--pf-neon-blue:#60a5fa;--pf-neon-green:#6ee7b7;--pf-neon-amber:#fcd34d}
+html{scroll-behavior:smooth;scroll-padding-top:88px}body{overflow-x:hidden}
+button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
+.pf-app{isolation:isolate}.pf-topbar{z-index:35}
+.pf-workspace-rail{position:sticky;top:76px;z-index:29;overflow-x:auto;border-bottom:1px solid var(--pf-border);background:color-mix(in srgb,var(--pf-bg) 88%,transparent);backdrop-filter:blur(18px)}
+.pf-workspace-rail-inner{display:flex;min-width:max-content;align-items:center;gap:7px;padding:10px clamp(12px,2vw,30px)}
+.pf-workspace-rail-label{margin-right:5px;color:var(--pf-muted);font-size:9px;font-weight:850;letter-spacing:.17em}
+.pf-workspace-pill{display:inline-flex;min-height:36px;align-items:center;gap:7px;border:1px solid transparent;border-radius:11px;padding:0 11px;color:var(--pf-muted);font-size:11px;white-space:nowrap;transition:background .2s,color .2s,border-color .2s,box-shadow .2s}
+.pf-workspace-pill:hover{border-color:var(--pf-border);background:var(--pf-surface-2);color:var(--pf-fg)}
+.pf-workspace-pill.is-active{border-color:rgba(167,139,250,.28);background:linear-gradient(110deg,rgba(139,92,246,.2),rgba(34,211,238,.08));color:var(--pf-fg);box-shadow:0 0 22px rgba(139,92,246,.09)}
+.pf-command-trigger{display:inline-flex;min-height:38px;align-items:center;gap:9px;border:1px solid var(--pf-border);border-radius:11px;background:var(--pf-surface);padding:0 12px;color:var(--pf-muted);font-size:11px;transition:border-color .2s,box-shadow .2s}
+.pf-command-trigger:hover{border-color:rgba(167,139,250,.4);box-shadow:0 0 22px rgba(139,92,246,.1);color:var(--pf-fg)}
+.pf-hero{border-color:rgba(167,139,250,.22);background:linear-gradient(115deg,#111321 0%,#17152b 54%,#102334 100%)}
+.pf-hero-orb-one{animation:pf-neon-drift 13s ease-in-out infinite alternate}.pf-hero-orb-two{animation:pf-neon-drift 17s ease-in-out infinite alternate-reverse}
+.pf-hero-orbit{animation:pf-orbit-pulse 7s ease-in-out infinite;box-shadow:0 0 35px rgba(139,92,246,.18),inset 0 0 28px rgba(34,211,238,.08)}
+.pf-gradient-text{background-image:linear-gradient(100deg,#c4b5fd 0%,#7dd3fc 48%,#f0abfc 100%);background-size:180% auto;animation:pf-gradient-flow 8s linear infinite}
+.pf-feature-card{--pf-card-glow:rgba(139,92,246,.12);box-shadow:inset 0 1px rgba(255,255,255,.025),0 12px 34px rgba(0,0,0,.14)}
+.pf-feature-card.tone-violet{--pf-card-glow:rgba(139,92,246,.18);border-color:rgba(167,139,250,.17)}.pf-feature-card.tone-blue{--pf-card-glow:rgba(56,189,248,.16);border-color:rgba(56,189,248,.16)}.pf-feature-card.tone-pink{--pf-card-glow:rgba(236,72,153,.16);border-color:rgba(236,72,153,.16)}.pf-feature-card.tone-green{--pf-card-glow:rgba(16,185,129,.15);border-color:rgba(16,185,129,.16)}
+.pf-feature-card:hover{box-shadow:0 18px 45px rgba(0,0,0,.24),0 0 28px var(--pf-card-glow)}.pf-feature-icon{box-shadow:inset 0 0 22px var(--pf-card-glow),0 0 18px var(--pf-card-glow)}
+.pf-category-card{position:relative;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s}.pf-category-card:hover{transform:translateY(-2px);border-color:rgba(167,139,250,.22);box-shadow:0 14px 35px rgba(0,0,0,.13)}
+.pf-launchpad{position:relative;overflow:hidden;border:1px solid rgba(139,92,246,.22);border-radius:24px;background:radial-gradient(ellipse at 5% 0%,rgba(139,92,246,.15),transparent 42%),radial-gradient(ellipse at 100% 90%,rgba(34,211,238,.1),transparent 38%),linear-gradient(130deg,#141426,#101a29)}
+.pf-launchpad:after{position:absolute;inset:0;pointer-events:none;content:"";opacity:.16;background-image:radial-gradient(rgba(255,255,255,.5) .7px,transparent .7px);background-size:18px 18px;mask-image:linear-gradient(110deg,#000,transparent 72%)}.pf-launchpad>*{position:relative;z-index:1}
+.pf-auth-page{background:radial-gradient(ellipse at 12% 10%,rgba(124,58,237,.2),transparent 34rem),radial-gradient(ellipse at 92% 85%,rgba(6,182,212,.14),transparent 32rem),#080a12}
+.pf-auth-shell{border-color:rgba(167,139,250,.2);background:rgba(13,15,27,.88);box-shadow:0 30px 100px rgba(0,0,0,.48),0 0 70px rgba(124,58,237,.09);backdrop-filter:blur(24px)}
+.pf-auth-showcase{background:radial-gradient(ellipse at 80% 15%,rgba(124,58,237,.28),transparent 24rem),linear-gradient(145deg,#15132a,#101d2c 85%)}
+.pf-auth-form-side{background:linear-gradient(145deg,rgba(18,19,33,.97),rgba(12,15,25,.97))}
+.pf-auth-form-side form{border:1px solid rgba(167,139,250,.17);border-radius:22px;background:linear-gradient(145deg,rgba(27,27,46,.94),rgba(17,21,34,.96));padding:clamp(20px,4vw,32px);box-shadow:0 20px 60px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.035)}
+.pf-auth-form-side form h1{margin-bottom:8px;font-size:clamp(25px,4vw,32px);font-weight:800;letter-spacing:-.045em;color:#f5f3ff}
+.pf-auth-form-side form .pf-input{min-height:48px;border-radius:12px;border-color:rgba(167,139,250,.16);background:rgba(7,10,19,.65);font-size:14px}
+.pf-auth-form-side form .pf-input:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(139,92,246,.13)}
+.pf-auth-form-side form .pf-btn-primary{min-height:48px;justify-content:center;border:1px solid rgba(196,181,253,.25);border-radius:12px;background:linear-gradient(100deg,#7c3aed,#4f46e5 55%,#0891b2);box-shadow:0 10px 28px rgba(99,102,241,.22);transition:transform .2s,box-shadow .2s,filter .2s}
+.pf-auth-form-side form .pf-btn-primary:hover{transform:translateY(-2px);filter:brightness(1.12);box-shadow:0 14px 34px rgba(99,102,241,.32)}
+.pf-auth-form-side form a{color:#c4b5fd}.pf-auth-form-side form [role=alert]{border:1px solid rgba(248,113,113,.22);border-radius:10px;background:rgba(127,29,29,.16);padding:10px}.pf-auth-form-side form [role=status]{border:1px solid rgba(52,211,153,.2);border-radius:10px;background:rgba(6,95,70,.14);padding:10px}
+.pf-auth-logo{box-shadow:0 0 25px rgba(139,92,246,.25),0 0 34px rgba(34,211,238,.1)}
+@keyframes pf-neon-drift{0%{transform:translate3d(-8px,0,0) scale(.94)}100%{transform:translate3d(22px,18px,0) scale(1.08)}}@keyframes pf-gradient-flow{0%{background-position:0% 50%}100%{background-position:180% 50%}}
+@media(max-width:767px){
+ .pf-topbar{height:64px;padding-left:12px;padding-right:12px}.pf-workspace-rail{top:64px}.pf-workspace-rail-inner{gap:5px;padding:8px 10px}.pf-workspace-pill{min-height:38px;padding:0 10px;font-size:10px}
+ .pf-main{min-width:0}.pf-dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.pf-dashboard-stats>div{min-width:0}
+ .pf-hero{padding:24px 19px;border-radius:20px}.pf-hero h1{font-size:clamp(29px,8vw,40px);overflow-wrap:anywhere}.pf-search{gap:8px;padding:12px}
+ .pf-launchpad{padding:17px}.pf-launchpad-actions{grid-template-columns:1fr}.pf-discover-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pf-discover-tile{min-height:145px}
+ .pf-category-card{min-width:0}.pf-auth-page{align-items:flex-start;padding:18px 12px}.pf-auth-shell{border-radius:22px}.pf-auth-form-side{min-height:0;padding:28px 18px}.pf-auth-form-side form{padding:21px;border-radius:18px}
+ .pf-auth-form-side form .pf-input,.pf-auth-form-side form .pf-btn-primary{min-height:50px}.pf-chat-studio{min-height:calc(100dvh - 64px);max-width:100vw}.pf-chat-studio>aside{width:min(84vw,300px)}
+}
+@media(max-width:420px){.pf-dashboard-stats{gap:8px}.pf-dashboard-stats>div{padding:10px}.pf-discover-grid{gap:7px}.pf-discover-tile{min-height:132px;padding:10px}.pf-discover-tile b{font-size:12px}.pf-feature-card{padding:15px}}
+@media(hover:none){.pf-feature-card:hover,.pf-category-card:hover,.pf-discover-tile:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.pf-hero-orb-one,.pf-hero-orb-two,.pf-gradient-text{animation:none}}
