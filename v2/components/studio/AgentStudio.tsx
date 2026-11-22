@@ -12,6 +12,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { completeChat } from '@/lib/studio/chat-client'
@@ -395,7 +396,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
                           <p className="text-xs text-danger">{run.error}</p>
                         ) : (
                           <div className="text-[13px]">
-                            <Markdown content={run.result} />
+                            <Markdown content={run.result} /><div className="mt-2"><SaveOutputButton userId={userId} tool="AI Agent" title={run.task.slice(0, 120)} content={run.result}/></div>
                           </div>
                         )}
                         <div className="mt-1.5 text-[10px] text-muted">
