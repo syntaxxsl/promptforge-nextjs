@@ -149,6 +149,26 @@ export class OpenAICompatAdapter implements AIAdapter {
       }
     }
 
+    // Process a final SSE line even when the provider closes without a trailing newline.
+    const finalLine = buffer.trim()
+    if (finalLine.startsWith('data:')) {
+      const payload = finalLine.slice(5).trim()
+      if (payload === '[DONE]') {
+        yield { delta: '', done: true, provider: this.provider.id, model }
+        return
+      }
+      try {
+        const json = JSON.parse(payload) as {
+          choices?: Array<{ delta?: { content?: string } }>
+          model?: string
+        }
+        const delta = json.choices?.[0]?.delta?.content
+        if (delta) yield { delta, done: false, provider: this.provider.id, model: json.model || model }
+      } catch {
+        // Ignore an incomplete final SSE event.
+      }
+    }
+
     yield { delta: '', done: true, provider: this.provider.id, model }
   }
 }
