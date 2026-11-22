@@ -26,23 +26,21 @@ vi.mock('@/lib/crypto', () => ({
 import { resolveApiKey } from '../key-manager'
 
 function createUserQuery() {
-  const query = {
-    select: vi.fn(() => query),
-    eq: vi.fn(() => query),
-    order: vi.fn(() => query),
-    limit: vi.fn(() => query),
-    maybeSingle: vi.fn(async () => ({ data: mocks.userRow, error: null }))
-  }
+  const query: Record<string, any> = {}
+  query.select = vi.fn(() => query)
+  query.eq = vi.fn(() => query)
+  query.order = vi.fn(() => query)
+  query.limit = vi.fn(() => query)
+  query.maybeSingle = vi.fn(async () => ({ data: mocks.userRow, error: null }))
   return query
 }
 
 function createAdminQuery() {
-  const query = {
-    select: vi.fn(() => query),
-    eq: vi.fn(() => query),
-    order: vi.fn(() => query),
-    limit: vi.fn(async () => ({ data: mocks.poolRows, error: null }))
-  }
+  const query: Record<string, any> = {}
+  query.select = vi.fn(() => query)
+  query.eq = vi.fn(() => query)
+  query.order = vi.fn(() => query)
+  query.limit = vi.fn(async () => ({ data: mocks.poolRows, error: null }))
   return query
 }
 
