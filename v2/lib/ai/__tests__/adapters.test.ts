@@ -144,7 +144,7 @@ describe('OpenAI-compatible adapters', () => {
       { ...baseRequest, model: 'llama-3.3-70b-versatile', providerOptions: { openaiCompat: { serviceTier: 'on_demand' } } },
       KEY
     )
-    expect(captured[0].body.serviceTier).toBe('on_demand')
+    expect(captured[0].body.service_tier).toBe('on_demand')
   })
 
   it('maps a 429 to a retryable rate_limit error', async () => {
