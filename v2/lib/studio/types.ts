@@ -191,10 +191,10 @@ export interface VideoJob {
 export type AgentToolId = 'web_search' | 'code_interpreter' | 'file_read' | 'image_view'
 
 export const AGENT_TOOLS: { id: AgentToolId; label: string; note: string }[] = [
-  { id: 'web_search', label: 'Web arama', note: 'Araç bağlı değil — yalnızca talimata eklenir.' },
-  { id: 'code_interpreter', label: 'Kod çalıştırma', note: 'Araç bağlı değil — yalnızca talimata eklenir.' },
-  { id: 'file_read', label: 'Dosya okuma', note: 'Proje dosyalarını bağlam olarak ekler.' },
-  { id: 'image_view', label: 'Görsel okuma', note: 'Vision modeli gerekir.' }
+  { id: 'web_search', label: 'Web arama', note: 'Görev öncesinde web araması yapar ve sonuçları bağlama ekler.' },
+  { id: 'code_interpreter', label: 'Kod çalıştırma', note: 'Henüz etkin değil.' },
+  { id: 'file_read', label: 'Dosya okuma', note: 'Özel proje dosyalarını arar ve ilgili içerikleri bağlama ekler.' },
+  { id: 'image_view', label: 'Görsel okuma', note: 'Henüz etkin değil; görsel yükleme bağlantısı bekleniyor.' }
 ]
 
 export interface AgentRunMessage {
