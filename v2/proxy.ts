@@ -3,6 +3,13 @@ import { updateSession } from '@/lib/supabase/middleware'
 
 const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth']
 
+/**
+ * Cron endpoints authenticate themselves with the CRON_SECRET header, so they
+ * must not be blocked by the Supabase session check. Vercel Cron and Supabase
+ * pg_cron call them without a user session.
+ */
+const CRON_API_PREFIX = '/api/cron/'
+
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
@@ -13,6 +20,8 @@ export async function proxy(request: NextRequest) {
 
   if (!user && !isPublic(pathname) && !pathname.startsWith('/_next') && !pathname.startsWith('/favicon')) {
     if (pathname.startsWith('/api/')) {
+      // Cron routes carry their own CRON_SECRET authentication.
+      if (pathname.startsWith(CRON_API_PREFIX)) return response
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const url = request.nextUrl.clone()
