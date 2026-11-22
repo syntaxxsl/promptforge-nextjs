@@ -233,3 +233,31 @@ describe('client bundle safety', () => {
     expect(offenders).toEqual([])
   })
 })
+
+
+// ---------------------------------------------------------------------------
+// 5. Database ownership boundaries stay explicit in prepared migrations
+// ---------------------------------------------------------------------------
+
+describe('database row-level security migrations', () => {
+  it.each([
+    ['studio_records', 'db/migrations/20261122_studio_records.sql', 'studio_records_select_own', 'studio_records_insert_own'],
+    ['project_shares', 'db/migrations/20261122_project_shares.sql', 'project_shares_select_own', 'project_shares_insert_own'],
+    ['user_api_keys', 'db/migrations/20261122_api_key_storage.sql', 'user_api_keys_select_own', 'user_api_keys_insert_own'],
+    ['community_templates', 'db/migrations/20261122_community_templates.sql', 'community_templates_read_visible', 'community_templates_submit_pending']
+  ])('%s enables forced RLS and defines ownership-aware policies', (_name, migrationPath, readPolicy, writePolicy) => {
+    const sql = readFileSync(join(V2_ROOT, migrationPath), 'utf8')
+    expect(sql).toMatch(/enable row level security/i)
+    expect(sql).toMatch(/force row level security/i)
+    expect(sql).toContain(readPolicy)
+    expect(sql).toContain(writePolicy)
+  })
+
+  it('keeps private file storage scoped to the authenticated user folder', () => {
+    const sql = readFileSync(join(V2_ROOT, 'db/migrations/20261122_private_file_storage.sql'), 'utf8')
+    expect(sql).toContain('public = false')
+    expect(sql).toContain("(storage.foldername(name))[1] = auth.uid()::text")
+    expect(sql).toContain('user_files_select_own')
+    expect(sql).toContain('user_files_insert_own')
+  })
+})
