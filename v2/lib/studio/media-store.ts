@@ -1,9 +1,10 @@
 'use client'
 
-// Image and video job repositories (local-first).
+// Image and video job repositories (local-first, cloud-sync capable).
 //
-// Image jobs can now be rendered through the user's own OpenAI Images API key.
-// Video jobs remain prompt drafts until a video provider is integrated.
+// Image rendering is implemented by /api/ai/image and requires the user's own
+// OpenAI API key. Video remains a saved prompt/job draft until a video provider
+// and render lifecycle are integrated; do not present it as generated media.
 
 import { createId, nowIso, readCollection, removeById, upsert } from './store'
 import type { ImageJob, VideoJob } from './types'
