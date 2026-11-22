@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Icon from '@/components/Icon'
+import SaveOutputButton from '@/components/studio/SaveOutputButton'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
 import { streamChat } from '@/lib/studio/chat-client'
@@ -16,7 +17,7 @@ const FORMATS: {id:Format;title:string;description:string;instruction:string}[] 
 ]
 const AUTO: ModelSelection = {label:'Otomatik seçim'}
 
-export default function WriterStudio(){
+export default function WriterStudio({ userId }: { userId: string }){
  const [format,setFormat]=useState<Format>('article')
  const [topic,setTopic]=useState('')
  const [audience,setAudience]=useState('')
@@ -59,7 +60,7 @@ export default function WriterStudio(){
     <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-medium text-muted">Anlatım tonu<select value={tone} onChange={e=>setTone(e.target.value)} className="pf-input mt-2 w-full text-sm"><option>Profesyonel ve anlaşılır</option><option>Samimi ve sıcak</option><option>Resmî</option><option>Yaratıcı ve enerjik</option><option>Teknik ve ayrıntılı</option><option>İkna edici</option></select></label><label className="text-xs font-medium text-muted">Uzunluk<select value={length} onChange={e=>setLength(e.target.value)} className="pf-input mt-2 w-full text-sm"><option>Kısa (100-250 kelime)</option><option>Orta (500-800 kelime)</option><option>Uzun (1000-1500 kelime)</option><option>Detaylı (1500+ kelime)</option></select></label></div>
     <div className="flex flex-wrap gap-2"><button type="button" onClick={generate} disabled={busy||topic.trim().length<5} className="pf-btn pf-btn-primary"><Icon name="sparkles" className="h-4 w-4"/>{busy?'Yazılıyor…':'İçerik oluştur'}</button>{busy&&<button type="button" onClick={stop} className="pf-btn pf-btn-ghost">Durdur</button>}</div>{notice&&<p role="status" className="text-xs text-muted">{notice}</p>}
    </section>
-   <section className="flex min-h-[520px] flex-col rounded-2xl border border-border bg-surface p-4 md:p-5"><div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Editör</h2><p className="mt-1 text-xs text-muted">{meta|| (busy?'AI içerik hazırlıyor…':'Üretilen içerik burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={()=>{setResult('');setNotice('')}} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5"/>Kopyala</button></div></div><div className="min-h-[420px] flex-1 overflow-y-auto rounded-xl border border-border bg-background/60 p-4">{result?<Markdown content={result}/>:<div className="flex min-h-[400px] items-center justify-center text-center text-sm text-muted">{busy?'İçerik hazırlanıyor…':'Brief bilgilerini doldurup içerik oluştur.'}</div>}</div></section>
+   <section className="flex min-h-[520px] flex-col rounded-2xl border border-border bg-surface p-4 md:p-5"><div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Editör</h2><p className="mt-1 text-xs text-muted">{meta|| (busy?'AI içerik hazırlıyor…':'Üretilen içerik burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={()=>{setResult('');setNotice('')}} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5"/>Kopyala</button><SaveOutputButton userId={userId} tool="AI Writer" title={topic.slice(0,100)} content={result}/></div></div><div className="min-h-[420px] flex-1 overflow-y-auto rounded-xl border border-border bg-background/60 p-4">{result?<Markdown content={result}/>:<div className="flex min-h-[400px] items-center justify-center text-center text-sm text-muted">{busy?'İçerik hazırlanıyor…':'Brief bilgilerini doldurup içerik oluştur.'}</div>}</div></section>
   </div><p className="text-center text-[11px] text-muted">AI çıktısını yayımlamadan önce doğrula. Sistem kaynakta bulunmayan bilgileri gerçekmiş gibi sunmamalıdır.</p>
  </main>
 }
