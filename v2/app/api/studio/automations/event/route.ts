@@ -18,8 +18,10 @@ export async function POST(request: NextRequest) {
   const length = Number(request.headers.get('content-length') || '0')
   if (length > 16 * 1024) return NextResponse.json({ error: 'İstek çok büyük.' }, { status: 413 })
 
+  const raw = await request.text()
+  if (new TextEncoder().encode(raw).byteLength > 16 * 1024) return NextResponse.json({ error: 'İstek çok büyük.' }, { status: 413 })
   let body: { eventName?: unknown; input?: unknown }
-  try { body = await request.json() as typeof body } catch {
+  try { body = JSON.parse(raw) as typeof body } catch {
     return NextResponse.json({ error: 'Geçerli JSON gerekli.' }, { status: 400 })
   }
   const eventName = typeof body.eventName === 'string' ? body.eventName.trim() : ''
