@@ -57,12 +57,16 @@ export default function SaveOutputButton({
       return
     }
 
+    let projectLocalFailed = false
+    let projectCloudFailed = false
     if (projectId) {
       const linked = addOutput(userId, projectId, tool, record.title, record.content)
-      if (linked) {
+      if (!linked) projectLocalFailed = true
+      else {
         try {
-          await fetch('/api/studio/data?collection=project-outputs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ record: linked }) })
-        } catch { /* local project copy remains available */ }
+          const projectResponse = await fetch('/api/studio/data?collection=project-outputs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ record: linked }) })
+          if (!projectResponse.ok) projectCloudFailed = true
+        } catch { projectCloudFailed = true }
       }
     }
 
@@ -73,9 +77,9 @@ export default function SaveOutputButton({
         body: JSON.stringify({ record })
       })
       if (!response.ok) throw new Error('cloud_unavailable')
-      setStatus('Çıktı kaydedildi ve bulutla eşitlendi.')
+      setStatus('Çıktı kaydedildi ve bulutla eşitlendi.' + (projectLocalFailed ? ' Proje kopyası yerel depolamaya yazılamadı.' : projectCloudFailed ? ' Proje bağlantısı yalnızca bu cihazda kaydedildi.' : ''))
     } catch {
-      setStatus('Çıktı bu cihazda kaydedildi. Bulut eşitlemesi henüz etkin değil.')
+      setStatus('Çıktı bu cihazda kaydedildi. Bulut eşitlemesi henüz etkin değil.' + (projectLocalFailed ? ' Proje kopyası da kaydedilemedi.' : projectId ? ' Proje bağlantısı yerel olarak tutuluyor.' : ''))
     } finally {
       setSaving(false)
     }
