@@ -18,8 +18,8 @@ export default function VisionToCodeStudio() {
    const img=await new Promise<HTMLImageElement>((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(Error('Görsel açılamadı'));i.src=src})
    const scale=Math.min(1,768/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale))
    const ctx=canvas.getContext('2d');if(!ctx)throw Error('Görsel işlenemedi');ctx.drawImage(img,0,0,canvas.width,canvas.height)
-   let q=.7,data=canvas.toDataURL('image/jpeg',q);while(data.length>850000&&q>.35){q-=.08;data=canvas.toDataURL('image/jpeg',q)}
-   if(data.length>850000)throw Error('Görsel çok büyük; daha küçük bir görsel dene.')
+   let q=.7,data=canvas.toDataURL('image/jpeg',q);while(data.length>76000&&q>.35){q-=.08;data=canvas.toDataURL('image/jpeg',q)}
+   if(data.length>76000)throw Error('Görsel çok büyük; daha küçük bir görsel dene.')
    setPreview(data)
   } catch(e){setNotice(e instanceof Error?e.message:'Görsel işlenemedi.')}
  }
