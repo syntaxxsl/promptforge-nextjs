@@ -152,7 +152,7 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
             </div>
             <div className="text-sm font-semibold text-fg">{item.title}</div>
             <p className="mt-1 text-xs leading-5 text-muted">{item.description}</p>
-          </button><SaveOutputButton userId={userId} tool="Prompt Engineer" title="Prompt Engineer" content={output}/>
+          </button>
         ))}
       </div>
 
@@ -205,7 +205,7 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
             </div>
             <button type="button" onClick={copyOutput} disabled={!output.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40">
               <Icon name="copy" className="h-3.5 w-3.5" /> Kopyala
-            </button>
+            </button><SaveOutputButton userId={userId} tool="Prompt Engineer" title="Prompt Engineer" content={output}/>
           </div>
           <div className="min-h-[340px] flex-1 rounded-xl border border-border bg-background/60 p-4">
             {output ? <Markdown content={output} /> : (
