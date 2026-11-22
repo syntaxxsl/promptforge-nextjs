@@ -63,6 +63,8 @@ export interface Automation {
   scheduleLabel?: string
   /** IANA time zone used to evaluate the schedule. */
   scheduleTimezone?: string
+  /** Fixed input text supplied to every scheduled run. */
+  scheduleInput?: string
   nodes: AutomationNode[]
   enabled: boolean
   createdAt: string
