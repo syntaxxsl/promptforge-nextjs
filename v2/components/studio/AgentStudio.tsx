@@ -473,7 +473,6 @@ export default function AgentStudio({ userId }: { userId: string }) {
                     <button onClick={() => setAttachedImage(null)} className="ml-auto pf-btn pf-btn-ghost text-xs text-danger">Kaldır</button>
                   </div>
                 )}
-              </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
