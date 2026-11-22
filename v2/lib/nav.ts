@@ -96,5 +96,11 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: 'settings', label: 'Ayarlar', href: '/settings' },
       { icon: 'user', label: 'Profil', href: '/profile' }
     ]
+  },
+  {
+    title: 'Yönetim',
+    items: [
+      { icon: 'shield', label: 'Vercel Manager', href: '/vercel-manager' }
+    ]
   }
 ]
