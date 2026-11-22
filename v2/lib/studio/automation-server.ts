@@ -28,14 +28,14 @@ function transform(input: string, node: AutomationNode) {
   }
 }
 
-export async function runScheduledAutomation(userId: string, automation: Automation): Promise<AutomationRun> {
+export async function runScheduledAutomation(userId: string, automation: Automation, trigger: 'schedule' | 'event' = 'schedule', inputOverride?: string): Promise<AutomationRun> {
   const now = new Date().toISOString()
   const run: AutomationRun = {
     id: `arun_${crypto.randomUUID().replace(/-/g, '')}`,
     automationId: automation.id,
     automationName: automation.name,
-    trigger: 'schedule',
-    input: automation.scheduleInput?.trim() || automation.description || 'Zamanlanmış otomatik çalıştırma',
+    trigger,
+    input: inputOverride?.trim() || automation.scheduleInput?.trim() || automation.description || (trigger === 'event' ? 'Olay tetikleyicisi' : 'Zamanlanmış otomatik çalıştırma'),
     nodes: [],
     status: 'complete',
     createdAt: now,
