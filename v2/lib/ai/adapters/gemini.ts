@@ -17,23 +17,43 @@ function contentToString(content: AIRequest['messages'][number]['content']): str
   return ''
 }
 
+type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } }
+
+function contentToGeminiParts(content: AIRequest['messages'][number]['content']): GeminiPart[] {
+  if (typeof content === 'string') return content ? [{ text: content }] : []
+  if (!Array.isArray(content)) return []
+  const parts: GeminiPart[] = []
+  for (const part of content) {
+    if (typeof part?.text === 'string') {
+      parts.push({ text: part.text })
+      continue
+    }
+    const url = (part as { image_url?: { url?: unknown } })?.image_url?.url
+    if (part?.type === 'image_url' && typeof url === 'string') {
+      const match = /^data:(image\\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(url)
+      if (match) parts.push({ inlineData: { mimeType: match[1], data: match[2] } })
+    }
+  }
+  return parts
+}
+
 function combineSignal(request: AIRequest): AbortSignal | undefined {
   if (request.signal) return request.signal
   if (request.timeoutMs && request.timeoutMs > 0) return AbortSignal.timeout(request.timeoutMs)
   return undefined
 }
 
-function splitSystem(messages: AIRequest['messages']): { system?: string; contents: Array<{ role: string; parts: Array<{ text: string }> }> } {
+function splitSystem(messages: AIRequest['messages']): { system?: string; contents: Array<{ role: string; parts: GeminiPart[] }> } {
   const systemParts: string[] = []
-  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = []
+  const contents: Array<{ role: string; parts: GeminiPart[] }> = []
   for (const m of messages) {
-    const text = contentToString(m.content)
     if (m.role === 'system') {
-      systemParts.push(text)
+      systemParts.push(contentToString(m.content))
       continue
     }
     const role = m.role === 'assistant' ? 'model' : 'user'
-    if (text) contents.push({ role, parts: [{ text }] })
+    const parts = contentToGeminiParts(m.content)
+    if (parts.length) contents.push({ role, parts })
   }
   return { system: systemParts.join('\n\n') || undefined, contents }
 }
