@@ -34,7 +34,9 @@ export async function resolveApiKey(
         try {
           return { source: 'user', apiKey: decryptSecret(String(data.key_encrypted)), providerId }
         } catch {
-          // Decryption failure: do not leak details; fall through.
+          // A stored user key exists but cannot be decrypted. Fail closed:
+          // never silently bill an admin-pool or platform key instead.
+          return null
         }
       }
     } catch {
