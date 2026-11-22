@@ -9,6 +9,7 @@ type SystemStatus = {
   database?: { configured: boolean; missing?: string[] }
   encryption?: { configured: boolean }
   serverProviders?: string[]
+  automationScheduler?: { cronSecretConfigured: boolean; adminDatabaseConfigured: boolean; configured: boolean }
 }
 
 type Overview = {
@@ -93,10 +94,11 @@ export default function CommandCenterPage() {
     </div>
     <section className="pf-card p-5 space-y-3">
       <div className="flex items-center justify-between gap-3"><h2 className="font-semibold flex items-center gap-2"><Icon name="shield"/> Sistem yapılandırması</h2><span className="text-[10px] text-muted">Gizli değerler gösterilmez</span></div>
-      {statusLoading ? <p className="text-sm text-muted">Kontrol ediliyor…</p> : systemStatus ? <div className="grid sm:grid-cols-3 gap-3">
+      {statusLoading ? <p className="text-sm text-muted">Kontrol ediliyor…</p> : systemStatus ? <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">Supabase ayarları</div><div className="mt-2 text-sm font-semibold">{systemStatus.database?.configured ? 'Yapılandırılmış' : 'Eksik'}</div>{systemStatus.database?.missing?.length ? <p className="mt-1 text-[10px] text-muted">{systemStatus.database.missing.join(', ')}</p> : null}</div>
         <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">API anahtarı şifreleme</div><div className="mt-2 text-sm font-semibold">{systemStatus.encryption?.configured ? 'Hazır' : 'Anahtar eksik'}</div><p className="mt-1 text-[10px] text-muted">Değer güvenlik nedeniyle okunamaz.</p></div>
         <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">Sunucu AI sağlayıcıları</div><div className="mt-2 text-sm font-semibold">{systemStatus.serverProviders?.length ?? 0} yapılandırılmış</div><p className="mt-1 text-[10px] text-muted">{systemStatus.serverProviders?.join(', ') || 'Sunucu ortamında sağlayıcı anahtarı yok.'}</p></div>
+        <div className="rounded-xl border border-border p-3"><div className="text-xs text-muted">Workflow zamanlayıcısı</div><div className="mt-2 text-sm font-semibold">{systemStatus.automationScheduler?.configured ? 'Yapılandırılmış' : 'Kurulum gerekli'}</div><p className="mt-1 text-[10px] text-muted">CRON_SECRET: {systemStatus.automationScheduler?.cronSecretConfigured ? 'Hazır' : 'Eksik'} · Supabase admin: {systemStatus.automationScheduler?.adminDatabaseConfigured ? 'Hazır' : 'Eksik'}</p></div>
       </div> : <p className="text-sm text-muted">Sistem durumu alınamadı. Oturum ve API erişimini kontrol et.</p>}
     </section>
     <div className="grid xl:grid-cols-[1.1fr_.9fr] gap-4">
