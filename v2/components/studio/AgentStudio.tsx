@@ -187,6 +187,10 @@ export default function AgentStudio({ userId }: { userId: string }) {
 
   async function run() {
     if (!active || (!task.trim() && !attachedImage) || busy) return
+    if (attachedImage && !(draft.tools || []).includes('image_view')) {
+      setNotice('Görsel analizi için önce “Görsel okuma” yeteneğini etkinleştir ve ajanı kaydet.')
+      return
+    }
     const controller = new AbortController()
     abortRef.current = controller
     setBusy(true)
@@ -388,7 +392,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
                         <input
                           type="checkbox"
                           checked={checked}
-                          disabled={(['code_interpreter', 'image_view'] as AgentToolId[]).includes(tool.id) && !checked}
+                          disabled={tool.id === 'code_interpreter' && !checked}
                           onChange={() => toggleTool(tool.id)}
                           className="mt-0.5 accent-[var(--pf-primary)]"
                         />
@@ -401,7 +405,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
                   })}
                 </div>
                 <p className="mt-1.5 text-[11px] text-muted">
-                  Web arama ve özel proje dosyası okuma çalışır. Kod çalıştırma ve görsel okuma henüz etkin değil.
+                  Web arama, proje dosyası okuma ve görsel analizi çalışır. Kod çalıştırma güvenli izole çalışma ortamı tamamlanana kadar kapalıdır.
                 </p>
               </div>
 
