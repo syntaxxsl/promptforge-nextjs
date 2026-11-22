@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /v2
+    target-branch: promptforge-v2-development
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: Europe/Istanbul
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+    groups:
+      npm-patch-and-minor:
+        dependency-type: production
+        update-types:
+          - patch
+          - minor
+      npm-dev-patch-and-minor:
+        dependency-type: development
+        update-types:
+          - patch
+          - minor
+    versioning-strategy: increase
