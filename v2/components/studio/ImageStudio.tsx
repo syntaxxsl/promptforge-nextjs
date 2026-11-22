@@ -138,7 +138,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
                 >
                   <span
                     className="inline-block border border-current opacity-60"
-                    style={{ width: 18, height: 18 * (option.id.split(':')[1] / option.id.split(':')[0]) }}
+                    style={{ width: 18, height: 18 * (Number(option.id.split(':')[1]) / Number(option.id.split(':')[0])) }}
                     aria-hidden
                   />
                   {option.label}
