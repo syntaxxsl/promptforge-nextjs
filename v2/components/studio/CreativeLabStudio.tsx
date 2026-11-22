@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '@/components/Icon'
 import Markdown from '@/components/Markdown'
 import ModelPicker, { type ModelSelection } from '@/components/ModelPicker'
@@ -64,7 +64,7 @@ const CONFIG: Record<CreativeTool, {
     styleOptions: ['Sakin ve güven veren', 'Enerjik ve dinamik', 'Belgesel anlatımı', 'Kurumsal ve net', 'Samimi ve doğal'],
     system: 'Sen profesyonel bir seslendirme yazarı ve konuşma yönetmenisin. Verilen süreye uygun özgün bir Türkçe metin yaz. Duraklama, vurgu, tempo, telaffuz ve tonlama notlarını köşeli parantezlerle belirt. Metni doğal konuşma dilinde tut. Ses dosyası ürettiğini iddia etme.',
     outputLabel: 'Seslendirme metni',
-    note: 'Metin ve okuma yönergeleri hazırlanır; gerçek ses sentezi sağlayıcısı henüz bağlı değildir.'
+    note: 'Metni desteklenen tarayıcılarda sesli dinleyebilirsin. İndirilebilir ses dosyası üretimi için harici sentez sağlayıcısı bağlı değildir.'
   },
   photo: {
     title: 'Photo Studio', eyebrow: 'PHOTO DIRECTION LAB',
@@ -129,8 +129,46 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
   const [result, setResult] = useState('')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [speechRate, setSpeechRate] = useState(1)
+  const [speechVoice, setSpeechVoice] = useState('')
+  const [speechVoices, setSpeechVoices] = useState<SpeechSynthesisVoice[]>([])
+  const [speaking, setSpeaking] = useState(false)
   const abort = useRef<AbortController | null>(null)
   const svg = useMemo(() => tool === 'logo' || tool === 'thumbnail' ? extractSvg(result) : '', [tool, result])
+
+  useEffect(() => {
+    if (tool !== 'voice' || typeof window === 'undefined' || !('speechSynthesis' in window)) return
+    const loadVoices = () => setSpeechVoices(window.speechSynthesis.getVoices())
+    loadVoices()
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices)
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices)
+      window.speechSynthesis.cancel()
+    }
+  }, [tool])
+
+  function playVoice() {
+    if (!result.trim()) return
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setNotice('Bu tarayıcı sesli okumayı desteklemiyor.')
+      return
+    }
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(result)
+    utterance.lang = 'tr-TR'
+    utterance.rate = speechRate
+    const selectedVoice = speechVoices.find(voice => voice.name === speechVoice)
+    if (selectedVoice) utterance.voice = selectedVoice
+    utterance.onend = () => setSpeaking(false)
+    utterance.onerror = () => { setSpeaking(false); setNotice('Tarayıcı seslendirmeyi tamamlayamadı.') }
+    setSpeaking(true)
+    window.speechSynthesis.speak(utterance)
+  }
+
+  function stopVoice() {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel()
+    setSpeaking(false)
+  }
   const previewDocument = useMemo(() => svg
     ? '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;width:100%;height:100%;background:#f4f4f8}body{display:grid;place-items:center;padding:16px;box-sizing:border-box}svg{max-width:100%;max-height:100%;width:auto;height:auto}</style></head><body>' + svg + '</body></html>'
     : '', [svg])
@@ -220,6 +258,18 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
         {notice && <div role="status" className="pf-creative-notice">{notice}</div>}
         {!result && !busy && <div className="pf-creative-empty"><span className="pf-creative-empty-icon"><Icon name={config.icon} className="h-7 w-7" /></span><strong>Çalışma alanın hazır</strong><p>Brief’ini yaz, stilini seç ve ilk taslağını üret. Sonuçların burada görünecek.</p><div className="pf-creative-empty-lines"><i /><i /><i /></div></div>}
         {busy && !result && <div className="pf-creative-loading"><span /><strong>Fikrin işleniyor</strong><small>Modelden ilk yanıt bekleniyor…</small></div>}
+        {tool === 'voice' && result && <div className="pf-voice-player">
+          <div><Icon name="headset" className="h-4 w-4" /><strong>Sesli önizleme</strong><span>Tarayıcı sesi</span></div>
+          <div className="pf-voice-controls">
+            <select aria-label="Ses seç" value={speechVoice} onChange={event => setSpeechVoice(event.target.value)}>
+              <option value="">Varsayılan Türkçe ses</option>
+              {speechVoices.filter(voice => voice.lang.toLowerCase().startsWith('tr')).map(voice => <option key={voice.name} value={voice.name}>{voice.name}</option>)}
+            </select>
+            <label>Hız <strong>{speechRate.toFixed(1)}×</strong><input type="range" min="0.7" max="1.3" step="0.1" value={speechRate} onChange={event => setSpeechRate(Number(event.target.value))} /></label>
+            <button type="button" onClick={playVoice} disabled={speaking || busy}>Dinlet</button>
+            <button type="button" onClick={stopVoice} disabled={!speaking}>Durdur</button>
+          </div>
+        </div>}
         {svgMode && svg && <div className="pf-svg-preview"><div><span>CANVAS PREVIEW</span><small>İzole SVG önizlemesi</small></div><iframe title={config.title + ' önizlemesi'} sandbox="" srcDoc={previewDocument} /></div>}
         {result && <div className="pf-creative-result"><Markdown content={result} /></div>}
         {result && <div className="pf-creative-output-foot"><span><i />{busy ? 'Yanıt akışı devam ediyor' : 'Taslak hazır'}</span><span>{result.length.toLocaleString('tr-TR')} karakter</span></div>}
