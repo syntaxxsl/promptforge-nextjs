@@ -80,7 +80,7 @@ export default function DashboardStudio({ userId }: { userId: string }) {
   const filtered = tools.filter(item => (item.label + ' ' + item.group).toLocaleLowerCase('tr').includes(query.toLocaleLowerCase('tr')))
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-9 px-4 py-6 md:px-8 md:py-9">
+    <div className="pf-enterprise-dashboard mx-auto w-full max-w-[1680px] space-y-9 px-4 py-6 md:px-8 md:py-9">
       <section className="pf-hero relative overflow-hidden rounded-[28px] border border-border px-6 py-8 md:px-10 md:py-11">
         <div className="pf-hero-orb pf-hero-orb-one" /><div className="pf-hero-orb pf-hero-orb-two" />
         <div className="relative z-10 max-w-3xl">
