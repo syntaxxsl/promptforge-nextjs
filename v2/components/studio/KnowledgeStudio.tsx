@@ -49,6 +49,7 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
   const [summaries, setSummaries] = useState<Record<string, string>>({})
   const [summarizing, setSummarizing] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [tab, setTab] = useState<'docs' | 'ask'>('docs')
 
   const fileInput = useRef<HTMLInputElement | null>(null)
@@ -99,11 +100,13 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
     link.remove()
     URL.revokeObjectURL(url)
     setError(null)
+    setNotice('Bilgi bankası yedeği indirildi.')
   }
 
   async function importBackup(file?: File) {
     if (!file) return
     setError(null)
+    setNotice(null)
     try {
       if (file.size > 10 * 1024 * 1024) throw new Error('Yedek dosyası en fazla 10 MB olabilir.')
       const parsed: unknown = JSON.parse(await file.text())
@@ -136,7 +139,7 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
       setSpaces(listSpaces(userId))
       setSpaceId(importedSpace.id)
       setActiveDocId(null)
-      setError(`${imported} belge yeni bilgi alanına aktarıldı.`)
+      setNotice(`${imported} belge yeni bilgi alanına aktarıldı.`)
     } catch (err) {
       setError((err as Error)?.message || 'Yedek içe aktarılamadı.')
     } finally {
@@ -368,6 +371,12 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
         {error && (
           <p className="mb-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
             {error}
+          </p>
+        )}
+
+        {notice && (
+          <p role="status" className="mb-3 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+            {notice}
           </p>
         )}
 
