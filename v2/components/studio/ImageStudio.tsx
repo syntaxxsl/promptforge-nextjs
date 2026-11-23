@@ -314,7 +314,7 @@ export default function ImageStudio({ userId }: { userId: string }) {
             <button onClick={save} disabled={!prompt.trim() || generating} className="pf-btn pf-btn-ghost text-sm disabled:opacity-40">
               <Icon name="plus" className="h-4 w-4" /> Taslak kaydet
             </button>
-            <span className="text-[11px] text-muted">Yetkili OpenAI API anahtarı ve ücretlendirme gerekir; bunu ebeveynin/velinle yönet.</span>
+            <span className="text-[11px] text-muted">Kişisel OpenAI API anahtarı ve ücretlendirme gerekir; Ayarlar → API Hub'dan ekleyebilirsin.</span>
           </div>
 
           {notice && (
