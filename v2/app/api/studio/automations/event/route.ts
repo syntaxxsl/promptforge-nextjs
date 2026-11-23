@@ -43,8 +43,11 @@ export async function POST(request: NextRequest) {
   ).slice(0, 3)
 
   const runs = []
+  // Keep all matching workflows inside one request-wide budget; individual
+  // AI steps inherit this absolute deadline from the shared runner.
+  const executionDeadline = Date.now() + 45_000
   for (const automation of matches) {
-    const run = await runScheduledAutomation(auth.user.id, automation, 'event', input || automation.description || eventName)
+    const run = await runScheduledAutomation(auth.user.id, automation, 'event', input || automation.description || eventName, executionDeadline)
     const { error: saveError } = await supabase.from('studio_records').upsert({
       user_id: auth.user.id,
       collection: 'automation-runs',
