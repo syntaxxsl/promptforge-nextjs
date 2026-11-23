@@ -1,6 +1,6 @@
 # PromptForge V2 — Automation scheduler setup
 
-PromptForge's scheduled automations are evaluated once per minute. Vercel Hobby cron is limited to one scheduled invocation per day, so Supabase Cron is the primary minute-level dispatcher. The Vercel cron in `vercel.json` is retained as a once-daily fallback.
+PromptForge's scheduled automations are evaluated once per minute. Each dispatcher invocation also checks a bounded 10-minute catch-up window, processing the oldest due schedule first so a brief scheduler outage or a busy minute does not immediately lose every missed tick. Work that does not fit the invocation's time budget remains eligible on the next invocation. Vercel Hobby cron is limited to one scheduled invocation per day, so Supabase Cron is the primary minute-level dispatcher. The Vercel cron in `vercel.json` is retained as a once-daily fallback.
 
 ## 1. Configure the Vercel secret
 
@@ -56,7 +56,7 @@ order by created desc
 limit 10;
 ```
 
-A successful dispatch returns `status_code = 200` with a JSON body such as `{"ok":true,"checked":0,"executed":0,"skipped":0,"failures":[]}`. Any other body shape (HTML, `NOT_FOUND`, `401`) means the request did not reach the route handler.
+A successful dispatch returns `status_code = 200` with a JSON body such as `{"ok":true,"checked":0,"executed":0,"skipped":0,"recovered":0,"deferred":0,"catchUpMinutes":10,"failures":[]}`. Any other body shape (HTML, `NOT_FOUND`, `401`) means the request did not reach the route handler.
 
 ## 5. Build configuration note
 
@@ -65,6 +65,6 @@ The repository also contains the V1 app with its own lockfile, so Next.js may in
 ## Notes
 
 - Vercel Hobby's once-daily cron is only a fallback. Supabase Cron provides the minute-level schedule needed by user-defined automations.
-- The endpoint's database uniqueness constraint prevents the daily Vercel fallback and Supabase dispatcher from executing the same automation for the same scheduled minute twice.
+- The endpoint's database uniqueness constraint prevents the daily Vercel fallback and Supabase dispatcher from executing the same automation for the same scheduled minute twice. Stale `running` locks older than three minutes can be reclaimed after an interrupted invocation. Catch-up is intentionally bounded to the latest 10 minutes; longer outages require manual review rather than an unbounded replay.
 - Supabase Cron and `pg_net` run inside the Supabase database. Their job history is visible in the Supabase Cron dashboard.
 - The migration is committed to the repository but is **not applied automatically**. Apply it in the Supabase SQL Editor; do not assume the scheduler is active until the verification query shows the job and recent successful runs.
