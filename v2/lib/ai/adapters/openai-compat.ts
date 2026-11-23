@@ -74,8 +74,7 @@ export class OpenAICompatAdapter implements AIAdapter {
     })
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new AIProviderError(codeForStatus(res.status), `OpenAI-compat error ${res.status}: ${text.slice(0, 400)}`, {
+      throw new AIProviderError(codeForStatus(res.status), `AI provider request failed (${res.status}).`, {
         status: res.status,
         retryable: isRetryableStatus(res.status)
       })
@@ -112,8 +111,7 @@ export class OpenAICompatAdapter implements AIAdapter {
     })
 
     if (!res.ok || !res.body) {
-      const text = await res.text().catch(() => '')
-      throw new AIProviderError(codeForStatus(res.status), `OpenAI-compat stream error ${res.status}: ${text.slice(0, 400)}`, {
+      throw new AIProviderError(codeForStatus(res.status), `AI provider stream request failed (${res.status}).`, {
         status: res.status,
         retryable: isRetryableStatus(res.status)
       })
