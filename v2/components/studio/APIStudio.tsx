@@ -16,7 +16,7 @@ export default function APIStudio({ userId }: { userId: string }) {
  const [notice,setNotice]=useState('')
  const validUrl=useMemo(()=>{try{const parsed=new URL(url);return parsed.protocol==='https:'||parsed.hostname==='localhost'||parsed.hostname==='127.0.0.1'}catch{return false}},[url])
  const validBody=useMemo(()=>{if(method==='GET'||method==='DELETE')return true;try{JSON.parse(body);return true}catch{return false}},[body,method])
- const headerIssues=useMemo(()=>{const issues:string[]=[];const seen=new Set<string>();for(const header of headers){const key=header.key.trim();if(!key)continue;if(!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(key))issues.push('"'+key+'" geçerli bir HTTP header adı değil.');const normalized=key.toLowerCase();if(seen.has(normalized))issues.push('"'+key+'" başlığı birden fazla kez tanımlanmış.');seen.add(normalized);if(/[\\r\\n]/.test(header.value))issues.push('"'+key+'" değerinde satır sonu karakteri bulunamaz.')}return issues},[headers])
+ const headerIssues=useMemo(()=>{const issues:string[]=[];const seen=new Set<string>();for(const header of headers){const key=header.key.trim();if(!key)continue;if(!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(key))issues.push('"'+key+'" geçerli bir HTTP header adı değil.');const normalized=key.toLowerCase();if(seen.has(normalized))issues.push('"'+key+'" başlığı birden fazla kez tanımlanmış.');seen.add(normalized);if(/[\r\n]/.test(header.value))issues.push('"'+key+'" değerinde satır sonu karakteri bulunamaz.')}return issues},[headers])
  const code=useMemo(()=>{
   const clean=headers.filter(h=>h.key.trim()).map(h=>[h.key.trim(),h.value])
   if(language==='curl'){
