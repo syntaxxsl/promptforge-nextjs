@@ -107,8 +107,7 @@ export class GeminiAdapter implements AIAdapter {
     })
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new AIProviderError(codeForStatus(res.status), `Gemini error ${res.status}: ${text.slice(0, 400)}`, {
+      throw new AIProviderError(codeForStatus(res.status), `Gemini request failed (${res.status}).`, {
         status: res.status,
         retryable: isRetryableStatus(res.status)
       })
@@ -147,8 +146,7 @@ export class GeminiAdapter implements AIAdapter {
     })
 
     if (!res.ok || !res.body) {
-      const text = await res.text().catch(() => '')
-      throw new AIProviderError(codeForStatus(res.status), `Gemini stream error ${res.status}: ${text.slice(0, 400)}`, {
+      throw new AIProviderError(codeForStatus(res.status), `Gemini stream request failed (${res.status}).`, {
         status: res.status,
         retryable: isRetryableStatus(res.status)
       })
