@@ -34,7 +34,7 @@ export default function VisionToCodeStudio({ userId }: { userId: string }) {
  }
  function stop(){abort.current?.abort();abort.current=null;setBusy(false);setNotice('İşlem durduruldu.')}
  async function copy(){try{await navigator.clipboard.writeText(result);setNotice('Kod panoya kopyalandı.')}catch{setNotice('Kopyalama başarısız.')}}
- return <main className="mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
+ return <main className="pf-vision-studio mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
   <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-accent"><Icon name="image" className="h-4 w-4"/> PromptForge Workspace</div><h1 className="text-2xl font-semibold text-fg md:text-3xl">Görselden Koda</h1><p className="mt-1 text-sm text-muted">Ekran görüntüsünü analiz ettir ve frontend koduna dönüştür.</p></div><ModelPicker value={model} onChange={setModel} disabled={busy} requiredCapability="vision"/></header>
   <div className="grid gap-4 xl:grid-cols-[.85fr_1.15fr]">
    <section className="space-y-4 rounded-2xl border border-border bg-surface p-4 md:p-5"><div><h2 className="text-sm font-semibold text-fg">Görsel ve talimatlar</h2><p className="mt-1 text-xs text-muted">PNG, JPEG, WebP · en fazla 8 MB. Gönderilmeden önce tarayıcıda küçültülür.</p></div>
