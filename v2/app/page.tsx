@@ -5,7 +5,7 @@ const pillars = [
   { number: '01', title: 'Create', subtitle: 'Görsel, video ve içerik üretimi', detail: 'Fikirlerini yaratıcı çıktılara dönüştür.', icon: 'image', href: '/login', tone: 'violet' },
   { number: '02', title: 'Build', subtitle: 'Kod ve web deneyimleri', detail: 'Arayüzler tasarla, kodlarını geliştir.', icon: 'code', href: '/login', tone: 'cyan' },
   { number: '03', title: 'Discover', subtitle: 'Araştırma ve veri analizi', detail: 'Sorularını araştır, bilgiyi anlamlandır.', icon: 'compass', href: '/login', tone: 'amber' },
-  { number: '04', title: 'Automate', subtitle: 'Ajanlar ve iş akışları', detail: 'Tekrarlanan işleri akışlara dönüştür.', icon: 'workflow', href: '/login', tone: 'pink' }
+  { number: '04', title: 'Automate', subtitle: 'Ajanlar ve iş akışları', detail: 'Tekrarlanan işleri akışlara dönüştür.', icon: 'layers', href: '/login', tone: 'pink' }
 ]
 
 const tools = [
@@ -13,7 +13,7 @@ const tools = [
   { name: 'Image Studio', type: 'VISUAL CREATION', icon: 'image', href: '/login' },
   { name: 'Code Studio', type: 'DEVELOPMENT', icon: 'code', href: '/login' },
   { name: 'Research', type: 'INTELLIGENCE', icon: 'compass', href: '/login' },
-  { name: 'Website Builder', type: 'WEB DESIGN', icon: 'globe', href: '/login' },
+  { name: 'Website Builder', type: 'WEB DESIGN', icon: 'overview', href: '/login' },
   { name: 'AI Writer', type: 'CONTENT', icon: 'pen', href: '/login' }
 ]
 
@@ -31,7 +31,7 @@ export default function LandingPage() {
         </nav>
         <div className="pf-landing-nav-actions">
           <Link href="/login" className="pf-landing-login">Giriş yap</Link>
-          <Link href="/signup" className="pf-landing-signup">Hemen başla <Icon name="arrow-up-right" className="h-4 w-4" /></Link>
+          <Link href="/signup" className="pf-landing-signup">Hemen başla <Icon name="arrowRight" className="h-4 w-4" /></Link>
         </div>
       </header>
 
@@ -43,7 +43,7 @@ export default function LandingPage() {
           <h1>Yaratıcılığını<br /><span>çalışan fikirlere</span><br />dönüştür.</h1>
           <p className="pf-landing-lead">Üretmek, geliştirmek ve keşfetmek için tasarlanmış yeni nesil AI çalışma alanı. Fikrinden ilk taslağa, tek bir akışta.</p>
           <div className="pf-landing-hero-actions">
-            <Link href="/signup" className="pf-landing-primary">Ücretsiz keşfet <Icon name="arrow-up-right" className="h-4 w-4" /></Link>
+            <Link href="/signup" className="pf-landing-primary">Ücretsiz keşfet <Icon name="arrowRight" className="h-4 w-4" /></Link>
             <Link href="/login" className="pf-landing-secondary"><Icon name="play" className="h-4 w-4" /> Çalışma alanına gir</Link>
           </div>
           <div className="pf-landing-proof"><span className="pf-landing-proof-line" /><span>ONE PLATFORM</span><i /> <span>MANY WAYS TO CREATE</span></div>
@@ -65,7 +65,7 @@ export default function LandingPage() {
         <div className="pf-landing-section-intro"><span className="pf-landing-overline">A NEW WAY TO WORK</span><h2>Tek bir araç değil.<br /><em>Tam bir üretim evreni.</em></h2></div>
         <div className="pf-landing-pillar-grid">
           {pillars.map(item => <Link href={item.href} className={`pf-landing-pillar tone-${item.tone}`} key={item.number}>
-            <div className="pf-landing-pillar-top"><span>{item.number} / 04</span><Icon name="arrow-up-right" className="h-4 w-4" /></div>
+            <div className="pf-landing-pillar-top"><span>{item.number} / 04</span><Icon name="arrowRight" className="h-4 w-4" /></div>
             <span className="pf-landing-pillar-icon"><Icon name={item.icon as never} className="h-5 w-5" /></span>
             <h3>{item.title}</h3><b>{item.subtitle}</b><p>{item.detail}</p>
           </Link>)}
@@ -77,7 +77,7 @@ export default function LandingPage() {
         <div className="pf-landing-tool-grid">
           {tools.map((tool, index) => <Link href={tool.href} key={tool.name} className="pf-landing-tool">
             <span className="pf-landing-tool-index">0{index + 1}</span><span className="pf-landing-tool-icon"><Icon name={tool.icon as never} className="h-5 w-5" /></span>
-            <span className="pf-landing-tool-copy"><small>{tool.type}</small><b>{tool.name}</b></span><Icon name="arrow-up-right" className="pf-landing-tool-arrow h-4 w-4" />
+            <span className="pf-landing-tool-copy"><small>{tool.type}</small><b>{tool.name}</b></span><Icon name="arrowRight" className="pf-landing-tool-arrow h-4 w-4" />
           </Link>)}
         </div>
       </section>
@@ -87,7 +87,7 @@ export default function LandingPage() {
         <span className="pf-landing-overline">THE NEXT IDEA STARTS HERE</span>
         <h2>Hazır olduğunda,<br /><em>başlamak için buradasın.</em></h2>
         <p>Fikrini seç. Çalışma alanını aç. Üretmeye başla.</p>
-        <Link href="/signup" className="pf-landing-primary">PromptForge'u keşfet <Icon name="arrow-up-right" className="h-4 w-4" /></Link>
+        <Link href="/signup" className="pf-landing-primary">PromptForge'u keşfet <Icon name="arrowRight" className="h-4 w-4" /></Link>
       </section>
 
       <footer className="pf-landing-footer"><Link href="/" className="pf-landing-brand"><span className="pf-landing-mark"><Icon name="sparkles" className="h-4 w-4" /></span><span><strong>PromptForge</strong><small>CREATIVE INTELLIGENCE</small></span></Link><span>Fikirden üretime. Tek bir akışta.</span><div><Link href="/login">Giriş yap</Link><Link href="/signup">Hesap oluştur</Link></div></footer>
