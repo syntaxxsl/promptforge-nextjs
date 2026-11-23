@@ -151,7 +151,7 @@ export default function WebSearchStudio({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col gap-4 p-4 md:p-6">
+    <div className="pf-web-search-studio mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col gap-4 p-4 md:p-6">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-lg font-semibold text-white">Web Search</h1>
