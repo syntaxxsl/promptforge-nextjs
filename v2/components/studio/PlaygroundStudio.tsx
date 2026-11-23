@@ -12,7 +12,7 @@ export default function PlaygroundStudio(){
  function reset(){setHtml(START_HTML);setCss(START_CSS);setJs(START_JS);setNotice('Başlangıç örneği geri yüklendi.')}
  async function copyCurrent(){try{await navigator.clipboard.writeText(value);setNotice(tab.toUpperCase()+' kodu panoya kopyalandı.')}catch{setNotice('Kopyalama başarısız. Editördeki kodu seçerek kopyalayabilirsin.')}}
  const value=tab==='html'?html:tab==='css'?css:js
- const lineCount=value.split('\\n').length
+ const lineCount=value.split('\n').length
  const change=tab==='html'?setHtml:tab==='css'?setCss:setJs
  return <main className="pf-playground-studio mx-auto w-full max-w-[1500px] space-y-5 p-4 md:p-7">
  <header className="flex flex-wrap items-end justify-between gap-3 rounded-3xl border border-border bg-surface p-5 md:p-7"><div><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-bold tracking-[.2em] text-emerald-200"><Icon name="code" className="h-3.5 w-3.5"/> LIVE CODE LAB</div><h1 className="text-3xl font-semibold tracking-tight text-fg md:text-4xl">Playground</h1><p className="mt-2 text-sm text-muted">HTML, CSS ve JavaScript için ayrı editörler ve izole canlı önizleme.</p></div><div className="flex flex-wrap gap-2"><button onClick={reset} className="pf-btn pf-btn-ghost text-xs">Sıfırla</button><button onClick={()=>setShowPreview(v=>!v)} className="pf-btn pf-btn-ghost text-xs"><Icon name="play" className="h-3.5 w-3.5"/>{showPreview?'Önizlemeyi gizle':'Önizlemeyi göster'}</button><button onClick={download} className="pf-btn pf-btn-primary text-xs"><Icon name="download" className="h-3.5 w-3.5"/>HTML indir</button></div></header>
