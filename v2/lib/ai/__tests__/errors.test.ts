@@ -1,4 +1,4 @@
-import { isRetryableError, isAbortError, codeForStatus, toProviderFailure, redactSecrets, isRetryableStatus } from '../errors'
+import { AIProviderError, isRetryableError, isAbortError, codeForStatus, toProviderFailure, redactSecrets, isRetryableStatus } from '../errors'
 
 describe('AI error utilities', () => {
   it('codeForStatus correctly maps status codes', () => {
@@ -26,6 +26,13 @@ describe('AI error utilities', () => {
 
   it('toProviderFailure sanitizes errors with secrets', () => {
     const error = new Error('API key sk-abcdefgh12345678 found')
+    const failure = toProviderFailure(error)
+    expect(failure.message).not.toContain('sk-abcdefgh12345678')
+    expect(failure.message).toContain('[redacted]')
+  })
+
+  it('redacts credentials embedded in provider error messages', () => {
+    const error = new AIProviderError('provider_error', 'Provider response included sk-abcdefgh12345678')
     const failure = toProviderFailure(error)
     expect(failure.message).not.toContain('sk-abcdefgh12345678')
     expect(failure.message).toContain('[redacted]')
