@@ -1011,3 +1011,38 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
  .pf-knowledge-studio{height:auto;min-height:calc(100dvh - 64px);padding:12px}
  .pf-knowledge-studio>aside{max-height:230px;overflow:auto}
 }
+
+
+/* Signup page refinement */
+.pf-signup-card{position:relative;overflow:hidden;border:1px solid rgba(167,139,250,.16);background:linear-gradient(155deg,rgba(23,22,42,.96),rgba(12,15,28,.98));box-shadow:0 24px 70px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.035)}
+.pf-signup-card:before{position:absolute;content:"";width:220px;height:150px;right:-100px;top:-100px;border-radius:50%;background:rgba(124,92,255,.18);filter:blur(45px);pointer-events:none}
+.pf-signup-topline{display:flex;align-items:center;gap:9px;margin-bottom:22px;color:#a99af0;font-size:9px;font-weight:850;letter-spacing:.2em}
+.pf-signup-mark{display:grid;width:27px;height:27px;place-items:center;border:1px solid rgba(167,139,250,.28);border-radius:9px;background:rgba(139,92,246,.13);font-size:14px}
+.pf-signup-topline-line{height:1px;flex:1;background:linear-gradient(90deg,rgba(167,139,250,.3),transparent)}
+.pf-signup-heading{margin-bottom:18px}
+.pf-signup-heading h1{max-width:340px;font-size:clamp(27px,4vw,34px)}
+.pf-signup-heading p{max-width:360px;font-size:12px}
+.pf-signup-benefits{display:grid;gap:8px;margin:0 0 20px;padding:12px 13px;border:1px solid rgba(139,126,190,.14);border-radius:13px;background:rgba(255,255,255,.025);color:#bdbbd2;font-size:10px}
+.pf-signup-benefits span{display:flex;align-items:center;gap:8px}
+.pf-signup-benefits i{display:grid;width:16px;height:16px;place-items:center;border-radius:50%;background:rgba(52,211,153,.12);color:#6ee7b7;font-size:10px;font-style:normal}
+.pf-signup-card .pf-auth-field{gap:7px;margin-top:14px}
+.pf-signup-input{min-height:47px!important;border-color:rgba(156,145,196,.2)!important;background:rgba(5,8,18,.58)!important;transition:border-color .18s,box-shadow .18s}
+.pf-signup-input:focus{border-color:rgba(167,139,250,.7)!important;box-shadow:0 0 0 3px rgba(139,92,246,.12)!important;outline:none}
+.pf-signup-strength{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pf-signup-strength-bars{display:flex;gap:4px;flex:1}
+.pf-signup-strength-bars i{height:3px;max-width:42px;flex:1;border-radius:10px;background:rgba(148,145,170,.2)}
+.pf-signup-strength-bars i.is-filled{background:linear-gradient(90deg,#8b5cf6,#38bdf8)}
+.pf-signup-strength small,.pf-signup-match{color:#8e8da6;font-size:9px;font-weight:550}
+.pf-signup-match.is-valid{color:#6ee7b7}
+.pf-signup-feedback{margin:12px 0;padding:10px 12px;border:1px solid;border-radius:11px;font-size:11px;line-height:1.55}
+.pf-signup-error{border-color:rgba(248,113,113,.25);background:rgba(127,29,29,.14);color:#fca5a5}
+.pf-signup-success{border-color:rgba(52,211,153,.22);background:rgba(6,78,59,.16);color:#6ee7b7}
+.pf-signup-submit{display:flex!important;align-items:center;justify-content:space-between;padding:0 17px!important;min-height:49px!important;margin-top:20px!important;border-radius:12px!important;box-shadow:0 9px 28px rgba(111,76,230,.22)}
+.pf-signup-submit span:last-child{font-size:18px;transition:transform .18s}
+.pf-signup-submit:hover span:last-child{transform:translateX(3px)}
+.pf-signup-login{margin-top:18px;text-align:center;color:#9d9bb4;font-size:11px}
+.pf-signup-login a{color:#c4b5fd;font-weight:750}
+.pf-signup-login a:hover{text-decoration:underline}
+.pf-signup-secure{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:17px;color:#77768e;font-size:9px}
+.pf-signup-secure span{color:#9e8df2;font-size:13px}
+@media(max-width:640px){.pf-signup-card{padding:21px!important}.pf-signup-topline{margin-bottom:18px}.pf-signup-benefits{font-size:10px}}
