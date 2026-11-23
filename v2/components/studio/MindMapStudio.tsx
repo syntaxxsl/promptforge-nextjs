@@ -54,6 +54,21 @@ export default function MindMapStudio({ userId }: { userId: string }) {
     catch { setNotice('Kopyalama başarısız; metni seçerek kopyalayabilirsin.') }
   }
 
+  function download() {
+    if (!result.trim()) return
+    const blob = new Blob([result], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const safeName = (topic.trim() || 'zihin-haritasi').toLocaleLowerCase('tr').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'zihin-haritasi'
+    link.href = url
+    link.download = `${safeName}.md`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    setNotice('Markdown dosyası indirildi.')
+  }
+
   return <main className="pf-mindmap-studio mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
     <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="map" className="h-4 w-4" /> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">Zihin Haritası</h1><p className="mt-1 text-sm text-muted">Karmaşık konuları dallara ayır, fikirler arasındaki ilişkileri görünür hâle getir.</p></div>
@@ -70,7 +85,7 @@ export default function MindMapStudio({ userId }: { userId: string }) {
         {notice && <p role="status" className="text-xs text-muted">{notice}</p>}
       </section>
       <section className="flex min-h-[580px] flex-col rounded-2xl border border-border bg-surface p-4 md:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Harita taslağı</h2><p className="mt-1 text-xs text-muted">{meta || (busy ? 'Dallar oluşturuluyor…' : 'Oluşturulan hiyerarşi burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={() => { setResult(''); setNotice('') }} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5" />Kopyala</button><SaveOutputButton userId={userId} tool="Zihin Haritası" title="Zihin Haritası" content={result}/></div></div>
+        <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Harita taslağı</h2><p className="mt-1 text-xs text-muted">{meta || (busy ? 'Dallar oluşturuluyor…' : 'Oluşturulan hiyerarşi burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={() => { setResult(''); setNotice('') }} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5" />Kopyala</button><button type="button" onClick={download} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="download" className="h-3.5 w-3.5" />.md indir</button><SaveOutputButton userId={userId} tool="Zihin Haritası" title="Zihin Haritası" content={result}/></div></div>
         <div className="min-h-[480px] flex-1 overflow-y-auto rounded-xl border border-border bg-background/60 p-4">{result ? <Markdown content={result} /> : <div className="flex min-h-[460px] items-center justify-center text-center text-sm text-muted">{busy ? 'Zihin haritası hazırlanıyor…' : 'Bir mod seç, ana konuyu yaz ve haritanı oluştur.'}</div>}</div>
       </section>
     </div>
