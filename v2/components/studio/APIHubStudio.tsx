@@ -98,7 +98,7 @@ export default function APIHubStudio() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-7">
+    <main className="pf-api-hub mx-auto w-full max-w-7xl space-y-6 p-4 md:p-7">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">PROMPTFORGE · CONTROL CENTER</p>
