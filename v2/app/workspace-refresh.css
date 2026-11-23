@@ -290,3 +290,33 @@
  .pf-team-studio>div{padding:12px}
  .pf-web-search-studio{min-height:calc(100dvh - 120px);padding:12px}
 }
+
+
+/* Enterprise finishing pass: API, automation, agent, data and content studios. */
+.pf-api-hub>header,.pf-agent-studio>section:first-child,.pf-automation-studio>aside,.pf-brand-studio>header,.pf-database-studio>header,.pf-debugger-studio>header,.pf-document-studio>header,.pf-presentation-studio>header,.pf-sql-studio>header,.pf-seo-studio>header,.pf-social-studio>header,.pf-writer-studio>header{border:1px solid rgba(148,163,184,.15);border-radius:17px;background:linear-gradient(112deg,rgba(15,23,42,.97),rgba(17,25,42,.94) 65%,rgba(27,25,48,.88));box-shadow:0 15px 42px rgba(0,0,0,.12)}
+.pf-api-hub>header{padding:21px 23px}
+.pf-api-hub>section>div,.pf-api-hub article{border-color:rgba(148,163,184,.14);border-radius:14px}
+.pf-api-hub input,.pf-api-hub select{min-height:42px;border-color:rgba(148,163,184,.18);border-radius:9px;background:rgba(4,9,19,.56)}
+.pf-api-hub input:focus,.pf-api-hub select:focus{outline:none;border-color:rgba(129,140,248,.6);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.pf-api-hub article:hover{border-color:rgba(129,140,248,.28)}
+.pf-agent-studio>section:first-child{padding:22px}
+.pf-agent-studio .pf-card,.pf-agent-studio article{border-color:rgba(148,163,184,.14);border-radius:13px}
+.pf-automation-studio>aside{padding:14px;background:linear-gradient(180deg,rgba(18,26,43,.98),rgba(11,18,31,.98))}
+.pf-automation-studio>section{min-width:0;border:1px solid rgba(148,163,184,.13);border-radius:15px;background:linear-gradient(155deg,rgba(17,25,41,.92),rgba(11,18,30,.96));padding:16px}
+.pf-automation-studio input,.pf-automation-studio textarea,.pf-automation-studio select{border-radius:8px}
+.pf-brand-studio>header,.pf-database-studio>header,.pf-debugger-studio>header,.pf-document-studio>header,.pf-presentation-studio>header,.pf-sql-studio>header,.pf-seo-studio>header,.pf-social-studio>header,.pf-writer-studio>header{padding:19px 21px}
+.pf-brand-studio>div.grid>section,.pf-database-studio>div.grid>section,.pf-debugger-studio>div.grid>section,.pf-document-studio>div.grid>section,.pf-presentation-studio>div.grid>section,.pf-sql-studio>div.grid>section,.pf-seo-studio>div.grid>section,.pf-social-studio>div.grid>section,.pf-writer-studio>div.grid>section{min-width:0;border:1px solid rgba(148,163,184,.14);border-radius:15px;background:linear-gradient(155deg,rgba(18,27,43,.95),rgba(11,18,30,.97));box-shadow:0 12px 34px rgba(0,0,0,.09)}
+.pf-brand-studio .pf-input,.pf-database-studio .pf-input,.pf-debugger-studio .pf-input,.pf-document-studio .pf-input,.pf-presentation-studio .pf-input,.pf-sql-studio .pf-input,.pf-seo-studio .pf-input,.pf-social-studio .pf-input,.pf-writer-studio .pf-input{border-color:rgba(148,163,184,.17);border-radius:9px;background:rgba(4,9,19,.54)}
+.pf-brand-studio button,.pf-database-studio button,.pf-debugger-studio button,.pf-document-studio button,.pf-presentation-studio button,.pf-sql-studio button,.pf-seo-studio button,.pf-social-studio button,.pf-writer-studio button{transition:background .16s,border-color .16s,transform .16s}
+.pf-brand-studio button:focus-visible,.pf-database-studio button:focus-visible,.pf-debugger-studio button:focus-visible,.pf-document-studio button:focus-visible,.pf-presentation-studio button:focus-visible,.pf-sql-studio button:focus-visible,.pf-seo-studio button:focus-visible,.pf-social-studio button:focus-visible,.pf-writer-studio button:focus-visible{outline:2px solid rgba(129,140,248,.68);outline-offset:2px}
+.pf-sql-studio textarea{tab-size:2;caret-color:#c7d2fe}
+.pf-database-studio pre,.pf-sql-studio pre{scrollbar-width:thin}
+@media(max-width:760px){
+ .pf-api-hub,.pf-agent-studio,.pf-brand-studio,.pf-database-studio,.pf-debugger-studio,.pf-document-studio,.pf-presentation-studio,.pf-sql-studio,.pf-seo-studio,.pf-social-studio,.pf-writer-studio{padding:11px!important}
+ .pf-api-hub>header,.pf-agent-studio>section:first-child,.pf-brand-studio>header,.pf-database-studio>header,.pf-debugger-studio>header,.pf-document-studio>header,.pf-presentation-studio>header,.pf-sql-studio>header,.pf-seo-studio>header,.pf-social-studio>header,.pf-writer-studio>header{padding:15px;border-radius:14px}
+ .pf-api-hub>section{grid-template-columns:minmax(0,1fr)}
+ .pf-brand-studio>div.grid,.pf-database-studio>div.grid,.pf-debugger-studio>div.grid,.pf-document-studio>div.grid,.pf-presentation-studio>div.grid,.pf-sql-studio>div.grid,.pf-seo-studio>div.grid,.pf-social-studio>div.grid,.pf-writer-studio>div.grid{grid-template-columns:minmax(0,1fr)}
+ .pf-automation-studio{height:auto;min-height:calc(100dvh - 120px);flex-direction:column;padding:11px!important}
+ .pf-automation-studio>aside{width:100%;max-height:245px;overflow:auto}
+ .pf-automation-studio>section{padding:12px}
+}
