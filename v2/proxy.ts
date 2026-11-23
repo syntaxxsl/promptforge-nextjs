@@ -1,7 +1,22 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
-const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth']
+/**
+ * Pages that must render without a session.
+ *
+ * `/reset-password` is reached from a Supabase recovery e-mail before a
+ * session exists, and `/share/*` is a read-only snapshot that the visitor was
+ * given a bearer token for.
+ */
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth', '/reset-password', '/share']
+
+/**
+ * The read-only share endpoint resolves the token itself (SHA-256 hash plus a
+ * SECURITY DEFINER RPC that only returns unexpired, non-revoked snapshots).
+ * Only GET/HEAD are exempt: POST creates a share and keeps its own session
+ * check, so private project data is never reachable without a valid token.
+ */
+const PUBLIC_SHARE_API = '/api/projects/share'
 
 /**
  * Cron endpoints authenticate themselves with the CRON_SECRET header, so they
@@ -22,6 +37,8 @@ export async function proxy(request: NextRequest) {
     if (pathname.startsWith('/api/')) {
       // Cron routes carry their own CRON_SECRET authentication.
       if (pathname.startsWith(CRON_API_PREFIX)) return response
+      // Public share reads: token-validated inside the route handler.
+      if (pathname === PUBLIC_SHARE_API && (request.method === 'GET' || request.method === 'HEAD')) return response
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const url = request.nextUrl.clone()

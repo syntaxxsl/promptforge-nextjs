@@ -47,7 +47,10 @@ function LoginForm() {
     setResetting(true)
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: window.location.origin + '/reset-password'
+        // Supabase returns a PKCE authorization code. The server callback
+        // exchanges it for a cookie session (and validates `next`) before the
+        // update-password page needs a session of its own.
+        redirectTo: window.location.origin + '/auth/callback?next=/reset-password'
       })
       if (resetError) setError(resetError.message)
       else setNotice('Şifre sıfırlama bağlantısı, destekleniyorsa e-posta adresine gönderildi. Gelen kutunu kontrol et.')
