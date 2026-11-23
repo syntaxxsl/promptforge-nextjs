@@ -10,10 +10,12 @@ export const maxDuration = 60
 
 /**
  * Shared secret configured as CRON_SECRET in the Vercel project and as
- * promptforge_cron_secret in Supabase Vault. Supabase pg_cron sends it as
- * `Authorization: Bearer <secret>`; Vercel Cron does the same.
+ * promptforge_cron_secret in Supabase Vault. Supabase Cron sends it as
+ * Authorization: Bearer <secret>.
  */
 const SECRET = (process.env.CRON_SECRET || '').trim()
+const STALE_LOCK_MS = 3 * 60_000
+const DISPATCH_BUDGET_MS = 42_000
 
 function parseBearer(header: string | null): string | null {
   if (!header) return null
@@ -22,14 +24,60 @@ function parseBearer(header: string | null): string | null {
   return token ? token : null
 }
 
-/**
- * Constant-time comparison over SHA-256 digests so neither the secret length
- * nor its content leaks through timing or early returns.
- */
+/** Constant-time comparison over SHA-256 digests. */
 function tokensMatch(provided: string, expected: string): boolean {
   const a = createHash('sha256').update(provided, 'utf8').digest()
   const b = createHash('sha256').update(expected, 'utf8').digest()
   return timingSafeEqual(a, b)
+}
+
+type ExecutionLock = { id: string }
+
+async function claimExecution(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+  automationId: string,
+  scheduledFor: string
+): Promise<ExecutionLock | null> {
+  const { data: inserted, error: insertError } = await admin
+    .from('automation_schedule_executions')
+    .insert({
+      user_id: userId,
+      automation_id: automationId,
+      scheduled_for: scheduledFor,
+      status: 'running'
+    })
+    .select('id')
+    .single()
+
+  if (!insertError && inserted) return inserted
+
+  // A unique-key collision means another dispatcher already claimed this tick.
+  // Only reclaim a lock that has been abandoned beyond the route's hard timeout.
+  const { data: existing, error: lookupError } = await admin
+    .from('automation_schedule_executions')
+    .select('id,status,updated_at')
+    .eq('user_id', userId)
+    .eq('automation_id', automationId)
+    .eq('scheduled_for', scheduledFor)
+    .maybeSingle()
+
+  if (lookupError || !existing || existing.status !== 'running') return null
+
+  const staleBefore = new Date(Date.now() - STALE_LOCK_MS).toISOString()
+  if (!existing.updated_at || Date.parse(existing.updated_at) >= Date.parse(staleBefore)) return null
+
+  const { data: reclaimed, error: reclaimError } = await admin
+    .from('automation_schedule_executions')
+    .update({ status: 'running', run_id: null, error: null, updated_at: new Date().toISOString() })
+    .eq('id', existing.id)
+    .eq('status', 'running')
+    .lt('updated_at', staleBefore)
+    .select('id')
+    .maybeSingle()
+
+  if (reclaimError || !reclaimed) return null
+  return reclaimed
 }
 
 export async function GET(request: NextRequest) {
@@ -49,6 +97,7 @@ export async function GET(request: NextRequest) {
 
   const now = new Date()
   const minute = new Date(Math.floor(now.getTime() / 60_000) * 60_000)
+  const dispatchDeadline = Date.now() + DISPATCH_BUDGET_MS
 
   const { data, error } = await admin
     .from('studio_records')
@@ -63,9 +112,12 @@ export async function GET(request: NextRequest) {
   let checked = 0
   let executed = 0
   let skipped = 0
+  let recovered = 0
   const failures: string[] = []
 
   for (const row of (data || []) as Array<{ user_id: string; record_data: Automation }>) {
+    if (Date.now() >= dispatchDeadline) break
+
     const automation = row.record_data
     if (!automation || automation.enabled !== true || automation.trigger !== 'schedule') continue
 
@@ -76,19 +128,14 @@ export async function GET(request: NextRequest) {
     if (!isCronDue(expression, timeZone, minute)) continue
 
     const scheduledFor = minute.toISOString()
-    const { data: lock, error: lockError } = await admin
-      .from('automation_schedule_executions')
-      .insert({ user_id: row.user_id, automation_id: automation.id, scheduled_for: scheduledFor, status: 'running' })
-      .select('id')
-      .single()
-
-    if (lockError || !lock) {
+    const lock = await claimExecution(admin, row.user_id, automation.id, scheduledFor)
+    if (!lock) {
       skipped += 1
       continue
     }
 
     try {
-      const run = await runScheduledAutomation(row.user_id, automation)
+      const run = await runScheduledAutomation(row.user_id, automation, 'schedule', undefined, dispatchDeadline)
       const { error: saveError } = await admin.from('studio_records').upsert({
         user_id: row.user_id,
         collection: 'automation-runs',
@@ -100,12 +147,14 @@ export async function GET(request: NextRequest) {
 
       if (saveError) throw new Error('Çalıştırma geçmişi kaydedilemedi.')
 
-      await admin.from('automation_schedule_executions').update({
+      const { error: lockUpdateError } = await admin.from('automation_schedule_executions').update({
         status: run.status === 'failed' ? 'failed' : 'complete',
         run_id: run.id,
         error: run.error?.slice(0, 900) || null,
         updated_at: new Date().toISOString()
       }).eq('id', lock.id)
+
+      if (lockUpdateError) throw new Error('Çalıştırma durumu kaydedilemedi.')
 
       executed += 1
       if (run.status === 'failed') failures.push(`${automation.name}: ${run.error || 'başarısız'}`)
@@ -122,5 +171,13 @@ export async function GET(request: NextRequest) {
     if (executed >= 3) break
   }
 
-  return NextResponse.json({ ok: failures.length === 0, checked, executed, skipped, failures })
+  return NextResponse.json({
+    ok: failures.length === 0,
+    checked,
+    executed,
+    skipped,
+    recovered,
+    failures,
+    remainingBudgetMs: Math.max(0, dispatchDeadline - Date.now())
+  })
 }
