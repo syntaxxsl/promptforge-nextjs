@@ -28,7 +28,7 @@ function transform(input: string, node: AutomationNode) {
   }
 }
 
-export async function runScheduledAutomation(userId: string, automation: Automation, trigger: 'schedule' | 'event' = 'schedule', inputOverride?: string): Promise<AutomationRun> {
+export async function runScheduledAutomation(userId: string, automation: Automation, trigger: 'schedule' | 'event' = 'schedule', inputOverride?: string, deadlineAt?: number): Promise<AutomationRun> {
   const now = new Date().toISOString()
   const run: AutomationRun = {
     id: `arun_${crypto.randomUUID().replace(/-/g, '')}`,
@@ -46,6 +46,12 @@ export async function runScheduledAutomation(userId: string, automation: Automat
 
   for (const node of automation.nodes) {
     if (node.kind === 'end') break
+    if (deadlineAt !== undefined && Date.now() >= deadlineAt - 1_000) {
+      run.status = 'failed'
+      run.error = 'Otomasyon, güvenli çalışma süresi sınırına ulaştı.'
+      run.updatedAt = new Date().toISOString()
+      return run
+    }
     const started = Date.now()
     if (node.kind === 'trigger') {
       run.nodes.push({ nodeId: node.id, label: node.label, kind: node.kind, status: 'done', input: '', output: current, ms: 0 })
@@ -69,8 +75,10 @@ export async function runScheduledAutomation(userId: string, automation: Automat
           maxTokens: 1500,
           userId,
           task: 'chat',
-          timeoutMs: 45_000,
-          retries: 1
+          timeoutMs: deadlineAt === undefined
+            ? 30_000
+            : Math.max(1_000, Math.min(30_000, deadlineAt - Date.now() - 1_500)),
+          retries: 0
         })
         output = result.text
       } else if (node.kind === 'condition') {
