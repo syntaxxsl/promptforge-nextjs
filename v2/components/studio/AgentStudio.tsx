@@ -41,6 +41,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
   const [imageBusy, setImageBusy] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
+  const importInput = useRef<HTMLInputElement | null>(null)
 
   useCloudCollection({ userId, collection: 'agents', records: agents, setRecords: setAgents, sort: (a, b) => b.updatedAt.localeCompare(a.updatedAt), onUnavailable: () => setNotice('Bulut ajan eşitlemesi kullanılamıyor; yerel kayıtların korunuyor.') })
   useCloudCollection({ userId, collection: 'agent-runs', records: runs, setRecords: setRuns, sort: (a, b) => b.createdAt.localeCompare(a.createdAt), onUnavailable: () => setNotice('Bulut görev geçmişi eşitlemesi kullanılamıyor; yerel kayıtların korunuyor.') })
@@ -114,6 +115,45 @@ export default function AgentStudio({ userId }: { userId: string }) {
     link.remove()
     URL.revokeObjectURL(url)
     setNotice('Ajan yapılandırması JSON olarak indirildi.')
+  }
+
+  async function importAgent(file?: File) {
+    if (!file) return
+    setNotice(null)
+    try {
+      if (file.size > 256 * 1024) throw new Error('Yapılandırma dosyası en fazla 256 KB olabilir.')
+      const parsed: unknown = JSON.parse(await file.text())
+      if (!parsed || typeof parsed !== 'object') throw new Error('Geçersiz ajan yapılandırması.')
+      const data = parsed as { format?: unknown; version?: unknown; agent?: { name?: unknown; description?: unknown; systemPrompt?: unknown; tools?: unknown } }
+      if (data.format !== 'promptforge-agent' || data.version !== 1 || !data.agent || typeof data.agent !== 'object') {
+        throw new Error('Bu dosya desteklenen PromptForge ajan yapılandırması değil.')
+      }
+      const source = data.agent
+      if (typeof source.name !== 'string' || !source.name.trim()) throw new Error('Ajan adı bulunamadı.')
+      const tools = Array.isArray(source.tools)
+        ? source.tools.filter((tool): tool is AgentToolId => typeof tool === 'string' && AGENT_TOOLS.some((item) => item.id === tool))
+        : []
+      const created = createAgent(userId, { name: source.name.trim().slice(0, 80) })
+      if (!created) throw new Error('Yeni ajan oluşturulamadı; depolama alanını kontrol et.')
+      const saved = saveAgent(userId, {
+        ...created,
+        description: typeof source.description === 'string' ? source.description.slice(0, 500) : '',
+        systemPrompt: typeof source.systemPrompt === 'string' ? source.systemPrompt.slice(0, 12000) : '',
+        tools
+      })
+      if (!saved) {
+        deleteAgent(userId, created.id)
+        throw new Error('İçe aktarılan ajan kaydedilemedi.')
+      }
+      refresh()
+      setActiveId(saved.id)
+      setDraft(saved)
+      setNotice('Ajan yapılandırması içe aktarıldı. Model sağlayıcısı mevcut seçiminle ayrıca ayarlanabilir.')
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Ajan yapılandırması içe aktarılamadı.')
+    } finally {
+      if (importInput.current) importInput.current.value = ''
+    }
   }
 
   function persist() {
@@ -474,7 +514,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2"><button onClick={persist} className="pf-btn pf-btn-primary text-sm">Kaydet</button><button type="button" onClick={exportAgent} className="pf-btn pf-btn-ghost text-sm"><Icon name="download" className="h-4 w-4" /> Yapılandırmayı dışa aktar</button></div>
+              <div className="flex flex-wrap gap-2"><button onClick={persist} className="pf-btn pf-btn-primary text-sm">Kaydet</button><button type="button" onClick={exportAgent} className="pf-btn pf-btn-ghost text-sm"><Icon name="download" className="h-4 w-4" /> Yapılandırmayı dışa aktar</button><button type="button" onClick={() => importInput.current?.click()} className="pf-btn pf-btn-ghost text-sm"><Icon name="upload" className="h-4 w-4" /> Yapılandırma içe aktar</button><input ref={importInput} type="file" accept="application/json,.json" className="sr-only" onChange={(event) => { void importAgent(event.target.files?.[0]); event.currentTarget.value = "" }} /></div>
             </section>
 
             <section className="pf-card p-4 space-y-3">
