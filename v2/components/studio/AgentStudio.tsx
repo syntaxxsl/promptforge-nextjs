@@ -89,6 +89,33 @@ export default function AgentStudio({ userId }: { userId: string }) {
     setDraft((prev) => ({ ...prev, ...patch }))
   }
 
+  function exportAgent() {
+    if (!active) return
+    const payload = {
+      format: 'promptforge-agent',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      agent: {
+        name: draft.name || active.name,
+        description: draft.description || '',
+        systemPrompt: draft.systemPrompt || '',
+        tools: draft.tools || [],
+        provider: draft.provider || null,
+        model: draft.model || null
+      }
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'promptforge-agent-config.json'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    setNotice('Ajan yapılandırması JSON olarak indirildi.')
+  }
+
   function persist() {
     if (!activeId) return
     const current = getAgent(userId, activeId)
@@ -447,9 +474,7 @@ export default function AgentStudio({ userId }: { userId: string }) {
                 </p>
               </div>
 
-              <button onClick={persist} className="pf-btn pf-btn-primary text-sm">
-                Kaydet
-              </button>
+              <div className="flex flex-wrap gap-2"><button onClick={persist} className="pf-btn pf-btn-primary text-sm">Kaydet</button><button type="button" onClick={exportAgent} className="pf-btn pf-btn-ghost text-sm"><Icon name="download" className="h-4 w-4" /> Yapılandırmayı dışa aktar</button></div>
             </section>
 
             <section className="pf-card p-4 space-y-3">
