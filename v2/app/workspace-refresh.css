@@ -320,3 +320,24 @@
  .pf-automation-studio>aside{width:100%;max-height:245px;overflow:auto}
  .pf-automation-studio>section{padding:12px}
 }
+
+
+/* Focused workspace pass: chat, prompt engineering, model evaluation and playground. */
+.pf-chat-studio{background:radial-gradient(ellipse at 14% 0%,rgba(99,102,241,.055),transparent 35%),var(--background)}
+.pf-chat-studio>aside,.pf-chat-studio>section{min-width:0}
+.pf-prompt-engineer-studio>header,.pf-playground-studio>header,.pf-model-comparison-studio>header{border:1px solid rgba(148,163,184,.15);background:linear-gradient(112deg,rgba(15,23,42,.97),rgba(17,25,42,.94) 65%,rgba(27,25,48,.88));box-shadow:0 16px 44px rgba(0,0,0,.12)}
+.pf-prompt-engineer-studio>header{border-radius:17px;padding:20px 22px}
+.pf-prompt-engineer-studio>section,.pf-prompt-engineer-studio>div.grid>section{min-width:0;border-color:rgba(148,163,184,.15);border-radius:15px}
+.pf-prompt-engineer-studio textarea,.pf-model-comparison-studio textarea{border-color:rgba(148,163,184,.17);border-radius:10px;background:rgba(4,9,19,.5)}
+.pf-prompt-engineer-studio textarea:focus,.pf-model-comparison-studio textarea:focus{outline:none;border-color:rgba(129,140,248,.6);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.pf-playground-studio>div.grid>section{border-color:rgba(148,163,184,.16);border-radius:15px;box-shadow:0 16px 42px rgba(0,0,0,.12)}
+.pf-playground-studio textarea{tab-size:2;caret-color:#c7d2fe}
+.pf-model-comparison-studio>div.grid>section{border-color:rgba(148,163,184,.15);border-radius:15px;background:linear-gradient(155deg,rgba(18,27,43,.95),rgba(11,18,30,.97))}
+.pf-model-comparison-studio>div.grid>section>div:first-child{background:rgba(4,9,19,.2)}
+@media(max-width:760px){
+ .pf-prompt-engineer-studio,.pf-playground-studio,.pf-model-comparison-studio{padding:11px!important}
+ .pf-prompt-engineer-studio>header,.pf-playground-studio>header,.pf-model-comparison-studio>header{padding:15px;border-radius:14px}
+ .pf-prompt-engineer-studio>div.grid:first-of-type{grid-template-columns:minmax(0,1fr)}
+ .pf-playground-studio textarea{min-height:380px}
+ .pf-model-comparison-studio>div.grid{grid-template-columns:minmax(0,1fr)}
+}
