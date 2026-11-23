@@ -249,6 +249,23 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
     setNotice('İşlem durduruldu. Alınan kısmi yanıt korunuyor.')
   }
 
+  function downloadText() {
+    if (!result.trim()) return
+    const content = svgMode && svg ? svg : result
+    const extension = svgMode && svg ? 'svg' : 'md'
+    const mime = extension === 'svg' ? 'image/svg+xml;charset=utf-8' : 'text/markdown;charset=utf-8'
+    const blob = new Blob([content], { type: mime })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `promptforge-${tool}-output.${extension}`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    setNotice(extension === 'svg' ? 'SVG dosyası indirildi.' : 'Markdown dosyası indirildi.')
+  }
+
   const svgMode = tool === 'logo' || tool === 'thumbnail'
 
   return <main className={'pf-creative-studio pf-creative-' + tool + ' mx-auto w-full max-w-[1500px] space-y-5 px-4 py-5 md:px-8 md:py-8'} data-tool={tool}>
@@ -300,6 +317,7 @@ export default function CreativeLabStudio({ userId, tool }: { userId: string; to
         {svgMode && svg && <div className="pf-svg-preview"><div><span>CANVAS PREVIEW</span><small>İzole SVG önizlemesi</small></div><iframe title={config.title + ' önizlemesi'} sandbox="" srcDoc={previewDocument} /></div>}
         {result && <div className="pf-creative-result"><Markdown content={result} /></div>}
         {result && <div className="pf-creative-output-foot"><span><i />{busy ? 'Yanıt akışı devam ediyor' : 'Taslak hazır'}</span><span>{result.length.toLocaleString('tr-TR')} karakter</span></div>}
+        {result && <div className="flex flex-wrap gap-2"><button type="button" onClick={downloadText} className="pf-btn pf-btn-ghost text-xs"><Icon name="download" className="h-3.5 w-3.5" />{svgMode && svg ? 'SVG indir' : 'Markdown indir'}</button><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(svgMode && svg ? svg : result); setNotice('Çıktı panoya kopyalandı.') } catch { setNotice('Kopyalama başarısız oldu.') } }} className="pf-btn pf-btn-ghost text-xs"><Icon name="copy" className="h-3.5 w-3.5" />{svgMode && svg ? 'SVG kodunu kopyala' : 'Metni kopyala'}</button></div>}
       </section>
     </div>
   </main>
