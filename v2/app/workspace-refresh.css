@@ -351,3 +351,12 @@
 .pf-chat-studio button:focus-visible{outline:2px solid rgba(129,140,248,.68);outline-offset:2px}
 .pf-chat-studio .pf-scroll{scrollbar-width:thin;scrollbar-color:rgba(148,163,184,.24) transparent}
 @media(max-width:760px){.pf-chat-studio{min-height:calc(100dvh - 3.5rem)}}
+
+
+/* API Studio request composer and generated-code panels. */
+.pf-api-studio>header{border:1px solid rgba(148,163,184,.15);border-radius:17px;padding:20px 22px;background:linear-gradient(112deg,rgba(15,23,42,.97),rgba(17,25,42,.94) 65%,rgba(27,25,48,.88))}
+.pf-api-studio>section{border-color:rgba(148,163,184,.15);border-radius:15px;background:linear-gradient(155deg,rgba(18,27,43,.95),rgba(11,18,30,.97))}
+.pf-api-studio input,.pf-api-studio select,.pf-api-studio textarea{border-color:rgba(148,163,184,.17);border-radius:9px;background:rgba(4,9,19,.5)}
+.pf-api-studio input:focus,.pf-api-studio select:focus,.pf-api-studio textarea:focus{outline:none;border-color:rgba(129,140,248,.58);box-shadow:0 0 0 3px rgba(99,102,241,.09)}
+.pf-api-studio pre{max-height:620px;scrollbar-width:thin}
+@media(max-width:760px){.pf-api-studio{padding:11px!important}.pf-api-studio>header{padding:15px}.pf-api-studio .grid-cols-\[1fr_1fr_auto\]{grid-template-columns:minmax(0,1fr)}}
