@@ -165,7 +165,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="pf-workspace-rail-inner">
             <span className="pf-workspace-rail-label">EXPLORE</span>
             {QUICK_TOOL_LINKS.map(item => (
-              <Link key={item.href} href={item.href} className={`pf-workspace-pill ${isActive(item.href) ? 'is-active' : ''}`}>
+              <Link key={item.href} href={item.href} className={`pf-workspace-pill pf-workspace-${item.href.slice(1).replaceAll('/', '-') } ${isActive(item.href) ? 'is-active' : ''}`}>
                 <Icon name={item.icon} className="h-4 w-4" />
                 <span>{item.label}</span>
               </Link>
