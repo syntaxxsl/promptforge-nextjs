@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import './workspace-refresh.css'
 
 export const metadata: Metadata = {
   title: 'PromptForge 2.0',
