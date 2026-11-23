@@ -4,12 +4,14 @@ on:
   push:
     branches:
       - promptforge-v2-development
+      - promptforge-v2-studio-workspaces
     paths:
       - "v2/**"
       - ".github/workflows/aegis-security.yml"
   pull_request:
     branches:
       - promptforge-v2-development
+      - promptforge-v2-studio-workspaces
     paths:
       - "v2/**"
       - ".github/workflows/aegis-security.yml"
