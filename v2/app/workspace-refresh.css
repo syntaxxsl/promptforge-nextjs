@@ -94,3 +94,26 @@
  .pf-studio-meta-line{width:18px;flex:none}
  .pf-studio-meta-history{margin-left:8px}
 }
+
+
+/* Individual accents for the extended tool workbenches. */
+.pf-studio-agents{--studio-accent:#b9a5ff;--studio-glow:rgba(139,92,246,.14)}
+.pf-studio-api,.pf-studio-models{--studio-accent:#8bbcff;--studio-glow:rgba(59,130,246,.13)}
+.pf-studio-database,.pf-studio-sql{--studio-accent:#79d5ef;--studio-glow:rgba(14,165,233,.13)}
+.pf-studio-debugger{--studio-accent:#fb9b9b;--studio-glow:rgba(239,68,68,.12)}
+.pf-studio-document,.pf-studio-file,.pf-studio-resume{--studio-accent:#f0c17b;--studio-glow:rgba(217,119,6,.12)}
+.pf-studio-presentation{--studio-accent:#f0a7c8;--studio-glow:rgba(219,39,119,.12)}
+.pf-studio-automation{--studio-accent:#a6a0ff;--studio-glow:rgba(99,102,241,.14)}
+.pf-studio-seo,.pf-studio-search{--studio-accent:#7de0bf;--studio-glow:rgba(16,185,129,.12)}
+.pf-studio-social,.pf-studio-chatbot{--studio-accent:#f4a6c9;--studio-glow:rgba(236,72,153,.12)}
+.pf-studio-brand{--studio-accent:#e9b0ff;--studio-glow:rgba(168,85,247,.13)}
+.pf-studio-assistant,.pf-studio-command{--studio-accent:#c4b5fd;--studio-glow:rgba(139,92,246,.13)}
+.pf-studio-community,.pf-studio-teams{--studio-accent:#80d8c5;--studio-glow:rgba(20,184,166,.12)}
+.pf-studio-data,.pf-studio-knowledge{--studio-accent:#8ac9e8;--studio-glow:rgba(14,165,233,.12)}
+.pf-studio-design,.pf-studio-thumbnail,.pf-studio-photo{--studio-accent:#f3a6bd;--studio-glow:rgba(244,63,94,.12)}
+.pf-studio-game,.pf-studio-playground{--studio-accent:#a6d88d;--studio-glow:rgba(132,204,22,.12)}
+.pf-studio-language,.pf-studio-story,.pf-studio-podcast,.pf-studio-voice{--studio-accent:#e5b3ff;--studio-glow:rgba(168,85,247,.12)}
+.pf-studio-math,.pf-studio-quiz{--studio-accent:#f4cb7d;--studio-glow:rgba(234,179,8,.12)}
+.pf-studio-memory,.pf-studio-mindmap{--studio-accent:#91b7ff;--studio-glow:rgba(59,130,246,.12)}
+.pf-studio-monitor,.pf-studio-deploy{--studio-accent:#9da9bd;--studio-glow:rgba(100,116,139,.13)}
+.pf-studio-music{--studio-accent:#c4a6ff;--studio-glow:rgba(139,92,246,.13)}
