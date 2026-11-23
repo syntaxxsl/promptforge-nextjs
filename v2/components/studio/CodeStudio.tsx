@@ -286,7 +286,7 @@ export default function CodeStudio({ userId }: { userId: string }) {
 
   return (
     <>
-    <div className="pf-code-studio flex flex-col md:h-screen md:flex-row">
+    <div className="pf-code-studio pf-enterprise-code-studio flex flex-col md:h-screen md:flex-row">
       {/* Files */}
       <aside
         className={`${
@@ -393,8 +393,8 @@ export default function CodeStudio({ userId }: { userId: string }) {
       </aside>
 
       {/* Editor */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-12 shrink-0 flex items-center gap-2 px-3 border-b border-border bg-surface">
+      <div className="pf-code-editor-shell flex-1 flex flex-col min-w-0">
+        <header className="pf-code-toolbar h-12 shrink-0 flex items-center gap-2 px-3 border-b border-border bg-surface">
           <button
             onClick={() => setShowFiles((v) => !v)}
             className="md:hidden pf-btn pf-btn-ghost p-1.5"
@@ -439,10 +439,25 @@ export default function CodeStudio({ userId }: { userId: string }) {
           <textarea
             value={activeFile.content}
             onChange={(e) => editContent(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Tab") {
+                e.preventDefault()
+                const target = e.currentTarget
+                const start = target.selectionStart
+                const end = target.selectionEnd
+                const next = activeFile.content.slice(0, start) + "  " + activeFile.content.slice(end)
+                editContent(next)
+                requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = start + 2 })
+              }
+              if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+                e.preventDefault()
+                exportActiveFile()
+              }
+            }}
             spellCheck={false}
-            className="flex-1 w-full resize-none bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none pf-scroll"
+            className="pf-code-editor flex-1 w-full resize-none bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none pf-scroll"
             placeholder="// kod buraya"
-            aria-label="Kod editörü"
+            aria-label="Kod editörü — Tab girinti, Ctrl+S dosyayı indir"
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
@@ -457,8 +472,9 @@ export default function CodeStudio({ userId }: { userId: string }) {
           </div>
         )}
 
-        {/* AI panel */}
-        <div className="shrink-0 border-t border-border bg-surface">
+        {/* Editor status + AI panel */}
+        {activeFile && <div className="pf-code-statusbar"><span>{activeFile.path}</span><span>{activeFile.language.toUpperCase()}</span><span>{activeFile.content.split("\n").length} satır</span><span>{activeFile.content.length.toLocaleString()} karakter</span><span className="ml-auto">Tab: girinti · Ctrl+S: indir</span></div>}
+        <div className="pf-code-ai-panel shrink-0 border-t border-border bg-surface">
           <div className="p-3 space-y-2">
             <div className="flex flex-wrap items-center gap-1.5">
               {TASKS.map((t) => (
