@@ -34,15 +34,22 @@ export const BUNDLED_MODELS: ModelConfig[] = [
   { id: 'claude-3-5-haiku-latest', displayName: 'Claude 3.5 Haiku', providerId: 'anthropic', capabilities: chatVisionCodeTools, contextWindow: 200000, maxOutputTokens: 8192, isEnabled: true, source: 'bundled' },
 
   // --- Google Gemini --------------------------------------------------
-  { id: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash', providerId: 'gemini', capabilities: chatVisionCodeTools, contextWindow: 1048576, maxOutputTokens: 65536, isDefault: true, isEnabled: true, source: 'bundled' },
+  // 2.5 Flash and 2.0 Flash now answer 404 "no longer available to new users",
+  // verified against the live API, so they stay listed but cannot be selected.
+  { id: 'gemini-3.5-flash', displayName: 'Gemini 3.5 Flash', providerId: 'gemini', capabilities: chatVisionCodeTools, contextWindow: 1048576, maxOutputTokens: 65536, isDefault: true, isEnabled: true, source: 'bundled' },
+  { id: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash', providerId: 'gemini', capabilities: chatVisionCodeTools, contextWindow: 1048576, maxOutputTokens: 65536, isEnabled: false, source: 'bundled' },
   { id: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro', providerId: 'gemini', capabilities: chatVisionCodeTools, contextWindow: 1048576, maxOutputTokens: 65536, isEnabled: true, source: 'bundled' },
-  { id: 'gemini-2.0-flash', displayName: 'Gemini 2.0 Flash', providerId: 'gemini', capabilities: chatVisionCodeTools, contextWindow: 1048576, maxOutputTokens: 8192, isEnabled: true, source: 'bundled' },
+  { id: 'gemini-2.0-flash', displayName: 'Gemini 2.0 Flash', providerId: 'gemini', capabilities: chatVisionCodeTools, contextWindow: 1048576, maxOutputTokens: 8192, isEnabled: false, source: 'bundled' },
 
   // --- Groq -----------------------------------------------------------
-  { id: 'llama-3.3-70b-versatile', displayName: 'Llama 3.3 70B', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 32768, isDefault: true, isEnabled: true, source: 'bundled' },
-  { id: 'llama-3.1-8b-instant', displayName: 'Llama 3.1 8B Instant', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 8192, isEnabled: true, source: 'bundled' },
-  { id: 'openai/gpt-oss-120b', displayName: 'GPT-OSS 120B (Groq)', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 32768, isEnabled: true, source: 'bundled' },
-  { id: 'qwen/qwen3-32b', displayName: 'Qwen3 32B (Groq)', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 16384, isEnabled: true, source: 'bundled' },
+  // Groq's live catalogue no longer serves the Llama and Qwen3-32B ids below
+  // (verified 404), so the verified GPT-OSS models are the defaults.
+  { id: 'openai/gpt-oss-120b', displayName: 'GPT-OSS 120B (Groq)', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 32768, isDefault: true, isEnabled: true, source: 'bundled' },
+  { id: 'openai/gpt-oss-20b', displayName: 'GPT-OSS 20B (Groq)', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 32768, isEnabled: true, source: 'bundled' },
+  { id: 'qwen/qwen3.8-27b', displayName: 'Qwen3 27B (Groq)', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 16384, isEnabled: true, source: 'bundled' },
+  { id: 'llama-3.3-70b-versatile', displayName: 'Llama 3.3 70B', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 32768, isEnabled: false, source: 'bundled' },
+  { id: 'llama-3.1-8b-instant', displayName: 'Llama 3.1 8B Instant', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 8192, isEnabled: false, source: 'bundled' },
+  { id: 'qwen/qwen3-32b', displayName: 'Qwen3 32B (Groq)', providerId: 'groq', capabilities: chatCodeTools, contextWindow: 131072, maxOutputTokens: 16384, isEnabled: false, source: 'bundled' },
 
   // --- OpenRouter (namespaced ids) ------------------------------------
   { id: 'openai/gpt-4o-mini', displayName: 'GPT-4o mini (OpenRouter)', providerId: 'openrouter', capabilities: chatVisionCodeTools, contextWindow: 128000, maxOutputTokens: 16384, isDefault: true, isEnabled: true, source: 'bundled' },
