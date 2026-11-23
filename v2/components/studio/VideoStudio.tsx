@@ -136,6 +136,16 @@ export default function VideoStudio({ userId }: { userId: string }) {
               className="pf-input min-h-28 resize-y text-sm"
               placeholder="Örn: kamera yavaşça yükseliyor, gün doğumunda sisli bir vadi"
             />
+            <div className="pf-media-presets mt-2 flex flex-wrap gap-2" aria-label="Hazır video sahne fikirleri">
+              {[
+                { label: 'Doğa sinematiği', value: 'Geniş bir dağ vadisinde gün doğumu. Kamera yavaşça ileri süzülür, bulutlar zirvelerin arasından akar, yumuşak altın saat ışığı ve doğal sinematik renk düzeni.' },
+                { label: 'Ürün tanıtımı', value: 'Minimal stüdyo ortamında premium bir ürünün yavaş ve kontrollü kamera hareketiyle tanıtımı. Yumuşak kenar ışıkları, temiz arka plan, yakın plan detaylar ve zarif geçiş.' },
+                { label: 'Şehir atmosferi', value: 'Yağmur sonrası modern bir şehir caddesi. Kamera kaldırım hizasında yavaşça ilerler, vitrin ışıkları zemine yansır, atmosferik ve gerçekçi gece sinematografisi.' },
+                { label: 'Mimari tur', value: 'Modern bir yapının ferah iç mekânında sabit ve akıcı kamera geçişi. Gün ışığı pencerelerden süzülür, malzeme detayları ve mekân derinliği vurgulanır.' }
+              ].map((preset) => (
+                <button key={preset.label} type="button" onClick={() => setPrompt(preset.value)} className="pf-media-preset">{preset.label}</button>
+              ))}
+            </div>
             <div className="mt-2 flex flex-wrap gap-2">
               <button type="button" onClick={refinePrompt} disabled={refining || !prompt.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="sparkles" className="h-3.5 w-3.5" />{refining ? 'Prompt geliştiriliyor…' : 'AI ile promptu geliştir'}</button>
               {refining && <button type="button" onClick={stopRefining} className="pf-btn pf-btn-ghost text-xs">Durdur</button>}
