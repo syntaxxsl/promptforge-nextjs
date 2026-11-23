@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { isCronDue } from '../automation-server'
+import { isCronDue, runScheduledAutomation } from '../automation-server'
+import type { Automation } from '../automation'
 
 describe('isCronDue', () => {
   it('matches a five-field expression in the requested time zone', () => {
@@ -30,5 +31,44 @@ describe('isCronDue', () => {
     expect(isCronDue('* * * *', 'UTC', date)).toBe(false)
     expect(isCronDue('61 * * * *', 'UTC', date)).toBe(false)
     expect(isCronDue('* * * * *', 'Not/A_Timezone', date)).toBe(false)
+  })
+})
+
+
+describe('runScheduledAutomation limits', () => {
+  const baseAutomation = (nodes: Automation['nodes']): Automation => ({
+    id: 'automation-test',
+    name: 'Test automation',
+    description: '',
+    trigger: 'event',
+    nodes,
+    enabled: true,
+    createdAt: '2026-11-24T00:00:00.000Z',
+    updatedAt: '2026-11-24T00:00:00.000Z'
+  })
+
+  it('rejects workflows with more than 40 nodes before running provider steps', async () => {
+    const nodes = Array.from({ length: 41 }, (_, index) => ({
+      id: `node-${index}`,
+      kind: 'transform' as const,
+      label: 'Transform'
+    }))
+    const run = await runScheduledAutomation('user-test', baseAutomation(nodes), 'event')
+
+    expect(run.status).toBe('failed')
+    expect(run.nodes).toHaveLength(0)
+    expect(run.error).toContain('40')
+  })
+
+  it('caps the input carried into an automation run', async () => {
+    const run = await runScheduledAutomation(
+      'user-test',
+      baseAutomation([]),
+      'event',
+      'x'.repeat(13_000)
+    )
+
+    expect(run.input).toHaveLength(12_000)
+    expect(run.status).toBe('complete')
   })
 })
