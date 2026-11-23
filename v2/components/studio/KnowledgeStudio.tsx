@@ -53,6 +53,7 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
 
   const fileInput = useRef<HTMLInputElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const backupInput = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     let list = listSpaces(userId)
@@ -81,6 +82,66 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
 
   function refreshDocs() {
     setDocs(listDocuments(userId, spaceId))
+  }
+
+  function exportBackup() {
+    const space = spaces.find((item) => item.id === spaceId)
+    if (!space) return
+    const documents = listDocuments(userId, spaceId).map(({ id: _id, spaceId: _spaceId, chunks: _chunks, sizeBytes: _size, createdAt: _created, updatedAt: _updated, ...doc }) => doc)
+    const backup = { format: 'promptforge-knowledge-backup', version: 1, exportedAt: new Date().toISOString(), space: { name: space.name, description: space.description, color: space.color }, documents }
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'promptforge-knowledge-backup.json'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    setError(null)
+  }
+
+  async function importBackup(file?: File) {
+    if (!file) return
+    setError(null)
+    try {
+      if (file.size > 10 * 1024 * 1024) throw new Error('Yedek dosyası en fazla 10 MB olabilir.')
+      const parsed: unknown = JSON.parse(await file.text())
+      if (!parsed || typeof parsed !== 'object') throw new Error('Geçersiz yedek dosyası.')
+      const data = parsed as { format?: unknown; version?: unknown; space?: { name?: unknown; description?: unknown; color?: unknown }; documents?: unknown }
+      if (data.format !== 'promptforge-knowledge-backup' || data.version !== 1 || !Array.isArray(data.documents)) throw new Error('Bu dosya desteklenen PromptForge bilgi bankası yedeği değil.')
+      if (data.documents.length > 100) throw new Error('Tek seferde en fazla 100 belge içe aktarılabilir.')
+      const importedSpace = createSpace(userId, {
+        name: typeof data.space?.name === 'string' ? `${data.space.name.slice(0, 80)} (İçe aktarıldı)` : 'İçe aktarılan alan',
+        description: typeof data.space?.description === 'string' ? data.space.description.slice(0, 500) : '',
+        color: typeof data.space?.color === 'string' && /^#[0-9a-f]{6}$/i.test(data.space.color) ? data.space.color : '#6366f1'
+      })
+      if (!importedSpace) throw new Error('Yeni bilgi alanı oluşturulamadı.')
+      let imported = 0
+      for (const item of data.documents) {
+        if (!item || typeof item !== 'object') continue
+        const doc = item as { title?: unknown; content?: unknown; filename?: unknown; mime?: unknown; category?: unknown; tags?: unknown }
+        if (typeof doc.content !== 'string' || !doc.content.trim() || doc.content.length > MAX_DOCUMENT_BYTES) continue
+        const created = createDocument(userId, {
+          spaceId: importedSpace.id,
+          title: typeof doc.title === 'string' ? doc.title.slice(0, 180) : 'İçe aktarılan belge',
+          content: doc.content,
+          filename: typeof doc.filename === 'string' ? doc.filename.slice(0, 180) : undefined,
+          mime: typeof doc.mime === 'string' ? doc.mime.slice(0, 100) : 'text/plain',
+          category: typeof doc.category === 'string' ? doc.category.slice(0, 80) : 'Genel',
+          tags: Array.isArray(doc.tags) ? doc.tags.filter((tag): tag is string => typeof tag === 'string').slice(0, 30) : []
+        })
+        if (created) imported += 1
+      }
+      setSpaces(listSpaces(userId))
+      setSpaceId(importedSpace.id)
+      setActiveDocId(null)
+      setError(`${imported} belge yeni bilgi alanına aktarıldı.`)
+    } catch (err) {
+      setError((err as Error)?.message || 'Yedek içe aktarılamadı.')
+    } finally {
+      if (backupInput.current) backupInput.current.value = ''
+    }
   }
 
   function addSpace() {
@@ -291,6 +352,9 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
           >
             Dosya yükle
           </button>
+          <button type="button" onClick={exportBackup} disabled={!docs.length} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/70 transition hover:border-white/25 disabled:opacity-40">Yedeği indir</button>
+          <button type="button" onClick={() => backupInput.current?.click()} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/70 transition hover:border-white/25">Yedek içe aktar</button>
+          <input ref={backupInput} type="file" accept="application/json,.json" onChange={(event) => importBackup(event.target.files?.[0])} className="hidden" />
           <input
             ref={fileInput}
             type="file"
