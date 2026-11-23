@@ -16,6 +16,8 @@ export const maxDuration = 60
 const SECRET = (process.env.CRON_SECRET || '').trim()
 const STALE_LOCK_MS = 3 * 60_000
 const DISPATCH_BUDGET_MS = 42_000
+// Recover short scheduler outages without replaying an unbounded backlog.
+const CATCH_UP_MINUTES = 10
 
 function parseBearer(header: string | null): string | null {
   if (!header) return null
@@ -99,6 +101,7 @@ export async function GET(request: NextRequest) {
   const now = new Date()
   const minute = new Date(Math.floor(now.getTime() / 60_000) * 60_000)
   const dispatchDeadline = Date.now() + DISPATCH_BUDGET_MS
+  const firstCatchUpMinute = new Date(minute.getTime() - (CATCH_UP_MINUTES - 1) * 60_000)
 
   const { data, error } = await admin
     .from('studio_records')
@@ -110,15 +113,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Otomasyonlar okunamadı.' }, { status: 503 })
   }
 
+  const candidates: Array<{
+    userId: string
+    automation: Automation
+    scheduledFor: string
+  }> = []
+
   let checked = 0
-  let executed = 0
-  let skipped = 0
-  let recovered = 0
-  const failures: string[] = []
-
   for (const row of (data || []) as Array<{ user_id: string; record_data: Automation }>) {
-    if (Date.now() >= dispatchDeadline) break
-
     const automation = row.record_data
     if (!automation || automation.enabled !== true || automation.trigger !== 'schedule') continue
 
@@ -126,10 +128,39 @@ export async function GET(request: NextRequest) {
     const timeZone = typeof automation.scheduleTimezone === 'string' ? automation.scheduleTimezone : 'Europe/Istanbul'
     checked += 1
 
-    if (!isCronDue(expression, timeZone, minute)) continue
+    for (let offset = 0; offset < CATCH_UP_MINUTES; offset += 1) {
+      const scheduledMinute = new Date(firstCatchUpMinute.getTime() + offset * 60_000)
+      if (!isCronDue(expression, timeZone, scheduledMinute)) continue
+      candidates.push({
+        userId: row.user_id,
+        automation,
+        scheduledFor: scheduledMinute.toISOString()
+      })
+    }
+  }
 
-    const scheduledFor = minute.toISOString()
-    const claim = await claimExecution(admin, row.user_id, automation.id, scheduledFor)
+  // Oldest due minute first: subsequent invocations can continue where a
+  // previous invocation ran out of its time budget, using the unique locks.
+  candidates.sort((a, b) =>
+    a.scheduledFor.localeCompare(b.scheduledFor) ||
+    a.userId.localeCompare(b.userId) ||
+    a.automation.id.localeCompare(b.automation.id)
+  )
+
+  let executed = 0
+  let skipped = 0
+  let recovered = 0
+  let deferred = 0
+  const failures: string[] = []
+
+  for (const candidate of candidates) {
+    if (Date.now() >= dispatchDeadline) {
+      deferred += 1
+      continue
+    }
+
+    const { automation, userId, scheduledFor } = candidate
+    const claim = await claimExecution(admin, userId, automation.id, scheduledFor)
     if (!claim) {
       skipped += 1
       continue
@@ -138,9 +169,9 @@ export async function GET(request: NextRequest) {
     if (claim.recovered) recovered += 1
 
     try {
-      const run = await runScheduledAutomation(row.user_id, automation, 'schedule', undefined, dispatchDeadline)
+      const run = await runScheduledAutomation(userId, automation, 'schedule', undefined, dispatchDeadline)
       const { error: saveError } = await admin.from('studio_records').upsert({
-        user_id: row.user_id,
+        user_id: userId,
         collection: 'automation-runs',
         record_id: run.id,
         record_data: run,
@@ -170,8 +201,6 @@ export async function GET(request: NextRequest) {
       }).eq('id', lock.id)
       failures.push(`${automation.name}: ${message}`)
     }
-
-    if (executed >= 3) break
   }
 
   return NextResponse.json({
@@ -180,6 +209,8 @@ export async function GET(request: NextRequest) {
     executed,
     skipped,
     recovered,
+    deferred,
+    catchUpMinutes: CATCH_UP_MINUTES,
     failures,
     remainingBudgetMs: Math.max(0, dispatchDeadline - Date.now())
   })
