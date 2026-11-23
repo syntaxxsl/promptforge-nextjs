@@ -134,6 +134,57 @@ export default function AutomationStudio({ userId }: { userId: string }) {
     setRuns(listRuns(userId))
   }
 
+  function exportActive() {
+    if (!active) return
+    const blob = new Blob([JSON.stringify({ format: 'promptforge-automation-v1', automation: active }, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = (active.name || 'automation').trim().replace(/[^a-z0-9-_]+/gi, '-').toLowerCase() + '.json'
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function importAutomation(file?: File) {
+    if (!file) return
+    try {
+      const parsed = JSON.parse(await file.text()) as { format?: string; automation?: Partial<Automation> }
+      const source = parsed.automation
+      if (parsed.format !== 'promptforge-automation-v1' || !source || typeof source.name !== 'string' || !Array.isArray(source.nodes) || source.nodes.length > 80) {
+        throw new Error('Dosya PromptForge otomasyon biçiminde değil veya içerik sınırları aşıldı.')
+      }
+      const allowedKinds = NODE_KINDS.map((item) => item.kind)
+      const nodes = source.nodes.map((raw) => {
+        if (!raw || !allowedKinds.includes(raw.kind as AutomationNodeKind)) throw new Error('Dosyada desteklenmeyen bir adım türü var.')
+        return makeNode(raw.kind as AutomationNodeKind, {
+          label: typeof raw.label === 'string' ? raw.label.slice(0, 120) : 'İçe aktarılan adım',
+          ...(typeof raw.prompt === 'string' ? { prompt: raw.prompt.slice(0, 12000) } : {}),
+          ...(typeof raw.conditionText === 'string' ? { conditionText: raw.conditionText.slice(0, 1000) } : {}),
+          ...(raw.conditionOp ? { conditionOp: raw.conditionOp } : {}),
+          ...(raw.transformOp ? { transformOp: raw.transformOp } : {}),
+          ...(typeof raw.transformKey === 'string' ? { transformKey: raw.transformKey.slice(0, 500) } : {})
+        })
+      })
+      const trigger = source.trigger === 'schedule' || source.trigger === 'event' ? source.trigger : 'manual'
+      const created = createAutomation(userId, { name: source.name.slice(0, 120), description: typeof source.description === 'string' ? source.description.slice(0, 2000) : '', trigger, nodes })
+      if (!created) throw new Error('İçe aktarılan otomasyon kaydedilemedi.')
+      saveAutomation(userId, {
+        ...created,
+        scheduleLabel: typeof source.scheduleLabel === 'string' ? source.scheduleLabel : created.scheduleLabel,
+        scheduleTimezone: typeof source.scheduleTimezone === 'string' ? source.scheduleTimezone : created.scheduleTimezone,
+        scheduleInput: typeof source.scheduleInput === 'string' ? source.scheduleInput : '',
+        eventName: typeof source.eventName === 'string' ? source.eventName : created.eventName,
+        enabled: source.enabled !== false
+      })
+      refresh()
+      setActiveId(created.id)
+      setTab('flow')
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Otomasyon dosyası içe aktarılamadı.')
+    }
+  }
+
   async function start() {
     if (!active) return
     setError(null)
@@ -204,6 +255,10 @@ export default function AutomationStudio({ userId }: { userId: string }) {
       <aside className="w-full shrink-0 lg:w-60">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white/90">Otomasyonlar</h2>
+          <div className="flex items-center gap-1">
+            {active && <button type="button" onClick={exportActive} className="rounded-lg bg-white/10 p-1.5 text-white/70 transition hover:bg-white/20" title="Seçili otomasyonu JSON olarak dışa aktar" aria-label="Otomasyonu dışa aktar"><Icon name="download" className="h-4 w-4" /></button>}
+            <label className="cursor-pointer rounded-lg bg-white/10 p-1.5 text-white/70 transition hover:bg-white/20" title="JSON otomasyonunu içe aktar" aria-label="Otomasyonu içe aktar"><Icon name="upload" className="h-4 w-4" /><input type="file" accept="application/json,.json" className="sr-only" onChange={(event) => { void importAutomation(event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
+          </div>
           <button
             type="button"
             onClick={() => addAutomation()}
