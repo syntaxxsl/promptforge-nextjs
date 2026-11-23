@@ -87,7 +87,7 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
   function exportBackup() {
     const space = spaces.find((item) => item.id === spaceId)
     if (!space) return
-    const documents = listDocuments(userId, spaceId).map(({ id: _id, spaceId: _spaceId, chunks: _chunks, sizeBytes: _size, createdAt: _created, updatedAt: _updated, ...doc }) => doc)
+    const documents = listDocuments(userId, spaceId).map((doc) => ({ title: doc.title, filename: doc.filename, mime: doc.mime, category: doc.category, tags: doc.tags, content: doc.content }))
     const backup = { format: 'promptforge-knowledge-backup', version: 1, exportedAt: new Date().toISOString(), space: { name: space.name, description: space.description, color: space.color }, documents }
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -121,7 +121,7 @@ export default function KnowledgeStudio({ userId }: { userId: string }) {
       for (const item of data.documents) {
         if (!item || typeof item !== 'object') continue
         const doc = item as { title?: unknown; content?: unknown; filename?: unknown; mime?: unknown; category?: unknown; tags?: unknown }
-        if (typeof doc.content !== 'string' || !doc.content.trim() || doc.content.length > MAX_DOCUMENT_BYTES) continue
+        if (typeof doc.content !== 'string' || !doc.content.trim() || new Blob([doc.content]).size > MAX_DOCUMENT_BYTES) continue
         const created = createDocument(userId, {
           spaceId: importedSpace.id,
           title: typeof doc.title === 'string' ? doc.title.slice(0, 180) : 'İçe aktarılan belge',
