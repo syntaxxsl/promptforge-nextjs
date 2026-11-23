@@ -34,12 +34,21 @@ function transform(input: string, node: AutomationNode) {
 
 export async function runScheduledAutomation(userId: string, automation: Automation, trigger: 'schedule' | 'event' = 'schedule', inputOverride?: string, deadlineAt?: number): Promise<AutomationRun> {
   const now = new Date().toISOString()
+  const automationId = typeof automation?.id === 'string' ? automation.id.slice(0, 120) : 'unknown'
+  const automationName = typeof automation?.name === 'string' ? automation.name.slice(0, 120) : 'Otomasyon'
+  const requestedInput = typeof inputOverride === 'string' && inputOverride.trim()
+    ? inputOverride.trim()
+    : typeof automation?.scheduleInput === 'string' && automation.scheduleInput.trim()
+      ? automation.scheduleInput.trim()
+      : typeof automation?.description === 'string' && automation.description
+        ? automation.description
+        : trigger === 'event' ? 'Olay tetikleyicisi' : 'Zamanlanmış otomatik çalıştırma'
   const run: AutomationRun = {
     id: `arun_${crypto.randomUUID().replace(/-/g, '')}`,
-    automationId: automation.id,
-    automationName: automation.name,
+    automationId,
+    automationName,
     trigger,
-    input: (inputOverride?.trim() || automation.scheduleInput?.trim() || automation.description || (trigger === 'event' ? 'Olay tetikleyicisi' : 'Zamanlanmış otomatik çalıştırma')).slice(0, MAX_AUTOMATION_INPUT_CHARS),
+    input: requestedInput.slice(0, MAX_AUTOMATION_INPUT_CHARS),
     nodes: [],
     status: 'complete',
     createdAt: now,
@@ -50,9 +59,22 @@ export async function runScheduledAutomation(userId: string, automation: Automat
 
   // Automation definitions are user-authored JSON. Bound their work before
   // iterating or making provider calls, even if a record bypassed the UI.
-  if (!Array.isArray(automation.nodes) || automation.nodes.length > MAX_AUTOMATION_NODES) {
+  const validNodeKinds = new Set(['trigger', 'ai_action', 'condition', 'transform', 'output', 'end'])
+  const validNodes = Array.isArray(automation.nodes) &&
+    automation.nodes.length <= MAX_AUTOMATION_NODES &&
+    automation.nodes.every((node) => {
+      if (!node || typeof node !== 'object') return false
+      const value = node as AutomationNode
+      return typeof value.id === 'string' && value.id.length <= 120 &&
+        typeof value.label === 'string' && value.label.length <= 120 &&
+        validNodeKinds.has(value.kind) &&
+        ['prompt', 'conditionText', 'transformKey', 'provider', 'model', 'conditionOp', 'transformOp']
+          .every((key) => value[key as keyof AutomationNode] === undefined || typeof value[key as keyof AutomationNode] === 'string')
+    })
+
+  if (!validNodes) {
     run.status = 'failed'
-    run.error = `Otomasyon en fazla ${MAX_AUTOMATION_NODES} adım içerebilir.`
+    run.error = `Otomasyon tanımı geçersiz veya ${MAX_AUTOMATION_NODES} adım sınırını aşıyor.`
     run.updatedAt = new Date().toISOString()
     return run
   }
