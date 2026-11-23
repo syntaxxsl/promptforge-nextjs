@@ -188,6 +188,16 @@ export default function ImageStudio({ userId }: { userId: string }) {
               className="pf-input min-h-28 resize-y text-sm"
               placeholder="Örn: yağmurlu bir gecede neon ışıklarla aydınlanan dar bir sokak, sinematik ışık"
             />
+            <div className="pf-media-presets mt-2 flex flex-wrap gap-2" aria-label="Hazır görsel fikirleri">
+              {[
+                { label: 'Ürün fotoğrafı', value: 'Premium bir ürünün stüdyo ortamında profesyonel reklam fotoğrafı; kontrollü yumuşak ışık, temiz arka plan, gerçekçi malzeme dokuları ve dengeli kompozisyon.' },
+                { label: 'Sinematik sahne', value: 'Gün batımında geniş bir kıyı manzarası, atmosferik sis, sinematik ışık huzmeleri, doğal renk paleti ve geniş açı kompozisyon.' },
+                { label: 'Mimari tasarım', value: 'Modern minimalist mimari, geniş cam yüzeyler, doğal taş ve ahşap dokular, gün ışığı, profesyonel mimari fotoğrafçılık.' },
+                { label: 'Karakter konsepti', value: 'Özgün bir fantastik karakter konsept tasarımı, belirgin siluet, katmanlı kostüm detayları, kontrollü renk paleti ve temiz konsept-art sunumu.' }
+              ].map((preset) => (
+                <button key={preset.label} type="button" onClick={() => setPrompt(preset.value)} className="pf-media-preset">{preset.label}</button>
+              ))}
+            </div>
             <div className="mt-2 flex flex-wrap gap-2">
               <button type="button" onClick={refinePrompt} disabled={refining || !prompt.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="sparkles" className="h-3.5 w-3.5" />{refining ? 'Prompt geliştiriliyor…' : 'AI ile promptu geliştir'}</button>
               {refining && <button type="button" onClick={stopRefining} className="pf-btn pf-btn-ghost text-xs">Durdur</button>}
