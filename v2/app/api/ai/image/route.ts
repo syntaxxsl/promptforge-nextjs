@@ -94,12 +94,10 @@ export async function POST(request: NextRequest) {
 
     const payload = await upstream.json().catch(() => null) as {
       data?: Array<{ b64_json?: string }>
-      error?: { message?: string }
     } | null
     if (!upstream.ok) {
-      const message = typeof payload?.error?.message === 'string' ? payload.error.message.slice(0, 500) : 'OpenAI görsel servisi isteği tamamlayamadı.'
       const status = upstream.status === 429 ? 429 : upstream.status === 400 ? 400 : 502
-      return fail(message, status, upstream.status === 429 ? 'provider_rate_limited' : 'provider_error')
+      return fail('OpenAI görsel servisi isteği tamamlayamadı.', status, upstream.status === 429 ? 'provider_rate_limited' : 'provider_error')
     }
 
     const images = (payload?.data || []).map(item => item.b64_json).filter((value): value is string => typeof value === 'string' && value.length > 100)
