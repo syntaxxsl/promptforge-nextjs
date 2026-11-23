@@ -108,8 +108,8 @@ export default function DashboardStudio({ userId }: { userId: string }) {
         {recentProjects.length ? <div className="pf-recent-grid">{recentProjects.map(project => <Link href="/projects" key={project.id} className="pf-project-card">
           <span className="pf-project-swatch" style={{ background: project.color || '#8b75ff' }}><Icon name="folder" className="h-5 w-5" /></span>
           <span className="pf-project-copy"><strong>{project.name}</strong><small>{project.description || 'Projeni aç ve çalışmaya devam et'}</small><small className="pf-project-meta">Son güncelleme · {new Date(project.updatedAt).toLocaleDateString('tr-TR')}</small></span>
-          <Icon name="arrowUpRight" className="pf-project-arrow h-4 w-4" />
-        </Link>)}</div> : <div className="pf-project-empty"><span className="pf-project-empty-icon"><Icon name="folderPlus" className="h-5 w-5" /></span><div><strong>İlk projen için hazır mısın?</strong><p>Projelerini oluşturarak farklı çalışma alanlarını tek yerde düzenleyebilirsin.</p></div><Link href="/projects">Proje oluştur <Icon name="arrowRight" className="h-3.5 w-3.5" /></Link></div>}
+          <Icon name="arrowRight" className="pf-project-arrow h-4 w-4" />
+        </Link>)}</div> : <div className="pf-project-empty"><span className="pf-project-empty-icon"><Icon name="folder" className="h-5 w-5" /></span><div><strong>İlk projen için hazır mısın?</strong><p>Projelerini oluşturarak farklı çalışma alanlarını tek yerde düzenleyebilirsin.</p></div><Link href="/projects">Proje oluştur <Icon name="arrowRight" className="h-3.5 w-3.5" /></Link></div>}
       </section>}
       {!query && <section className="pf-launchpad">
         <div className="pf-launchpad-head"><div><span className="pf-eyebrow">PROMPTFORGE UNIVERSE</span><h2>Fikirden <em>gerçeğe.</em></h2><p>Yaratıcı araçların, projelerin ve üretim alanların tek bir yerde birleşiyor.</p></div><div className="pf-launchpad-orbit"><i/><i/><i/><span>✦</span></div></div>
