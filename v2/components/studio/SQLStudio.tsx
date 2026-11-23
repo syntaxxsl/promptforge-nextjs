@@ -25,11 +25,10 @@ export default function SQLStudio({ userId }: { userId: string }){
   const upper=clean.toUpperCase()
   if(/\b(UPDATE|DELETE)\b/.test(upper)&&! /\bWHERE\b/.test(upper))items.push({level:'warning',message:'UPDATE veya DELETE sorgusunda WHERE görünmüyor. Çalıştırmadan önce tüm satırları etkileyip etkilemeyeceğini kontrol et.'})
   if(/\bSELECT\s+\*/.test(upper))items.push({level:'info',message:'SELECT * yerine ihtiyaç duyduğun sütunları açıkça yazmak sorguyu daha okunabilir kılar.'})
-  let depth=0
-  for(const ch of clean){if(ch==='(')depth++;if(ch===')')depth--}
-  if(depth!==0)items.push({level:'warning',message:depth>0?'Kapatılmamış parantez olabilir.':'Açılışından fazla kapatma parantezi var.'})
-  const quoteCount=(clean.match(/(?<!')'(?:''|[^'])*'/g)||[]).length
   const residue=clean.replace(/'(?:''|[^'])*'/g,'')
+  let depth=0
+  for(const ch of residue){if(ch==='(')depth++;if(ch===')')depth--}
+  if(depth!==0)items.push({level:'warning',message:depth>0?'Kapatılmamış parantez olabilir.':'Açılışından fazla kapatma parantezi var.'})
   if((residue.match(/'/g)||[]).length%2!==0)items.push({level:'warning',message:'Tek tırnaklı metinlerde kapanmamış bir ifade olabilir.'})
   if(!query.trim())items.push({level:'info',message:'Analiz edilecek sorgu henüz boş.'})
   if(items.length===0)items.push({level:'info',message:'Basit statik kontrollerde belirgin bir sorun bulunmadı. Bu, sorgunun kesin olarak geçerli olduğu anlamına gelmez.'})
