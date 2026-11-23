@@ -60,6 +60,17 @@ describe('runScheduledAutomation limits', () => {
     expect(run.error).toContain('40')
   })
 
+  it('rejects malformed node records without throwing', async () => {
+    const run = await runScheduledAutomation(
+      'user-test',
+      baseAutomation([null] as unknown as Automation['nodes']),
+      'event'
+    )
+
+    expect(run.status).toBe('failed')
+    expect(run.error).toContain('geçersiz')
+  })
+
   it('caps the input carried into an automation run', async () => {
     const run = await runScheduledAutomation(
       'user-test',
