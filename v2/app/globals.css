@@ -1204,3 +1204,12 @@ button,a,input,textarea,select{-webkit-tap-highlight-color:transparent}
  .pf-research-studio>section{padding:12px}
 }
 @media(prefers-reduced-motion:reduce){.pf-studio-frame *{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Media Studio prompt recipe controls */
+.pf-media-presets{display:flex;flex-wrap:wrap;gap:7px}
+.pf-media-preset{min-height:29px;border:1px solid rgba(148,163,184,.17);border-radius:8px;background:rgba(148,163,184,.045);padding:0 9px;color:#aab7ca;font-size:10px;font-weight:650;transition:all .16s}
+.pf-media-preset:hover{border-color:rgba(129,140,248,.42);background:rgba(99,102,241,.1);color:#e0e7ff}
+.pf-image-studio .pf-media-preset:hover{border-color:rgba(167,139,250,.45);background:rgba(139,92,246,.1)}
+.pf-video-studio .pf-media-preset:hover{border-color:rgba(56,189,248,.42);background:rgba(14,165,233,.1)}
+@media(max-width:520px){.pf-media-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pf-media-preset{padding:0 6px;font-size:9px}}
