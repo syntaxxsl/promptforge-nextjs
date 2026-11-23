@@ -53,3 +53,44 @@
 @media(max-width:1100px){.pf-recent-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:767px){.pf-workspace-rail-inner{padding:8px 12px}.pf-workspace-rail-label{display:none}.pf-section-heading{align-items:flex-start;flex-direction:column}.pf-recent-grid{grid-template-columns:minmax(0,1fr)}.pf-project-card{min-height:108px}.pf-launchpad{padding:17px;border-radius:17px}.pf-launchpad-actions{grid-template-columns:minmax(0,1fr)}.pf-project-empty>a{width:100%;justify-content:center}}
 @media(prefers-reduced-motion:reduce){.pf-project-card,.pf-workspace-pill,.pf-launchpad-actions>a{transition:none}}
+
+
+/* Tool-specific workbench frame — structural layer shared by all studios. */
+.pf-studio-frame{--studio-accent:#9b87ff;--studio-glow:rgba(139,117,255,.12);min-width:0;padding:0 0 34px}
+.pf-studio-chat{--studio-accent:#b7a2ff;--studio-glow:rgba(139,117,255,.14)}
+.pf-studio-image{--studio-accent:#f0a0d0;--studio-glow:rgba(236,72,153,.13)}
+.pf-studio-video{--studio-accent:#67d9e8;--studio-glow:rgba(6,182,212,.13)}
+.pf-studio-code{--studio-accent:#8be0a4;--studio-glow:rgba(34,197,94,.12)}
+.pf-studio-website{--studio-accent:#f2b477;--studio-glow:rgba(249,115,22,.13)}
+.pf-studio-vision{--studio-accent:#b8a4ff;--studio-glow:rgba(124,58,237,.14)}
+.pf-studio-three{--studio-accent:#8dc2ff;--studio-glow:rgba(59,130,246,.13)}
+.pf-studio-research{--studio-accent:#69dfce;--studio-glow:rgba(20,184,166,.13)}
+.pf-studio-writer{--studio-accent:#f2c27a;--studio-glow:rgba(217,164,65,.13)}
+.pf-studio-header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:0 auto;padding:27px 28px 21px;max-width:1600px;border-bottom:1px solid var(--pf-border);background:radial-gradient(ellipse at 12% 0,var(--studio-glow),transparent 38rem)}
+.pf-studio-heading{min-width:0}
+.pf-studio-eyebrow{display:flex;align-items:center;gap:8px;color:var(--studio-accent);font-size:9px;font-weight:850;letter-spacing:.2em}
+.pf-studio-title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:9px}
+.pf-studio-title-row h1{color:var(--pf-fg);font-size:clamp(22px,3vw,31px);font-weight:800;letter-spacing:-.055em;line-height:1.1}
+.pf-studio-live{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--pf-border);border-radius:999px;padding:5px 8px;color:var(--pf-muted);font-size:8px;font-weight:800;letter-spacing:.12em}
+.pf-studio-live i{width:6px;height:6px;border-radius:50%;background:var(--studio-accent);box-shadow:0 0 10px var(--studio-accent)}
+.pf-studio-heading p{max-width:660px;margin-top:8px;color:var(--pf-muted);font-size:11px;line-height:1.65}
+.pf-studio-toolbar{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}
+.pf-studio-tool{display:inline-flex;min-height:36px;align-items:center;justify-content:center;gap:7px;border:1px solid var(--pf-border);border-radius:10px;padding:0 11px;color:var(--pf-muted);font-size:10px;font-weight:700;transition:all .18s}
+.pf-studio-tool:hover{border-color:color-mix(in srgb,var(--studio-accent) 42%,var(--pf-border));background:var(--studio-glow);color:var(--pf-fg)}
+.pf-studio-tool-primary{border-color:color-mix(in srgb,var(--studio-accent) 35%,transparent);background:var(--studio-glow);color:var(--studio-accent)}
+.pf-studio-workspace-meta{display:flex;align-items:center;gap:12px;max-width:1600px;margin:0 auto;padding:12px 28px;color:var(--pf-muted);font-size:9px;font-weight:700}
+.pf-studio-workspace-meta>span{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.pf-studio-workspace-meta b{color:var(--studio-accent);font-family:var(--pf-font-mono);font-size:9px}
+.pf-studio-meta-line{width:34px;height:1px;background:var(--pf-border)}
+.pf-studio-meta-history{margin-left:auto}
+.pf-studio-meta-history svg{color:var(--studio-accent)}
+.pf-studio-content{min-width:0}
+.pf-studio-content> :first-child{margin-top:0}
+@media(max-width:760px){
+ .pf-studio-header{align-items:stretch;flex-direction:column;gap:15px;padding:21px 15px 16px}
+ .pf-studio-toolbar{justify-content:flex-start}
+ .pf-studio-tool{min-height:34px;padding:0 9px;font-size:9px}
+ .pf-studio-workspace-meta{gap:8px;overflow-x:auto;padding:10px 15px;font-size:8px}
+ .pf-studio-meta-line{width:18px;flex:none}
+ .pf-studio-meta-history{margin-left:8px}
+}
