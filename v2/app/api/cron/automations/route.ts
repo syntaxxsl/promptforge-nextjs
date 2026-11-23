@@ -32,13 +32,14 @@ function tokensMatch(provided: string, expected: string): boolean {
 }
 
 type ExecutionLock = { id: string }
+type ExecutionClaim = { lock: ExecutionLock; recovered: boolean }
 
 async function claimExecution(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   userId: string,
   automationId: string,
   scheduledFor: string
-): Promise<ExecutionLock | null> {
+): Promise<ExecutionClaim | null> {
   const { data: inserted, error: insertError } = await admin
     .from('automation_schedule_executions')
     .insert({
@@ -50,7 +51,7 @@ async function claimExecution(
     .select('id')
     .single()
 
-  if (!insertError && inserted) return inserted
+  if (!insertError && inserted) return { lock: inserted, recovered: false }
 
   // A unique-key collision means another dispatcher already claimed this tick.
   // Only reclaim a lock that has been abandoned beyond the route's hard timeout.
@@ -77,7 +78,7 @@ async function claimExecution(
     .maybeSingle()
 
   if (reclaimError || !reclaimed) return null
-  return reclaimed
+  return { lock: reclaimed, recovered: true }
 }
 
 export async function GET(request: NextRequest) {
@@ -128,11 +129,13 @@ export async function GET(request: NextRequest) {
     if (!isCronDue(expression, timeZone, minute)) continue
 
     const scheduledFor = minute.toISOString()
-    const lock = await claimExecution(admin, row.user_id, automation.id, scheduledFor)
-    if (!lock) {
+    const claim = await claimExecution(admin, row.user_id, automation.id, scheduledFor)
+    if (!claim) {
       skipped += 1
       continue
     }
+    const lock = claim.lock
+    if (claim.recovered) recovered += 1
 
     try {
       const run = await runScheduledAutomation(row.user_id, automation, 'schedule', undefined, dispatchDeadline)
