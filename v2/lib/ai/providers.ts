@@ -124,3 +124,22 @@ export function isProviderId(value: unknown): value is ProviderId {
 export function listProviders(): ProviderConfig[] {
   return PROVIDER_IDS.map((id) => PROVIDERS[id])
 }
+
+/**
+ * Product decision: Groq is the primary text provider, Gemini the secondary.
+ * Requests that do not name a provider prefer this order, so a deployment with
+ * only the secondary key configured still works instead of failing on OpenAI.
+ * An explicitly requested provider is never overridden by this list.
+ */
+export const PROVIDER_PRIORITY: ProviderId[] = [
+  'groq',
+  'gemini',
+  'openai',
+  'anthropic',
+  'openrouter',
+  'deepseek',
+  'mistral',
+  'xai'
+]
+
+export const PRIMARY_PROVIDER: ProviderId = PROVIDER_PRIORITY[0]

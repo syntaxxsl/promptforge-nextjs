@@ -1,5 +1,6 @@
 import type { AIRequest, ModelConfig, ProviderId } from './types'
 import { isVerified, listRoutableModels } from './model-manager'
+import { PROVIDER_PRIORITY } from './providers'
 
 /**
  * Result of a routing decision.
@@ -77,6 +78,14 @@ export function routeModel(request: AIRequest): RouteResult | null {
     summarize: 'chat'
   }
   const cap = capMap[task] ?? 'chat'
-  const preferred = capabilityFiltered.find((m) => m.capabilities.includes(cap))
-  return toResult(preferred ?? capabilityFiltered[0])
+  // Product decision: Groq is the primary text provider, Gemini the secondary.
+  // Both outrank the catalogue's own ordering; an explicit provider above is
+  // never replaced by this preference.
+  for (const providerId of PROVIDER_PRIORITY) {
+    const preferred = capabilityFiltered.find(
+      (m) => m.providerId === providerId && m.capabilities.includes(cap)
+    )
+    if (preferred) return toResult(preferred)
+  }
+  return toResult(capabilityFiltered[0])
 }

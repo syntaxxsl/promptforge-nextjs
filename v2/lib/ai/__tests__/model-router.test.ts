@@ -8,6 +8,13 @@ describe('routeModel', () => {
     expect(result?.model).toBeDefined()
   })
 
+  it('prefers the primary provider (Groq) when no provider is named', () => {
+    const chat = routeModel({ messages: [{ role: 'user', content: 'hi' }], task: 'chat' })
+    expect(chat?.providerId).toBe('groq')
+    const code = routeModel({ messages: [{ role: 'user', content: 'hi' }], task: 'code' })
+    expect(code?.providerId).toBe('groq')
+  })
+
   it('honors preferred provider', () => {
     const result = routeModel({ messages: [{ role: 'user', content: 'hi' }], provider: 'groq' })
     expect(result?.providerId).toBe('groq')
