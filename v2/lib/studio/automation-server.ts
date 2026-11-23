@@ -2,6 +2,10 @@ import { runAI } from '@/lib/ai/ai-engine'
 import type { ProviderId } from '@/lib/ai/types'
 import type { Automation, AutomationNode, AutomationRun, NodeRun } from '@/lib/studio/automation'
 
+const MAX_AUTOMATION_NODES = 40
+const MAX_AUTOMATION_INPUT_CHARS = 12_000
+const MAX_NODE_PROMPT_CHARS = 8_000
+
 function condition(input: string, node: AutomationNode) {
   const needle = (node.conditionText || '').trim()
   switch (node.conditionOp) {
@@ -35,7 +39,7 @@ export async function runScheduledAutomation(userId: string, automation: Automat
     automationId: automation.id,
     automationName: automation.name,
     trigger,
-    input: inputOverride?.trim() || automation.scheduleInput?.trim() || automation.description || (trigger === 'event' ? 'Olay tetikleyicisi' : 'Zamanlanmış otomatik çalıştırma'),
+    input: (inputOverride?.trim() || automation.scheduleInput?.trim() || automation.description || (trigger === 'event' ? 'Olay tetikleyicisi' : 'Zamanlanmış otomatik çalıştırma')).slice(0, MAX_AUTOMATION_INPUT_CHARS),
     nodes: [],
     status: 'complete',
     createdAt: now,
@@ -43,6 +47,15 @@ export async function runScheduledAutomation(userId: string, automation: Automat
   }
   let current = run.input
   let stopped = false
+
+  // Automation definitions are user-authored JSON. Bound their work before
+  // iterating or making provider calls, even if a record bypassed the UI.
+  if (!Array.isArray(automation.nodes) || automation.nodes.length > MAX_AUTOMATION_NODES) {
+    run.status = 'failed'
+    run.error = `Otomasyon en fazla ${MAX_AUTOMATION_NODES} adım içerebilir.`
+    run.updatedAt = new Date().toISOString()
+    return run
+  }
 
   for (const node of automation.nodes) {
     if (node.kind === 'end') break
@@ -67,7 +80,7 @@ export async function runScheduledAutomation(userId: string, automation: Automat
         const result = await runAI({
           messages: [
             { role: 'system', content: 'Sen bir otomasyon adımısın. Yalnızca verilen girdiye dayanarak istenen işlemi yap. Gereksiz açıklama ekleme.' },
-            { role: 'user', content: `${node.prompt || 'Girdiyi işle.'}\n\nGirdi:\n${current}` }
+            { role: 'user', content: `${(node.prompt || 'Girdiyi işle.').slice(0, MAX_NODE_PROMPT_CHARS)}\n\nGirdi:\n${current.slice(0, MAX_AUTOMATION_INPUT_CHARS)}` }
           ],
           provider: node.provider as ProviderId | undefined,
           model: node.model,
@@ -80,7 +93,7 @@ export async function runScheduledAutomation(userId: string, automation: Automat
             : Math.max(1_000, Math.min(30_000, deadlineAt - Date.now() - 1_500)),
           retries: 0
         })
-        output = result.text
+        output = result.text.slice(0, MAX_AUTOMATION_INPUT_CHARS)
       } else if (node.kind === 'condition') {
         const passed = condition(current, node)
         output = passed ? 'Koşul sağlandı — akış devam ediyor.' : 'Koşul sağlanmadı — kalan adımlar atlandı.'
