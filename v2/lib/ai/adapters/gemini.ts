@@ -69,10 +69,12 @@ export class GeminiAdapter implements AIAdapter {
   }
 
   private modelId(request: AIRequest): string {
-    return request.model || 'gemini-1.5-flash'
+    return request.model || 'gemini-3.5-flash'
   }
 
-  private buildBody(request: AIRequest, stream: boolean) {
+  // Streaming is selected by the endpoint (`:streamGenerateContent?alt=sse`),
+  // not by a body field: Gemini rejects an unknown `stream` member with 400.
+  private buildBody(request: AIRequest) {
     const { system, contents } = splitSystem(request.messages)
     const po = request.providerOptions?.gemini ?? {}
     const model = this.modelId(request)
@@ -91,14 +93,13 @@ export class GeminiAdapter implements AIAdapter {
     if (po.candidateCount !== undefined) gc.candidateCount = po.candidateCount
     if (po.responseMimeType) gc.responseMimeType = po.responseMimeType
     if (po.responseSchema) gc.responseSchema = po.responseSchema
-    body.stream = stream
     return { model, body }
   }
 
   async complete(request: AIRequest, apiKey: string): Promise<AIResult> {
     const signal = combineSignal(request)
     const start = Date.now()
-    const { model, body } = this.buildBody(request, false)
+    const { model, body } = this.buildBody(request)
     const res = await fetch(`${baseUrlOf(this.provider)}/models/${model}:generateContent`, {
       method: 'POST',
       headers: this.headers(apiKey),
@@ -136,7 +137,7 @@ export class GeminiAdapter implements AIAdapter {
   }
 
   async *stream(request: AIRequest, apiKey: string): AsyncGenerator<AIStreamChunk> {
-    const { model, body } = this.buildBody(request, true)
+    const { model, body } = this.buildBody(request)
     const signal = combineSignal(request)
     const res = await fetch(`${baseUrlOf(this.provider)}/models/${model}:streamGenerateContent?alt=sse`, {
       method: 'POST',
@@ -178,9 +179,6 @@ export class GeminiAdapter implements AIAdapter {
           if (deltaText) {
             yield { delta: deltaText, done: false, provider: this.provider.id, model }
           }
-          if (json.candidates?.[0]?.finishReason) {
-            yield { delta: '', done: true, provider: this.provider.id, model, finishReason: json.candidates[0].finishReason }
-          }
           if (json.usageMetadata) {
             yield {
               delta: '',
@@ -193,6 +191,14 @@ export class GeminiAdapter implements AIAdapter {
                 totalTokens: json.usageMetadata.totalTokenCount
               }
             }
+          }
+          if (candidate?.finishReason) {
+            // Gemini can leave the HTTP stream open after its final event, which
+            // used to keep the generator (and the studio UI) waiting forever.
+            // The finish reason is authoritative, so close our end here.
+            await reader.cancel().catch(() => {})
+            yield { delta: '', done: true, provider: this.provider.id, model, finishReason: candidate.finishReason }
+            return
           }
         } catch {
           // ignore malformed

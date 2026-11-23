@@ -39,10 +39,10 @@ describe('model-manager', () => {
   })
 
   it('defaultModel returns default for each provider', () => {
-    expect(defaultModel('groq')?.id).toBe('llama-3.3-70b-versatile')
+    expect(defaultModel('groq')?.id).toBe('openai/gpt-oss-120b')
     expect(defaultModel('openai')?.id).toBe('gpt-4o-mini')
     expect(defaultModel('anthropic')?.id).toBe('claude-sonnet-4-5')
-    expect(defaultModel('gemini')?.id).toBe('gemini-2.5-flash')
+    expect(defaultModel('gemini')?.id).toBe('gemini-3.5-flash')
     expect(defaultModel('openrouter')?.id).toBe('openai/gpt-4o-mini')
     expect(defaultModel('deepseek')?.id).toBe('deepseek-chat')
     expect(defaultModel('mistral')?.id).toBe('mistral-small-latest')
