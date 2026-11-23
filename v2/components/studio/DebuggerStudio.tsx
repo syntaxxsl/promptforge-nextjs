@@ -58,7 +58,17 @@ export default function DebuggerStudio({ userId }: { userId: string }) {
     catch { setNotice('Kopyalama başarısız; metni seçerek kopyalayabilirsin.') }
   }
 
-  return <main className="pf-debugger-studio mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
+  function downloadResult(){
+  if(!result.trim())return
+  const blob=new Blob([result],{type:'text/markdown;charset=utf-8'})
+  const url=URL.createObjectURL(blob)
+  const link=document.createElement('a')
+  link.href=url
+  link.download='promptforge-debugger-output.md'
+  document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url)
+  setNotice('Markdown çıktısı indirildi.')
+ }
+ return <main className="pf-debugger-studio mx-auto w-full max-w-[1450px] space-y-5 p-4 md:p-7">
     <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div><div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent"><Icon name="bug" className="h-4 w-4" /> PromptForge Workspace</div><h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">AI Debugger</h1><p className="mt-1 text-sm text-muted">Kodunu ve hata kayıtlarını analiz et; açıklamalı düzeltme önerileri al.</p></div>
       <ModelPicker value={model} onChange={setModel} disabled={busy} />
@@ -76,7 +86,7 @@ export default function DebuggerStudio({ userId }: { userId: string }) {
         <p className="text-[11px] leading-5 text-muted">API anahtarı, parola, erişim tokenı veya kişisel bilgi içeren satırları göndermeden önce maskele.</p>
       </section>
       <section className="flex min-h-[650px] flex-col rounded-2xl border border-border bg-surface p-4 md:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Analiz ve çözüm</h2><p className="mt-1 text-xs text-muted">{meta || (busy ? 'Kod inceleniyor…' : 'Analiz sonucu burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={() => { setResult(''); setNotice('') }} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5" />Kopyala</button><SaveOutputButton userId={userId} tool="AI Debugger" title="AI Debugger" content={result}/></div></div>
+        <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-fg">Analiz ve çözüm</h2><p className="mt-1 text-xs text-muted">{meta || (busy ? 'Kod inceleniyor…' : 'Analiz sonucu burada görünecek.')}</p></div><div className="flex gap-2"><button type="button" onClick={() => { setResult(''); setNotice('') }} className="pf-btn pf-btn-ghost text-xs">Temizle</button><button type="button" onClick={copy} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="copy" className="h-3.5 w-3.5" />Kopyala</button><button type="button" onClick={downloadResult} disabled={!result.trim()} className="pf-btn pf-btn-ghost text-xs disabled:opacity-40"><Icon name="download" className="h-3.5 w-3.5"/>İndir</button><SaveOutputButton userId={userId} tool="AI Debugger" title="AI Debugger" content={result}/></div></div>
         <div className="min-h-[550px] flex-1 overflow-y-auto rounded-xl border border-border bg-background/60 p-4">{result ? <Markdown content={result} /> : <div className="flex min-h-[530px] items-center justify-center text-center text-sm text-muted">{busy ? 'Hata analizi hazırlanıyor…' : 'Kodunu veya hata mesajını ekle ve analiz başlat.'}</div>}</div>
       </section>
     </div>
