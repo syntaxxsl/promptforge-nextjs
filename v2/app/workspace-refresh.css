@@ -341,3 +341,13 @@
  .pf-playground-studio textarea{min-height:380px}
  .pf-model-comparison-studio>div.grid{grid-template-columns:minmax(0,1fr)}
 }
+
+
+/* Chat Studio: persistent conversation rail and focused message workspace. */
+.pf-chat-studio{isolation:isolate}
+.pf-chat-studio>aside{border-color:rgba(148,163,184,.14);background:linear-gradient(180deg,rgba(15,23,42,.72),rgba(10,16,28,.78))}
+.pf-chat-studio [data-chat-composer],.pf-chat-studio textarea{border-color:rgba(148,163,184,.17)}
+.pf-chat-studio textarea:focus{outline:none;border-color:rgba(129,140,248,.58);box-shadow:0 0 0 3px rgba(99,102,241,.09)}
+.pf-chat-studio button:focus-visible{outline:2px solid rgba(129,140,248,.68);outline-offset:2px}
+.pf-chat-studio .pf-scroll{scrollbar-width:thin;scrollbar-color:rgba(148,163,184,.24) transparent}
+@media(max-width:760px){.pf-chat-studio{min-height:calc(100dvh - 3.5rem)}}
