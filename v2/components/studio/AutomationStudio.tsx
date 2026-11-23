@@ -148,6 +148,7 @@ export default function AutomationStudio({ userId }: { userId: string }) {
   async function importAutomation(file?: File) {
     if (!file) return
     try {
+      if (file.size > 1024 * 1024) throw new Error('Otomasyon dosyası en fazla 1 MB olabilir.')
       const parsed = JSON.parse(await file.text()) as { format?: string; automation?: Partial<Automation> }
       const source = parsed.automation
       if (parsed.format !== 'promptforge-automation-v1' || !source || typeof source.name !== 'string' || !Array.isArray(source.nodes) || source.nodes.length > 80) {
