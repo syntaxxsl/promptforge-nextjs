@@ -103,14 +103,29 @@ export async function GET(request: NextRequest) {
   const dispatchDeadline = Date.now() + DISPATCH_BUDGET_MS
   const firstCatchUpMinute = new Date(minute.getTime() - (CATCH_UP_MINUTES - 1) * 60_000)
 
-  const { data, error } = await admin
-    .from('studio_records')
-    .select('user_id,record_data')
-    .eq('collection', 'automations')
-    .limit(1000)
+  const PAGE_SIZE = 500
+  const automationRows: Array<{ user_id: string; record_data: Automation }> = []
+  let offset = 0
 
-  if (error) {
-    return NextResponse.json({ error: 'Otomasyonlar okunamadı.' }, { status: 503 })
+  // Supabase/PostgREST caps a response page; paginate so users beyond the
+  // first 1,000 records are not silently starved by a single fixed limit.
+  while (true) {
+    const { data: page, error } = await admin
+      .from('studio_records')
+      .select('user_id,record_data,record_id')
+      .eq('collection', 'automations')
+      .order('user_id', { ascending: true })
+      .order('record_id', { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1)
+
+    if (error) {
+      return NextResponse.json({ error: 'Otomasyonlar okunamadı.' }, { status: 503 })
+    }
+
+    const rows = (page || []) as Array<{ user_id: string; record_data: Automation }>
+    automationRows.push(...rows)
+    if (rows.length < PAGE_SIZE) break
+    offset += rows.length
   }
 
   const candidates: Array<{
@@ -120,7 +135,7 @@ export async function GET(request: NextRequest) {
   }> = []
 
   let checked = 0
-  for (const row of (data || []) as Array<{ user_id: string; record_data: Automation }>) {
+  for (const row of automationRows) {
     const automation = row.record_data
     if (!automation || automation.enabled !== true || automation.trigger !== 'schedule') continue
 
