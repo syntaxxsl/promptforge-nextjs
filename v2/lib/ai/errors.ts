@@ -168,7 +168,7 @@ export function toProviderFailure(
       providerId: resolvedProvider,
       providerName,
       model,
-      message: error.message,
+      message: redactSecrets(error.message, 200),
       status: error.status,
       retryable: error.retryable,
       code: error.code
