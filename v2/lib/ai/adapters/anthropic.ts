@@ -95,8 +95,7 @@ export class AnthropicAdapter implements AIAdapter {
     })
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new AIProviderError(codeForStatus(res.status), `Anthropic error ${res.status}: ${text.slice(0, 400)}`, {
+      throw new AIProviderError(codeForStatus(res.status), `Anthropic request failed (${res.status}).`, {
         status: res.status,
         retryable: isRetryableStatus(res.status)
       })
@@ -136,8 +135,7 @@ export class AnthropicAdapter implements AIAdapter {
     })
 
     if (!res.ok || !res.body) {
-      const text = await res.text().catch(() => '')
-      throw new AIProviderError(codeForStatus(res.status), `Anthropic stream error ${res.status}: ${text.slice(0, 400)}`, {
+      throw new AIProviderError(codeForStatus(res.status), `Anthropic stream request failed (${res.status}).`, {
         status: res.status,
         retryable: isRetryableStatus(res.status)
       })
