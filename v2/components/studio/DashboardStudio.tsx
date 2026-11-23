@@ -18,6 +18,7 @@ const featured = [
 export default function DashboardStudio({ userId }: { userId: string }) {
   const [query, setQuery] = useState('')
   const [stats, setStats] = useState({ projects: 0, conversations: 0, outputs: 0 })
+  const [recentProjects, setRecentProjects] = useState<ReturnType<typeof listProjects>>([])
   const [favoriteTools, setFavoriteTools] = useState<string[]>([])
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function DashboardStudio({ userId }: { userId: string }) {
   useEffect(() => {
     let active = true
     const localProjects = listProjects(userId)
+    setRecentProjects(localProjects.slice(0, 4))
     const localThreads = listThreads(userId)
     const localOutputs = readCollection<{ id: string }>(userId, 'studio-outputs')
     setStats({ projects: localProjects.length, conversations: localThreads.length, outputs: localOutputs.length })
@@ -97,6 +99,17 @@ export default function DashboardStudio({ userId }: { userId: string }) {
         <div><span className="pf-stat-icon"><Icon name="message" className="h-4 w-4" /></span><span><strong>{stats.conversations}</strong><small>Sohbetlerim</small></span><Link href="/history" aria-label="Sohbet geçmişine git"><Icon name="arrowRight" className="h-4 w-4" /></Link></div>
         <div><span className="pf-stat-icon"><Icon name="layers" className="h-4 w-4" /></span><span><strong>{stats.outputs}</strong><small>Kaydedilen çıktılar</small></span><Link href="/outputs" aria-label="Çıktı kütüphanesine git"><Icon name="arrowRight" className="h-4 w-4" /></Link></div>
         <div className="pf-stat-note"><span className="h-2 w-2 rounded-full bg-emerald-400" /><span>Çalışma alanın hazır</span><small>Projelerin ve çıktıların tek yerde</small></div>
+      </section>}
+      {!query && <section className="pf-recent-projects">
+        <div className="pf-section-heading">
+          <div><span className="pf-eyebrow">SON ÇALIŞMALAR</span><h2>Projelerine kaldığın yerden devam et.</h2><p>En son güncellediğin projeler burada görünür.</p></div>
+          <Link href="/projects" className="pf-section-link">Tüm projeler <Icon name="arrowRight" className="h-4 w-4" /></Link>
+        </div>
+        {recentProjects.length ? <div className="pf-recent-grid">{recentProjects.map(project => <Link href="/projects" key={project.id} className="pf-project-card">
+          <span className="pf-project-swatch" style={{ background: project.color || '#8b75ff' }}><Icon name="folder" className="h-5 w-5" /></span>
+          <span className="pf-project-copy"><strong>{project.name}</strong><small>{project.description || 'Projeni aç ve çalışmaya devam et'}</small><small className="pf-project-meta">Son güncelleme · {new Date(project.updatedAt).toLocaleDateString('tr-TR')}</small></span>
+          <Icon name="arrowUpRight" className="pf-project-arrow h-4 w-4" />
+        </Link>)}</div> : <div className="pf-project-empty"><span className="pf-project-empty-icon"><Icon name="folderPlus" className="h-5 w-5" /></span><div><strong>İlk projen için hazır mısın?</strong><p>Projelerini oluşturarak farklı çalışma alanlarını tek yerde düzenleyebilirsin.</p></div><Link href="/projects">Proje oluştur <Icon name="arrowRight" className="h-3.5 w-3.5" /></Link></div>}
       </section>}
       {!query && <section className="pf-launchpad">
         <div className="pf-launchpad-head"><div><span className="pf-eyebrow">PROMPTFORGE UNIVERSE</span><h2>Fikirden <em>gerçeğe.</em></h2><p>Yaratıcı araçların, projelerin ve üretim alanların tek bir yerde birleşiyor.</p></div><div className="pf-launchpad-orbit"><i/><i/><i/><span>✦</span></div></div>
