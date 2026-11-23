@@ -86,6 +86,13 @@ export default function StudioWorkspaceFrame({ children }: { children: React.Rea
   const segment = pathname.split('/').filter(Boolean)[0] || ''
   const config = CONFIG[segment]
   if (!config) return <>{children}</>
+  const utilityTools = [
+    { label: 'Kaydedilen çıktılar', href: '/outputs', icon: 'folder' },
+    { label: 'Sohbet geçmişi', href: '/history', icon: 'activity' }
+  ]
+  const toolbar = [...config.tools, ...utilityTools].filter((tool, index, all) =>
+    all.findIndex((item) => item.href === tool.href) === index
+  )
 
   return (
     <div className={`pf-studio-frame pf-studio-${config.accent}`}>
@@ -96,8 +103,8 @@ export default function StudioWorkspaceFrame({ children }: { children: React.Rea
           <p>{config.description}</p>
         </div>
         <nav className="pf-studio-toolbar" aria-label={`${config.title} araç çubuğu`}>
-          {config.tools.map((tool, index) => (
-            <Link key={tool.href + tool.label} href={tool.href} className={index === 0 ? 'pf-studio-tool pf-studio-tool-primary' : 'pf-studio-tool'}>
+          {toolbar.map((tool, index) => (
+            <Link key={tool.href + tool.label} href={tool.href} aria-current={pathname === tool.href ? 'page' : undefined} className={pathname === tool.href ? 'pf-studio-tool pf-studio-tool-active' : index === 0 ? 'pf-studio-tool pf-studio-tool-primary' : 'pf-studio-tool'}>
               <Icon name={tool.icon as never} className="h-3.5 w-3.5" />{tool.label}
             </Link>
           ))}
@@ -107,7 +114,7 @@ export default function StudioWorkspaceFrame({ children }: { children: React.Rea
         <span><b>01</b>{config.inputLabel}</span>
         <span className="pf-studio-meta-line" />
         <span><b>02</b>{config.outputLabel}</span>
-        <span className="pf-studio-meta-history"><Icon name="clock" className="h-3.5 w-3.5" />{config.historyLabel}</span>
+        <span className="pf-studio-meta-history"><Icon name="activity" className="h-3.5 w-3.5" />{config.historyLabel}</span>
       </div>
       <div className="pf-studio-content">{children}</div>
     </div>
