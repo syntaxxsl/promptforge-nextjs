@@ -38,6 +38,25 @@ const MODES: { id: PromptMode; title: string; description: string; instruction: 
 
 const AUTO: ModelSelection = { label: 'Otomatik seçim' }
 
+const EXAMPLES: Record<PromptMode, { label: string; input: string; context: string }[]> = {
+  improve: [
+    { label: 'Web sitesi tasarla', input: 'Modern ve mobil uyumlu bir portfolyo web sitesi tasarla.', context: 'Koyu tema, erişilebilirlik, hızlı açılış ve sade gezinme önemli.' },
+    { label: 'Ders çalışma planı', input: 'Bir ders için etkili ve sürdürülebilir çalışma planı hazırla.', context: 'Konuları küçük parçalara ayır, tekrar ve kısa molalar ekle.' }
+  ],
+  system: [
+    { label: 'Kod asistanı', input: 'Next.js ve TypeScript projelerinde yardımcı olan bir kod asistanı.', context: 'Mevcut mimariyi korusun, varsayımlarını açıklasın ve test adımları önersin.' },
+    { label: 'Araştırma asistanı', input: 'Kaynakları karşılaştırarak araştırma yapan bir asistan.', context: 'Kaynakları ayırsın, belirsizliği belirlesin ve bilgi uydurmasın.' }
+  ],
+  structured: [
+    { label: 'Ürün JSON şeması', input: 'Bir e-ticaret ürünü için yapılandırılmış JSON çıktısı.', context: 'Alanlar: ad, açıklama, fiyat, kategori, stok durumu ve özellikler.' },
+    { label: 'Görev JSON şeması', input: 'Proje görevlerini JSON olarak döndüren bir çıktı.', context: 'Her görevde başlık, sorumlu, öncelik, durum ve son tarih alanı olsun.' }
+  ],
+  developer: [
+    { label: 'API geliştirme', input: 'Güvenli ve belgelenmiş bir REST API geliştir.', context: 'TypeScript, doğrulama, hata yönetimi ve test kapsamını belirt.' },
+    { label: 'UI bileşeni', input: 'Yeniden kullanılabilir, erişilebilir bir arayüz bileşeni oluştur.', context: 'Mobil uyumluluk, klavye erişimi ve yükleme/hata durumları olsun.' }
+  ]
+}
+
 export default function PromptEngineerStudio({ userId }: { userId: string }) {
   const [mode, setMode] = useState<PromptMode>('improve')
   const [input, setInput] = useState('')
@@ -155,6 +174,11 @@ export default function PromptEngineerStudio({ userId }: { userId: string }) {
           </button>
         ))}
       </div>
+
+      <section className="rounded-2xl border border-border bg-surface/70 p-3">
+        <div className="mb-2 flex items-center justify-between gap-2"><h2 className="text-xs font-semibold text-fg">Hızlı başlangıç</h2><span className="text-[10px] text-muted">Seçili moda uygun örnekler</span></div>
+        <div className="flex flex-wrap gap-2">{EXAMPLES[mode].map((example) => <button key={example.label} type="button" disabled={busy} onClick={() => { setInput(example.input); setContext(example.context); setOutput(''); setNotice('Örnek girdi yüklendi. İstersen düzenleyebilirsin.') }} className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted transition hover:border-accent/40 hover:text-fg disabled:opacity-50">{example.label}</button>)}</div>
+      </section>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="rounded-2xl border border-border bg-surface p-4 md:p-5">
