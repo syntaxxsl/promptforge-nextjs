@@ -261,3 +261,32 @@
  .pf-research-studio>aside{width:100%;max-height:210px;overflow:auto}
  .pf-research-studio>section{padding:12px}
 }
+
+
+/* Dedicated layouts for specialist, story, team, vision and web research desks. */
+.pf-specialist-studio>header,.pf-story-studio>header,.pf-vision-studio>header{position:relative;overflow:hidden;border:1px solid rgba(148,163,184,.16);border-radius:19px;background:linear-gradient(112deg,rgba(16,24,40,.98),rgba(21,28,47,.94));padding:20px;box-shadow:0 15px 42px rgba(0,0,0,.12)}
+.pf-specialist-studio>header:after,.pf-story-studio>header:after,.pf-vision-studio>header:after{position:absolute;inset:0 0 auto auto;width:45%;height:100%;content:"";pointer-events:none;background:radial-gradient(ellipse at 100% 0%,rgba(129,140,248,.13),transparent 70%)}
+.pf-specialist-studio>div.grid>section,.pf-story-studio>div.grid>section,.pf-vision-studio>div.grid>section{min-width:0;border-color:rgba(148,163,184,.14);border-radius:16px;background:linear-gradient(155deg,rgba(19,27,43,.96),rgba(12,18,30,.98));box-shadow:0 14px 38px rgba(0,0,0,.1)}
+.pf-specialist-studio .pf-input,.pf-story-studio .pf-input,.pf-vision-studio .pf-input{border-color:rgba(148,163,184,.17);border-radius:10px;background:rgba(4,9,19,.56)}
+.pf-story-studio>div.grid:first-of-type>button[aria-pressed=true]{border-color:rgba(167,139,250,.58);background:rgba(139,92,246,.12);box-shadow:0 0 0 1px rgba(139,92,246,.1)}
+.pf-team-studio{min-width:0}
+.pf-team-studio>aside{border:1px solid rgba(129,140,248,.17);border-radius:15px;background:linear-gradient(180deg,rgba(18,26,43,.98),rgba(11,18,31,.98));padding:13px}
+.pf-team-studio>aside>div:first-child{border-bottom:1px solid rgba(148,163,184,.12);padding-bottom:10px}
+.pf-team-studio>div{min-width:0;border:1px solid rgba(148,163,184,.13);border-radius:15px;background:linear-gradient(155deg,rgba(17,25,41,.92),rgba(11,18,30,.96));padding:17px}
+.pf-team-studio input,.pf-team-studio textarea,.pf-team-studio select{border-radius:9px}
+.pf-vision-studio>div.grid>section:first-child{border:1px solid rgba(56,189,248,.17);background:linear-gradient(155deg,rgba(13,38,57,.3),rgba(12,18,30,.97))}
+.pf-vision-studio>div.grid>section:last-child{border:1px solid rgba(129,140,248,.16);background:linear-gradient(155deg,rgba(28,29,58,.26),rgba(12,18,30,.97))}
+.pf-web-search-studio{border:1px solid rgba(45,212,191,.16);border-radius:17px;background:linear-gradient(155deg,rgba(13,30,39,.96),rgba(10,17,28,.98));padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.13)}
+.pf-web-search-studio>header{border-bottom:1px solid rgba(148,163,184,.12);padding-bottom:13px}
+.pf-web-search-studio input{min-height:43px;outline:none}
+.pf-web-search-studio button{border-radius:9px;transition:background .16s,border-color .16s}
+.pf-web-search-studio button:focus-visible,.pf-team-studio button:focus-visible,.pf-story-studio button:focus-visible{outline:2px solid rgba(129,140,248,.7);outline-offset:2px}
+@media(max-width:760px){
+ .pf-specialist-studio,.pf-story-studio,.pf-vision-studio{padding:11px!important}
+ .pf-specialist-studio>header,.pf-story-studio>header,.pf-vision-studio>header{padding:15px;border-radius:14px}
+ .pf-specialist-studio>div.grid,.pf-story-studio>div.grid,.pf-vision-studio>div.grid{grid-template-columns:minmax(0,1fr)}
+ .pf-team-studio{height:auto;min-height:calc(100dvh - 120px);flex-direction:column;padding:11px!important}
+ .pf-team-studio>aside{width:100%;max-height:220px;overflow:auto}
+ .pf-team-studio>div{padding:12px}
+ .pf-web-search-studio{min-height:calc(100dvh - 120px);padding:12px}
+}
